@@ -1,0 +1,725 @@
+// Static Datasets for Footy-Trivia Application
+
+      const QUESTIONS = {
+
+        'premier-league': [
+
+          { q: 'Which club has won the most Premier League titles?', opts: ['Manchester United', 'Chelsea', 'Arsenal', 'Liverpool'], ans: 0, cat: 'Premier League', diff: 'easy', hint: 'Sir Alex Ferguson managed this club to most of their titles.' },
+
+          { q: 'Who is the all-time top scorer in Premier League history?', opts: ['Wayne Rooney', 'Alan Shearer', 'Andrew Cole', 'Frank Lampard'], ans: 1, cat: 'Premier League', diff: 'easy', hint: 'He played for Blackburn Rovers and Newcastle United.' },
+
+          { q: 'In what year was the Premier League founded?', opts: ['1985', '1990', '1992', '1995'], ans: 2, cat: 'Premier League', diff: 'easy', hint: 'It replaced the old First Division.' },
+
+          { q: 'Which stadium is home to Manchester City?', opts: ['Anfield', 'Etihad Stadium', 'Old Trafford', 'Stamford Bridge'], ans: 1, cat: 'Premier League', diff: 'easy', hint: 'Located in east Manchester.' },
+
+          { q: 'Who scored the famous "Hand of God" goal?', opts: ['Ronaldo', 'Pele', 'Diego Maradona', 'Zinedine Zidane'], ans: 2, cat: 'World Cup', diff: 'medium', hint: 'Argentina vs England, Mexico 1986.' },
+
+          { q: 'Which country has won the most FIFA World Cups?', opts: ['Germany', 'Argentina', 'Italy', 'Brazil'], ans: 3, cat: 'World Cup', diff: 'easy', hint: 'They have won it 5 times.' },
+
+          { q: 'Who won the Ballon d\'Or in 2023?', opts: ['Erling Haaland', 'Kylian Mbappe', 'Lionel Messi', 'Vinicius Jr'], ans: 2, cat: 'Awards', diff: 'medium', hint: 'He won the World Cup in 2022 with his nation.' },
+
+          { q: 'Which club did Erling Haaland join from Borussia Dortmund?', opts: ['Real Madrid', 'Chelsea', 'Manchester City', 'Bayern Munich'], ans: 2, cat: 'Transfers', diff: 'easy', hint: 'He moved to the Premier League in summer 2022.' },
+
+          { q: 'How many times has Liverpool won the UEFA Champions League?', opts: ['5', '6', '7', '8'], ans: 1, cat: 'Champions League', diff: 'medium', hint: 'Their latest win was in 2019 vs Tottenham.' },
+
+          { q: 'Which player holds the record for most Champions League goals?', opts: ['Lionel Messi', 'Raul', 'Robert Lewandowski', 'Cristiano Ronaldo'], ans: 3, cat: 'Champions League', diff: 'medium', hint: 'He also holds the record for most international goals.' },
+
+          // Expanded 15 questions
+
+          { q: 'Which team went undefeated in the 2003-04 Premier League season?', opts: ['Manchester United', 'Arsenal', 'Chelsea', 'Liverpool'], ans: 1, cat: 'Premier League', diff: 'easy', hint: 'The Invincibles.' },
+
+          { q: 'What is the record transfer fee paid by a Premier League club?', opts: ['£100m', '£105m', '£115m', '£121m'], ans: 3, cat: 'Premier League', diff: 'hard', hint: 'Enzo Fernandez and Moises Caicedo transfers.' },
+
+          { q: 'Which stadium has the largest capacity in the Premier League?', opts: ['Emirates Stadium', 'Tottenham Hotspur Stadium', 'Old Trafford', 'London Stadium'], ans: 2, cat: 'Premier League', diff: 'medium', hint: 'Capacity is over 74,000.' },
+
+          { q: 'Who was the first manager to win three consecutive Premier League titles?', opts: ['Arsene Wenger', 'Sir Alex Ferguson', 'Jose Mourinho', 'Pep Guardiola'], ans: 1, cat: 'Premier League', diff: 'medium', hint: 'Achieved with Manchester United.' },
+
+          { q: 'Which club holds the record for the lowest points total in a Premier League season?', opts: ['Sunderland', 'Derby County', 'Aston Villa', 'Huddersfield Town'], ans: 1, cat: 'Premier League', diff: 'hard', hint: '11 points in the 2007-08 season.' },
+
+          { q: 'In 2012, who scored the 93rd-minute goal to win Manchester City their first Premier League title?', opts: ['David Silva', 'Yaya Toure', 'Sergio Aguero', 'Mario Balotelli'], ans: 2, cat: 'Premier League', diff: 'easy', hint: '"AGUEROOOOO!"' },
+
+          { q: 'Who holds the record for the fastest Premier League hat-trick?', opts: ['Robbie Fowler', 'Sadio Mane', 'Alan Shearer', 'Sergio Aguero'], ans: 1, cat: 'Premier League', diff: 'hard', hint: '2 minutes 56 seconds for Southampton vs Aston Villa.' },
+
+          { q: 'Which team won the Premier League in the 2015-16 season in a historic sports upset?', opts: ['Leicester City', 'Tottenham Hotspur', 'West Ham', 'Everton'], ans: 0, cat: 'Premier League', diff: 'easy', hint: 'Managed by Claudio Ranieri.' },
+
+          { q: 'Who has made the most appearances in Premier League history?', opts: ['Ryan Giggs', 'Gareth Barry', 'Frank Lampard', 'James Milner'], ans: 1, cat: 'Premier League', diff: 'medium', hint: '653 appearances.' },
+
+          { q: 'Which player has the most Premier League assists of all time?', opts: ['Cesc Fabregas', 'Wayne Rooney', 'Ryan Giggs', 'Kevin De Bruyne'], ans: 2, cat: 'Premier League', diff: 'medium', hint: '162 assists.' },
+
+          { q: 'What controversy occurred in 2019 in the Tottenham vs Manchester City Champions League quarterfinal involving VAR?', opts: ['Sterling goal disallowed', 'Llorente handball', 'Both of these', 'None of these'], ans: 2, cat: 'Premier League', diff: 'hard', hint: 'Late drama at the Etihad Stadium.' },
+
+          { q: 'Which club did Jack Grealish join for £100m in 2021?', opts: ['Manchester United', 'Manchester City', 'Chelsea', 'Liverpool'], ans: 1, cat: 'Premier League', diff: 'easy', hint: 'Transferred from Aston Villa.' },
+
+          { q: 'Who is the youngest player to make a Premier League appearance?', opts: ['Harvey Elliott', 'Ethan Nwaneri', 'Wayne Rooney', 'Cesc Fabregas'], ans: 1, cat: 'Premier League', diff: 'hard', hint: '15 years and 181 days for Arsenal in 2022.' },
+
+          { q: 'Which manager won the Premier League with two different clubs?', opts: ['Sir Alex Ferguson', 'Kenny Dalglish', 'Jose Mourinho', 'Pep Guardiola'], ans: 1, cat: 'Premier League', diff: 'hard', hint: 'Blackburn Rovers and Liverpool.' },
+
+          { q: 'Who was the first player to score 30+ goals in a 38-game Premier League season?', opts: ['Alan Shearer', 'Andy Cole', 'Cristiano Ronaldo', 'Mohamed Salah'], ans: 2, cat: 'Premier League', diff: 'hard', hint: 'Manchester United winger in 2007-08.' }
+
+        ],
+
+        'la-liga': [
+
+          { q: 'Which club has won the most La Liga titles?', opts: ['FC Barcelona', 'Real Madrid', 'Atletico Madrid', 'Valencia'], ans: 1, cat: 'La Liga', diff: 'easy', hint: 'Los Blancos, the white ones.' },
+
+          { q: 'Who is La Liga\'s all-time top scorer?', opts: ['Ronaldo Nazario', 'Lionel Messi', 'Karim Benzema', 'Raul'], ans: 1, cat: 'La Liga', diff: 'medium', hint: 'An Argentine, usually wearing #10.' },
+
+          { q: 'Which stadium hosts El Clasico at home for Real Madrid?', opts: ['Camp Nou', 'Vicente Calderon', 'Metropolitano', 'Santiago Bernabeu'], ans: 3, cat: 'La Liga', diff: 'easy', hint: 'Located in Madrid.' },
+
+          { q: 'What year did Barcelona complete the historic treble?', opts: ['2006', '2009', '2011', '2015'], ans: 1, cat: 'La Liga', diff: 'medium', hint: 'Pep Guardiola\'s first season as manager.' },
+
+          { q: 'Which player won the Golden Boot at the 2022 World Cup?', opts: ['Messi', 'Mbappe', 'Giroud', 'Alvarez'], ans: 1, cat: 'World Cup', diff: 'medium', hint: 'He scored 8 goals in the tournament.' },
+
+          // Expanded 15 questions
+
+          { q: 'What is the home stadium of Atletico Madrid?', opts: ['San Mames', 'Mestalla', 'Metropolitano', 'Ramon Sanchez Pizjuan'], ans: 2, cat: 'La Liga', diff: 'easy', hint: 'Replaced the Vicente Calderon.' },
+
+          { q: 'Which player won the Pichichi Trophy (top scorer) most times?', opts: ['Lionel Messi', 'Telmo Zarra', 'Alfredo Di Stefano', 'Hugo Sanchez'], ans: 0, cat: 'La Liga', diff: 'medium', hint: 'He won it 8 times.' },
+
+          { q: 'What is the record transfer fee paid by Real Madrid?', opts: ['£80m', '£85m', '£100m', '£115m'], ans: 3, cat: 'La Liga', diff: 'hard', hint: 'Eden Hazard transfer from Chelsea.' },
+
+          { q: 'Who was the manager of Real Madrid when they won "La Decima" in 2014?', opts: ['Zinedine Zidane', 'Jose Mourinho', 'Carlo Ancelotti', 'Rafael Benitez'], ans: 2, cat: 'La Liga', diff: 'medium', hint: 'Italian legendary manager.' },
+
+          { q: 'Which club did Antoine Griezmann join Barcelona from in 2019?', opts: ['Atletico Madrid', 'Real Sociedad', 'Monaco', 'Lyon'], ans: 0, cat: 'La Liga', diff: 'easy', hint: 'He returned to the same club later.' },
+
+          { q: 'Who is the youngest scorer in El Clasico history?', opts: ['Ansu Fati', 'Lamine Yamal', 'Raul', 'Lionel Messi'], ans: 1, cat: 'La Liga', diff: 'medium', hint: 'Scored in 2023 at age 16.' },
+
+          { q: 'Which manager won the La Liga title with Atletico Madrid in both 2014 and 2021?', opts: ['Luis Aragones', 'Diego Simeone', 'Radomir Antic', 'Quique Sanchez Flores'], ans: 1, cat: 'La Liga', diff: 'easy', hint: '"El Cholo".' },
+
+          { q: 'Which club is known as the "Los Che"?', opts: ['Sevilla', 'Valencia', 'Real Betis', 'Athletic Bilbao'], ans: 1, cat: 'La Liga', diff: 'hard', hint: 'They play at Mestalla.' },
+
+          { q: 'Which player has the most appearances in La Liga history?', opts: ['Andoni Zubizarreta', 'Joaquin', 'Raul', 'Lionel Messi'], ans: 0, cat: 'La Liga', diff: 'hard', hint: 'Spanish goalkeeper with 622 appearances.' },
+
+          { q: 'Who scored the fastest goal in La Liga history?', opts: ['Lionel Messi', 'Seydou Keita', 'Joseba Llorente', 'Karim Benzema'], ans: 2, cat: 'La Liga', diff: 'hard', hint: '7.82 seconds for Real Valladolid in 2008.' },
+
+          { q: 'What is the capacity of Barcelona\'s Camp Nou stadium before recent renovations?', opts: ['80,000', '90,000', '99,354', '105,000'], ans: 2, cat: 'La Liga', diff: 'medium', hint: 'Largest stadium in Europe.' },
+
+          { q: 'Which team is the only non-relegated team in La Liga alongside Real Madrid and Barcelona?', opts: ['Atletico Madrid', 'Valencia', 'Athletic Bilbao', 'Sevilla'], ans: 2, cat: 'La Liga', diff: 'hard', hint: 'Basque club with a home-grown only policy.' },
+
+          { q: 'Who holds the record for most assists in a single La Liga season?', opts: ['Xavi', 'Andres Iniesta', 'Lionel Messi', 'Mesut Ozil'], ans: 2, cat: 'La Liga', diff: 'hard', hint: '21 assists in 2019-20.' },
+
+          { q: 'Which La Liga stadium is famous for its unique structure built next to a river?', opts: ['Mestalla', 'San Mames', 'Ramon Sanchez Pizjuan', 'Estadio de la Ceramica'], ans: 1, cat: 'La Liga', diff: 'hard', hint: 'Located in Bilbao.' },
+
+          { q: 'In 2020, which team was relegated from La Liga after 26 years in the top flight?', opts: ['Espanyol', 'Deportivo La Coruna', 'Zaragoza', 'Malaga'], ans: 0, cat: 'La Liga', diff: 'hard', hint: 'Barcelona-based club.' }
+
+        ],
+
+        'ucl': [
+
+          { q: 'Which club has won the most Champions League titles?', opts: ['AC Milan', 'Bayern Munich', 'Barcelona', 'Real Madrid'], ans: 3, cat: 'Champions League', diff: 'easy', hint: 'Los Blancos have 15 titles.' },
+
+          { q: 'Where was the 2023 Champions League final held?', opts: ['Wembley', 'Ataturk', 'Lusail', 'Olympiastadion'], ans: 1, cat: 'Champions League', diff: 'medium', hint: 'Istanbul, Turkey.' },
+
+          { q: 'Who scored the winning goal in the 2005 final comeback by Liverpool?', opts: ['Steven Gerrard', 'Jerzy Dudek (saved)', 'Andriy Shevchenko', 'Vladimir Šmicer'], ans: 1, cat: 'Champions League', diff: 'hard', hint: 'A penalty save in the shootout.' },
+
+          { q: 'Which player has won the most Champions League titles?', opts: ['Cristiano Ronaldo', 'Iker Casillas', 'Karim Benzema', 'Luka Modrić'], ans: 3, cat: 'Champions League', diff: 'hard', hint: 'Real Madrid midfielder, won it 6 times.' },
+
+          { q: 'What is the UEFA Champions League anthem called?', opts: ['Hymn to Joy', 'March of the Champions', 'The Anthem', 'Champions League Theme'], ans: 3, cat: 'Champions League', diff: 'easy', hint: 'Simply named after the competition.' },
+
+          // Expanded 15 questions
+
+          { q: 'Which club did Chelsea defeat in the 2012 Champions League final to win their first title?', opts: ['Bayern Munich', 'Barcelona', 'Manchester United', 'Real Madrid'], ans: 0, cat: 'Champions League', diff: 'easy', hint: 'Final was played at Allianz Arena.' },
+
+          { q: 'Who is the youngest goalscorer in Champions League history?', opts: ['Kylian Mbappe', 'Ansu Fati', 'Erling Haaland', 'Raul'], ans: 1, cat: 'Champions League', diff: 'medium', hint: '17 years and 40 days for Barcelona in 2019.' },
+
+          { q: 'Which manager has won the most Champions League trophies?', opts: ['Sir Alex Ferguson', 'Pep Guardiola', 'Carlo Ancelotti', 'Zinedine Zidane'], ans: 2, cat: 'Champions League', diff: 'medium', hint: 'He won 5 titles.' },
+
+          { q: 'In 2021, when was the Away Goals Rule officially abolished in Champions League matches?', opts: ['2019-20', '2020-21', '2021-22', '2022-23'], ans: 2, cat: 'Champions League', diff: 'hard', hint: 'Starting from the 2021-22 season.' },
+
+          { q: 'Who holds the record for the fastest goal scored in a Champions League final?', opts: ['Paolo Maldini', 'Zinedine Zidane', 'Lionel Messi', 'Cristiano Ronaldo'], ans: 0, cat: 'Champions League', diff: 'hard', hint: '51 seconds in the 2005 final.' },
+
+          { q: 'Which country has produced the most Champions League winners?', opts: ['England', 'Italy', 'Spain', 'Germany'], ans: 2, cat: 'Champions League', diff: 'medium', hint: 'Real Madrid and Barcelona dominate.' },
+
+          { q: 'Which player scored the famous overhead kick goal in the 2018 final?', opts: ['Cristiano Ronaldo', 'Gareth Bale', 'Karim Benzema', 'Sadio Mane'], ans: 1, cat: 'Champions League', diff: 'easy', hint: 'Real Madrid vs Liverpool.' },
+
+          { q: 'How many Champions League titles did Pep Guardiola win as Barcelona manager?', opts: ['1', '2', '3', '4'], ans: 1, cat: 'Champions League', diff: 'medium', hint: 'Won in 2009 and 2011.' },
+
+          { q: 'Who is the only player to score hat-tricks for three different Champions League clubs?', opts: ['Cristiano Ronaldo', 'Neymar', 'Robert Lewandowski', 'Zlatan Ibrahimovic'], ans: 2, cat: 'Champions League', diff: 'hard', hint: 'Dortmund, Bayern, and Barcelona.' },
+
+          { q: 'Which club won three consecutive Champions League trophies from 2016 to 2018?', opts: ['Bayern Munich', 'Real Madrid', 'Barcelona', 'Juventus'], ans: 1, cat: 'Champions League', diff: 'easy', hint: 'Managed by Zinedine Zidane.' },
+
+          { q: 'What capacity does Wembley Stadium hold for a Champions League final?', opts: ['75,000', '80,000', '86,000', '90,000'], ans: 3, cat: 'Champions League', diff: 'medium', hint: 'Largest stadium in the UK.' },
+
+          { q: 'Which manager won the Champions League with Porto in 2004?', opts: ['Jose Mourinho', 'Bobby Robson', 'Andre Villas-Boas', 'Carlo Ancelotti'], ans: 0, cat: 'Champions League', diff: 'easy', hint: '"The Special One".' },
+
+          { q: 'Who is the all-time leading assist provider in Champions League history?', opts: ['Lionel Messi', 'Cristiano Ronaldo', 'Ryan Giggs', 'Angel Di Maria'], ans: 1, cat: 'Champions League', diff: 'hard', hint: 'Same player who is the all-time top scorer.' },
+
+          { q: 'Which club did Arsenal lose to in their only Champions League final appearance in 2006?', opts: ['Barcelona', 'Real Madrid', 'Milan', 'Bayern Munich'], ans: 0, cat: 'Champions League', diff: 'easy', hint: 'Played in Paris.' },
+
+          { q: 'In what year was the European Cup rebranded as the UEFA Champions League?', opts: ['1990', '1992', '1994', '1996'], ans: 1, cat: 'Champions League', diff: 'medium', hint: 'Rebranded in 1992.' }
+
+        ],
+
+        'world-cup': [
+
+          { q: 'Which country hosted the 2022 FIFA World Cup?', opts: ['Saudi Arabia', 'UAE', 'Qatar', 'Bahrain'], ans: 2, cat: 'World Cup', diff: 'easy', hint: 'First Middle Eastern host.' },
+
+          { q: 'Who is the all-time top scorer at FIFA World Cups?', opts: ['Pele', 'Ronaldo Nazario', 'Miroslav Klose', 'Gerd Muller'], ans: 2, cat: 'World Cup', diff: 'medium', hint: 'German striker, 16 World Cup goals.' },
+
+          { q: 'Which team won the first ever FIFA World Cup in 1930?', opts: ['Brazil', 'Argentina', 'Uruguay', 'Italy'], ans: 2, cat: 'World Cup', diff: 'medium', hint: 'They hosted it too.' },
+
+          { q: 'What is the maximum number of goals scored in a single World Cup game?', opts: ['9', '10', '11', '12'], ans: 3, cat: 'World Cup', diff: 'hard', hint: 'Austria 7-5 Switzerland, 1954.' },
+
+          { q: 'Which country has appeared in the most World Cup finals?', opts: ['Germany', 'Brazil', 'Italy', 'Argentina'], ans: 0, cat: 'World Cup', diff: 'hard', hint: '8 finals.' },
+
+          // Expanded 15 questions
+
+          { q: 'Who won the Golden Boot at the 2018 FIFA World Cup in Russia?', opts: ['Kylian Mbappe', 'Antoine Griezmann', 'Luka Modric', 'Harry Kane'], ans: 3, cat: 'World Cup', diff: 'medium', hint: 'English captain scored 6 goals.' },
+
+          { q: 'Which nation has won the most FIFA World Cup tournaments?', opts: ['Germany', 'Italy', 'Brazil', 'Argentina'], ans: 2, cat: 'World Cup', diff: 'easy', hint: '5 times winners.' },
+
+          { q: 'Who scored the winning goal for Spain in the 2010 World Cup final?', opts: ['Xavi', 'Andres Iniesta', 'David Villa', 'Iker Casillas'], ans: 1, cat: 'World Cup', diff: 'easy', hint: 'Midfielder scored in the 116th minute.' },
+
+          { q: 'What was the capacity of Lusail Iconic Stadium for the 2022 World Cup Final?', opts: ['70,000', '80,000', '88,966', '95,000'], ans: 2, cat: 'World Cup', diff: 'hard', hint: 'Capacity was just under 89,000.' },
+
+          { q: 'Which manager won the World Cup both as a player and as a manager?', opts: ['Didier Deschamps', 'Franz Beckenbauer', 'Mario Zagallo', 'All of these'], ans: 3, cat: 'World Cup', diff: 'hard', hint: 'All three achieved this feat.' },
+
+          { q: 'Which player has won the most FIFA World Cup trophies?', opts: ['Pele', 'Diego Maradona', 'Cafu', 'Ronaldo Nazario'], ans: 0, cat: 'World Cup', diff: 'medium', hint: 'Won it 3 times (1958, 1962, 1970).' },
+
+          { q: 'What year did France win their first World Cup title?', opts: ['1982', '1990', '1998', '2006'], ans: 2, cat: 'World Cup', diff: 'easy', hint: 'They hosted it that year.' },
+
+          { q: 'Who was the youngest player to score in a World Cup final?', opts: ['Pele', 'Kylian Mbappe', 'Lionel Messi', 'Ronaldo'], ans: 0, cat: 'World Cup', diff: 'hard', hint: '17 years old in 1958.' },
+
+          { q: 'Which goalkeeper won the Golden Glove at the 2022 World Cup?', opts: ['Hugo Lloris', 'Emiliano Martinez', 'Yassine Bounou', 'Dominik Livakovic'], ans: 1, cat: 'World Cup', diff: 'easy', hint: 'Argentina shot stopper.' },
+
+          { q: 'Which team was infamously defeated 7-1 by Germany in the 2014 World Cup semi-finals?', opts: ['Argentina', 'Brazil', 'Netherlands', 'Colombia'], ans: 1, cat: 'World Cup', diff: 'easy', hint: 'The host nation.' },
+
+          { q: 'What is the record number of red cards shown in a single World Cup match?', opts: ['3', '4', '5', '6'], ans: 1, cat: 'World Cup', diff: 'hard', hint: 'Battle of Nuremberg (Portugal vs Netherlands, 2006).' },
+
+          { q: 'Which player holds the record for most World Cup appearances?', opts: ['Lothar Matthaus', 'Lionel Messi', 'Miroslav Klose', 'Cristiano Ronaldo'], ans: 1, cat: 'World Cup', diff: 'medium', hint: 'Reached 26 appearances in 2022.' },
+
+          { q: 'Who is the only player to score in four different World Cup tournaments?', opts: ['Cristiano Ronaldo', 'Pele', 'Uwe Seeler', 'All of these'], ans: 3, cat: 'World Cup', diff: 'hard', hint: 'All three did so.' },
+
+          { q: 'Which African nation became the first to reach a World Cup semi-final in 2022?', opts: ['Cameroon', 'Senegal', 'Morocco', 'Ghana'], ans: 2, cat: 'World Cup', diff: 'easy', hint: 'Defeated Portugal in the QF.' },
+
+          { q: 'Which country has hosted the World Cup twice?', opts: ['Mexico', 'Italy', 'France', 'All of these'], ans: 3, cat: 'World Cup', diff: 'hard', hint: 'All three nations have hosted twice.' }
+
+        ],
+
+        'daily': [
+
+          { q: 'Which English club is known as "The Gunners"?', opts: ['Chelsea', 'Arsenal', 'West Ham', 'Tottenham'], ans: 1, cat: 'Daily Challenge', diff: 'easy', hint: 'They play at the Emirates Stadium.' },
+
+          { q: 'Kylian Mbappe is from which country?', opts: ['Belgium', 'Senegal', 'France', 'Algeria'], ans: 2, cat: 'Daily Challenge', diff: 'easy', hint: 'Les Bleus.' },
+          { q: 'Which position does Thibaut Courtois play?', opts: ['Midfielder', 'Striker', 'Defender', 'Goalkeeper'], ans: 3, cat: 'Daily Challenge', diff: 'easy', hint: 'Belgian international.' },
+
+          { q: 'Who managed Barcelona during their 2008-2012 golden era?', opts: ['Luis Enrique', 'Tito Vilanova', 'Pep Guardiola', 'Johan Cruyff'], ans: 2, cat: 'Daily Challenge', diff: 'medium', hint: 'Now manages Manchester City.' },
+
+          { q: 'What is the nickname of Borussia Dortmund?', opts: ['Die Roten', 'Die Gelben', 'BVB', 'Die Schwarzgelben'], ans: 3, cat: 'Daily Challenge', diff: 'medium', hint: 'Black and Yellow.' },
+
+          { q: 'Which country does Robert Lewandowski represent?', opts: ['Czech Republic', 'Hungary', 'Poland', 'Slovakia'], ans: 2, cat: 'Daily Challenge', diff: 'easy', hint: 'He plays in La Liga.' },
+
+          { q: 'How many players are on each side in a standard football match?', opts: ['9', '10', '11', '12'], ans: 2, cat: 'Daily Challenge', diff: 'easy', hint: 'Including the goalkeeper.' },
+
+          { q: 'In what year did Zinedine Zidane retire?', opts: ['2004', '2006', '2008', '2010'], ans: 1, cat: 'Daily Challenge', diff: 'medium', hint: 'Infamously retired after the 2006 World Cup.' },
+
+          { q: 'Which club has the record for the most Premier League wins in a season?', opts: ['Arsenal', 'Liverpool', 'Chelsea', 'Manchester City'], ans: 3, cat: 'Daily Challenge', diff: 'medium', hint: '2017-18, 32 wins.' },
+          { q: 'Who won the 2022 Ballon d\'Or?', opts: ['Benzema', 'Haaland', 'Mbappe', 'Messi'], ans: 0, cat: 'Daily Challenge', diff: 'medium', hint: 'French striker.' },
+
+          { q: 'Which nation won the 2023 FIFA Women\'s World Cup?', opts: ['England', 'USA', 'Spain', 'Sweden'], ans: 2, cat: 'Daily Challenge', diff: 'medium', hint: 'Defeated England in the final.' },
+
+          { q: 'Which club did Jude Bellingham join Real Madrid from?', opts: ['Borussia Dortmund', 'Birmingham City', 'Manchester City', 'Liverpool'], ans: 0, cat: 'Daily Challenge', diff: 'easy', hint: 'German club.' },
+
+          { q: 'Which manager won the Champions League with Inter Milan in 2010?', opts: ['Jose Mourinho', 'Roberto Mancini', 'Rafa Benitez', 'Pep Guardiola'], ans: 0, cat: 'Daily Challenge', diff: 'medium', hint: 'Part of a historic treble.' },
+
+          { q: 'What capacity does Wembley Stadium hold?', opts: ['75,000', '80,000', '90,000', '100,000'], ans: 2, cat: 'Daily Challenge', diff: 'medium', hint: 'Largest in the UK.' },
+
+          { q: 'Who scored the "Aguerrooooo" goal in 2012?', opts: ['Edin Dzeko', 'Sergio Aguero', 'Mario Balotelli', 'David Silva'], ans: 1, cat: 'Daily Challenge', diff: 'easy', hint: 'Argentine striker.' },
+
+          { q: 'Which country hosted the Euro 2024 tournament?', opts: ['England', 'France', 'Germany', 'Spain'], ans: 2, cat: 'Daily Challenge', diff: 'easy', hint: 'Berlin hosted the final.' },
+
+          { q: 'Who holds the record for most Ballon d\'Or awards?', opts: ['Cristiano Ronaldo', 'Michel Platini', 'Johan Cruyff', 'Lionel Messi'], ans: 3, cat: 'Daily Challenge', diff: 'medium', hint: 'Has won it 8 times.' }
+
+        ]
+
+      };
+
+      for (const key of ['bundesliga', 'serie-a', 'ligue-1', 'man-utd', 'man-city', 'chelsea', 'arsenal', 'liverpool', 'real-madrid', 'barcelona', 'atletico']) {
+
+        if (!QUESTIONS[key]) QUESTIONS[key] = QUESTIONS['premier-league'].slice(0, 5);
+
+      }
+
+
+      const LEADERBOARD_DATA = [
+
+        { name: 'FutbolKing99', score: 9820, correct: 142, streak: 15, country: '🇧🇷', level: 42 },
+
+        { name: 'TacticsGuru', score: 8750, correct: 128, streak: 11, country: '🇬🇧', level: 38 },
+
+        { name: 'MessiFan10', score: 7920, correct: 115, streak: 8, country: '🇦🇷', level: 34 },
+
+        { name: 'BallerIQ', score: 7340, correct: 109, streak: 7, country: '🇩🇪', level: 31 },
+
+        { name: 'GoalMachine', score: 6800, correct: 98, streak: 6, country: '🇫🇷', level: 28 },
+
+        { name: 'CRSevenFan', score: 6210, correct: 89, streak: 5, country: '🇵🇹', level: 25 },
+
+        { name: 'TifoVerde', score: 5670, correct: 81, streak: 4, country: '🇮🇹', level: 22 },
+
+        { name: 'ElClasico', score: 5100, correct: 74, streak: 3, country: '🇪🇸', level: 20 },
+
+      ];
+
+
+      const CATEGORIES_DATA = [
+
+        { id: 'premier-league', icon: 'PL', logo: 'https://crests.football-data.org/PL.png', name: 'Premier League', count: '10 questions', color: '#3d0099' },
+
+        { id: 'la-liga', icon: 'LL', logo: 'https://crests.football-data.org/PD.png', name: 'La Liga', count: '8 questions', color: '#ee8707' },
+
+        { id: 'ucl', icon: 'UCL', logo: 'https://crests.football-data.org/CL.png', name: 'Champions League', count: '8 questions', color: '#1a1aff' },
+
+        { id: 'world-cup', icon: 'WC', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/17/2026_FIFA_World_Cup_emblem.svg/960px-2026_FIFA_World_Cup_emblem.svg.png', name: 'World Cup', count: '8 questions', color: '#006633' },
+
+        { id: 'bundesliga', icon: 'BL', logo: 'https://crests.football-data.org/BL1.png', name: 'Bundesliga', count: '6 questions', color: '#d4021d' },
+
+        { id: 'serie-a', icon: 'SA', logo: 'https://crests.football-data.org/SA.png', name: 'Serie A', count: '5 questions', color: '#0033A0' },
+
+        { id: 'ligue-1', icon: 'L1', logo: 'https://crests.football-data.org/FL1.png', name: 'Ligue 1', count: '4 questions', color: '#003f6e' },
+
+        { id: 'daily', icon: 'DC', logo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path><path d="M12 2a6 6 0 0 1 6 6v5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"></path></svg>', name: 'Daily Challenge', count: '10 questions', color: '#d4a017' },
+
+        { id: 'all-categories', icon: '🗂️', logo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>', name: 'All Categories', count: 'Browse more', color: '#6b7280' },
+
+        { id: 'transfer', icon: '🔄', logo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>', name: 'Transfer Guesser', count: 'Wordle-style game', color: '#d97706' },
+
+      ];
+
+
+      const TRANSFER_PLAYERS = [
+        { name: 'Erling Haaland', nationality: 'Norwegian', age: 24, position: 'Striker', league: 'Premier League', club: 'Man City', value: '180M', clubs: ['Bryne', 'Molde', 'RB Salzburg', 'Dortmund', 'Man City'] },
+        { name: 'Kylian Mbappe', nationality: 'French', age: 26, position: 'Forward', league: 'La Liga', club: 'Real Madrid', value: '200M', clubs: ['Monaco', 'PSG', 'Real Madrid'] },
+        { name: 'Jude Bellingham', nationality: 'English', age: 21, position: 'Midfielder', league: 'La Liga', club: 'Real Madrid', value: '180M', clubs: ['Birmingham City', 'Dortmund', 'Real Madrid'] },
+        { name: 'Vinicius Jr', nationality: 'Brazilian', age: 24, position: 'Forward', league: 'La Liga', club: 'Real Madrid', value: '200M', clubs: ['Flamengo', 'Real Madrid'] },
+        { name: 'Bukayo Saka', nationality: 'English', age: 23, position: 'Winger', league: 'Premier League', club: 'Arsenal', value: '150M', clubs: ['Arsenal'] },
+        { name: 'Pedri', nationality: 'Spanish', age: 22, position: 'Midfielder', league: 'La Liga', club: 'Barcelona', value: '100M', clubs: ['Las Palmas', 'Barcelona'] },
+        { name: 'Rodri', nationality: 'Spanish', age: 27, position: 'Midfielder', league: 'Premier League', club: 'Man City', value: '120M', clubs: ['Villarreal', 'Atletico Madrid', 'Man City'] },
+        { name: 'Harry Kane', nationality: 'English', age: 30, position: 'Striker', league: 'Bundesliga', club: 'Bayern Munich', value: '100M', clubs: ['Leyton Orient', 'Millwall', 'Leicester', 'Norwich', 'Tottenham', 'Bayern Munich'] },
+        { name: 'Cole Palmer', nationality: 'English', age: 22, position: 'Midfielder', league: 'Premier League', club: 'Chelsea', value: '90M', clubs: ['Man City', 'Chelsea'] },
+        { name: 'Mohamed Salah', nationality: 'Egyptian', age: 32, position: 'Winger', league: 'Premier League', club: 'Liverpool', value: '55M', clubs: ['El Mokawloon', 'Basel', 'Chelsea', 'Fiorentina', 'Roma', 'Liverpool'] },
+        { name: 'Kevin De Bruyne', nationality: 'Belgian', age: 32, position: 'Midfielder', league: 'Premier League', club: 'Man City', value: '50M', clubs: ['Genk', 'Chelsea', 'Werder Bremen', 'Wolfsburg', 'Man City'] },
+        { name: 'Robert Lewandowski', nationality: 'Polish', age: 35, position: 'Striker', league: 'La Liga', club: 'Barcelona', value: '15M', clubs: ['Lech Poznan', 'Dortmund', 'Bayern Munich', 'Barcelona'] },
+        { name: 'Antoine Griezmann', nationality: 'French', age: 33, position: 'Forward', league: 'La Liga', club: 'Atletico Madrid', value: '25M', clubs: ['Real Sociedad', 'Barcelona', 'Atletico Madrid'] },
+        { name: 'Bruno Fernandes', nationality: 'Portuguese', age: 29, position: 'Midfielder', league: 'Premier League', club: 'Man United', value: '70M', clubs: ['Novara', 'Udinese', 'Sampdoria', 'Sporting CP', 'Man United'] },
+        { name: 'Martin Odegaard', nationality: 'Norwegian', age: 25, position: 'Midfielder', league: 'Premier League', club: 'Arsenal', value: '110M', clubs: ['Stromsgodset', 'Real Madrid', 'Heerenveen', 'Vitesse', 'Real Sociedad', 'Arsenal'] },
+        { name: 'Florian Wirtz', nationality: 'German', age: 21, position: 'Midfielder', league: 'Bundesliga', club: 'Bayer Leverkusen', value: '130M', clubs: ['FC Koln', 'Bayer Leverkusen'] },
+        { name: 'Jamal Musiala', nationality: 'German', age: 21, position: 'Midfielder', league: 'Bundesliga', club: 'Bayern Munich', value: '130M', clubs: ['Southampton', 'Chelsea', 'Bayern Munich'] },
+        { name: 'Declan Rice', nationality: 'English', age: 25, position: 'Midfielder', league: 'Premier League', club: 'Arsenal', value: '120M', clubs: ['Chelsea', 'West Ham', 'Arsenal'] },
+        { name: 'Lautaro Martinez', nationality: 'Argentine', age: 26, position: 'Striker', league: 'Serie A', club: 'Inter Milan', value: '110M', clubs: ['Racing Club', 'Inter Milan'] },
+        { name: 'Victor Osimhen', nationality: 'Nigerian', age: 25, position: 'Striker', league: 'Serie A', club: 'Napoli', value: '100M', clubs: ['Wolfsburg', 'Charleroi', 'Lille', 'Napoli', 'Galatasaray'] },
+        { name: 'Rafael Leao', nationality: 'Portuguese', age: 25, position: 'Winger', league: 'Serie A', club: 'AC Milan', value: '90M', clubs: ['Sporting CP', 'Lille', 'AC Milan'] },
+        { name: 'Khvicha Kvaratskhelia', nationality: 'Georgian', age: 23, position: 'Winger', league: 'Serie A', club: 'Napoli', value: '80M', clubs: ['Dinamo Tbilisi', 'Rustavi', 'Lokomotiv Moscow', 'Rubin Kazan', 'Dinamo Batumi', 'Napoli'] },
+        { name: 'Phil Foden', nationality: 'English', age: 24, position: 'Midfielder', league: 'Premier League', club: 'Man City', value: '150M', clubs: ['Man City'] },
+        { name: 'Gabriel Magalhaes', nationality: 'Brazilian', age: 26, position: 'Defender', league: 'Premier League', club: 'Arsenal', value: '70M', clubs: ['Avai', 'Lille', 'Troyes', 'Dinamo Zagreb', 'Arsenal'] },
+        { name: 'Gabriel Martinelli', nationality: 'Brazilian', age: 22, position: 'Forward', league: 'Premier League', club: 'Arsenal', value: '70M', clubs: ['Ituano', 'Arsenal'] },
+        { name: 'Gabriel Jesus', nationality: 'Brazilian', age: 27, position: 'Striker', league: 'Premier League', club: 'Arsenal', value: '65M', clubs: ['Palmeiras', 'Man City', 'Arsenal'] },
+        { name: 'Bruno Guimaraes', nationality: 'Brazilian', age: 26, position: 'Midfielder', league: 'Premier League', club: 'Newcastle', value: '85M', clubs: ['Athletico Paranaense', 'Lyon', 'Newcastle'] },
+        { name: 'Marcus Rashford', nationality: 'English', age: 26, position: 'Forward', league: 'Premier League', club: 'Man United', value: '60M', clubs: ['Man United'] },
+        { name: 'Marcus Thuram', nationality: 'French', age: 26, position: 'Forward', league: 'Serie A', club: 'Inter Milan', value: '65M', clubs: ['Sochaux', 'Guingamp', 'Gladbach', 'Inter Milan'] },
+        { name: 'William Saliba', nationality: 'French', age: 23, position: 'Defender', league: 'Premier League', club: 'Arsenal', value: '80M', clubs: ['Saint-Etienne', 'Nice', 'Marseille', 'Arsenal'] },
+        { name: 'Luis Diaz', nationality: 'Colombian', age: 27, position: 'Winger', league: 'Premier League', club: 'Liverpool', value: '75M', clubs: ['Junior', 'Porto', 'Liverpool'] },
+        { name: 'Darwin Nunez', nationality: 'Uruguayan', age: 24, position: 'Striker', league: 'Premier League', club: 'Liverpool', value: '70M', clubs: ['Penarol', 'Almeria', 'Benfica', 'Liverpool'] },
+        { name: 'Alexis Mac Allister', nationality: 'Argentine', age: 25, position: 'Midfielder', league: 'Premier League', club: 'Liverpool', value: '75M', clubs: ['Argentinos Juniors', 'Boca Juniors', 'Brighton', 'Liverpool'] },
+        { name: 'Dominik Szoboszlai', nationality: 'Hungarian', age: 23, position: 'Midfielder', league: 'Premier League', club: 'Liverpool', value: '75M', clubs: ['Liefering', 'Salzburg', 'Leipzig', 'Liverpool'] },
+        { name: 'Virgil van Dijk', nationality: 'Dutch', age: 32, position: 'Defender', league: 'Premier League', club: 'Liverpool', value: '32M', clubs: ['Groningen', 'Celtic', 'Southampton', 'Liverpool'] },
+        { name: 'Trent Alexander-Arnold', nationality: 'English', age: 25, position: 'Defender', league: 'Premier League', club: 'Liverpool', value: '70M', clubs: ['Liverpool'] },
+        { name: 'Alisson Becker', nationality: 'Brazilian', age: 31, position: 'Goalkeeper', league: 'Premier League', club: 'Liverpool', value: '28M', clubs: ['Internacional', 'Roma', 'Liverpool'] },
+        { name: 'Ederson', nationality: 'Brazilian', age: 30, position: 'Goalkeeper', league: 'Premier League', club: 'Man City', value: '35M', clubs: ['Ribeirao', 'Rio Ave', 'Benfica', 'Man City'] },
+        { name: 'Bernardo Silva', nationality: 'Portuguese', age: 29, position: 'Midfielder', league: 'Premier League', club: 'Man City', value: '80M', clubs: ['Benfica', 'Monaco', 'Man City'] },
+        { name: 'Ruben Dias', nationality: 'Portuguese', age: 27, position: 'Defender', league: 'Premier League', club: 'Man City', value: '80M', clubs: ['Benfica', 'Man City'] },
+        { name: 'Josko Gvardiol', nationality: 'Croatian', age: 22, position: 'Defender', league: 'Premier League', club: 'Man City', value: '75M', clubs: ['Dinamo Zagreb', 'Leipzig', 'Man City'] },
+        { name: 'Jack Grealish', nationality: 'English', age: 28, position: 'Winger', league: 'Premier League', club: 'Man City', value: '60M', clubs: ['Notts County', 'Aston Villa', 'Man City'] },
+        { name: 'Julian Alvarez', nationality: 'Argentine', age: 24, position: 'Striker', league: 'La Liga', club: 'Atletico Madrid', value: '90M', clubs: ['River Plate', 'Man City', 'Atletico Madrid'] },
+        { name: 'John Stones', nationality: 'English', age: 30, position: 'Defender', league: 'Premier League', club: 'Man City', value: '38M', clubs: ['Barnsley', 'Everton', 'Man City'] },
+        { name: 'Mateo Kovacic', nationality: 'Croatian', age: 30, position: 'Midfielder', league: 'Premier League', club: 'Man City', value: '30M', clubs: ['Dinamo Zagreb', 'Inter Milan', 'Real Madrid', 'Chelsea', 'Man City'] },
+        { name: 'Alexander Isak', nationality: 'Swedish', age: 24, position: 'Striker', league: 'Premier League', club: 'Newcastle', value: '75M', clubs: ['AIK', 'Dortmund', 'Willem II', 'Real Sociedad', 'Newcastle'] },
+        { name: 'Son Heung-min', nationality: 'South Korean', age: 31, position: 'Forward', league: 'Premier League', club: 'Tottenham', value: '45M', clubs: ['Hamburg', 'Leverkusen', 'Tottenham'] },
+        { name: 'James Maddison', nationality: 'English', age: 27, position: 'Midfielder', league: 'Premier League', club: 'Tottenham', value: '70M', clubs: ['Coventry', 'Norwich', 'Aberdeen', 'Leicester', 'Tottenham'] },
+        { name: 'Dejan Kulusevski', nationality: 'Swedish', age: 24, position: 'Midfielder', league: 'Premier League', club: 'Tottenham', value: '55M', clubs: ['Atalanta', 'Parma', 'Juventus', 'Tottenham'] },
+        { name: 'Cristian Romero', nationality: 'Argentine', age: 26, position: 'Defender', league: 'Premier League', club: 'Tottenham', value: '60M', clubs: ['Belgrano', 'Genoa', 'Juventus', 'Atalanta', 'Tottenham'] },
+        { name: 'Guglielmo Vicario', nationality: 'Italian', age: 27, position: 'Goalkeeper', league: 'Premier League', club: 'Tottenham', value: '35M', clubs: ['Udinese', 'Venezia', 'Cagliari', 'Empoli', 'Tottenham'] },
+        { name: 'Rasmus Hojlund', nationality: 'Danish', age: 21, position: 'Striker', league: 'Premier League', club: 'Man United', value: '65M', clubs: ['Copenhagen', 'Sturm Graz', 'Atalanta', 'Man United'] },
+        { name: 'Alejandro Garnacho', nationality: 'Argentine', age: 19, position: 'Winger', league: 'Premier League', club: 'Man United', value: '45M', clubs: ['Atletico Madrid', 'Man United'] },
+        { name: 'Kobbie Mainoo', nationality: 'English', age: 19, position: 'Midfielder', league: 'Premier League', club: 'Man United', value: '35M', clubs: ['Man United'] },
+        { name: 'Mason Mount', nationality: 'English', age: 25, position: 'Midfielder', league: 'Premier League', club: 'Man United', value: '35M', clubs: ['Chelsea', 'Vitesse', 'Derby', 'Man United'] },
+        { name: 'Andre Onana', nationality: 'Cameroonian', age: 28, position: 'Goalkeeper', league: 'Premier League', club: 'Man United', value: '40M', clubs: ['Ajax', 'Inter Milan', 'Man United'] },
+        { name: 'Matthijs de Ligt', nationality: 'Dutch', age: 24, position: 'Defender', league: 'Premier League', club: 'Man United', value: '65M', clubs: ['Ajax', 'Juventus', 'Bayern Munich', 'Man United'] },
+        { name: 'Leny Yoro', nationality: 'French', age: 18, position: 'Defender', league: 'Premier League', club: 'Man United', value: '50M', clubs: ['Lille', 'Man United'] },
+        { name: 'Joshua Zirkzee', nationality: 'Dutch', age: 23, position: 'Striker', league: 'Premier League', club: 'Man United', value: '40M', clubs: ['Bayern Munich', 'Parma', 'Anderlecht', 'Bologna', 'Man United'] },
+        { name: 'Christopher Nkunku', nationality: 'French', age: 26, position: 'Forward', league: 'Premier League', club: 'Chelsea', value: '75M', clubs: ['PSG', 'Leipzig', 'Chelsea'] },
+        { name: 'Nicolas Jackson', nationality: 'Senegalese', age: 23, position: 'Striker', league: 'Premier League', club: 'Chelsea', value: '35M', clubs: ['Mirandes', 'Villarreal', 'Chelsea'] },
+        { name: 'Enzo Fernandez', nationality: 'Argentine', age: 23, position: 'Midfielder', league: 'Premier League', club: 'Chelsea', value: '80M', clubs: ['River Plate', 'Defensa', 'Benfica', 'Chelsea'] },
+        { name: 'Moises Caicedo', nationality: 'Ecuadorian', age: 22, position: 'Midfielder', league: 'Premier League', club: 'Chelsea', value: '90M', clubs: ['Independiente del Valle', 'Beerschot', 'Brighton', 'Chelsea'] },
+        { name: 'Levi Colwill', nationality: 'English', age: 21, position: 'Defender', league: 'Premier League', club: 'Chelsea', value: '50M', clubs: ['Brighton', 'Chelsea'] },
+        { name: 'Malo Gusto', nationality: 'French', age: 21, position: 'Defender', league: 'Premier League', club: 'Chelsea', value: '35M', clubs: ['Lyon', 'Chelsea'] },
+        { name: 'Joao Felix', nationality: 'Portuguese', age: 24, position: 'Forward', league: 'Premier League', club: 'Chelsea', value: '30M', clubs: ['Benfica', 'Atletico Madrid', 'Chelsea', 'Barcelona'] },
+        { name: 'Pedro Neto', nationality: 'Portuguese', age: 24, position: 'Forward', league: 'Premier League', club: 'Chelsea', value: '55M', clubs: ['Braga', 'Lazio', 'Wolves', 'Chelsea'] },
+        { name: 'Robert Sanchez', nationality: 'Spanish', age: 26, position: 'Goalkeeper', league: 'Premier League', club: 'Chelsea', value: '25M', clubs: ['Forest Green', 'Rochdale', 'Brighton', 'Chelsea'] },
+        { name: 'Lamine Yamal', nationality: 'Spanish', age: 16, position: 'Winger', league: 'La Liga', club: 'Barcelona', value: '120M', clubs: ['Barcelona'] },
+        { name: 'Gavi', nationality: 'Spanish', age: 19, position: 'Midfielder', league: 'La Liga', club: 'Barcelona', value: '90M', clubs: ['Barcelona'] },
+        { name: 'Frenkie de Jong', nationality: 'Dutch', age: 27, position: 'Midfielder', league: 'La Liga', club: 'Barcelona', value: '70M', clubs: ['Willem II', 'Ajax', 'Barcelona'] },
+        { name: 'Ilkay Gundogan', nationality: 'German', age: 33, position: 'Midfielder', league: 'Premier League', club: 'Man City', value: '15M', clubs: ['Nurnberg', 'Dortmund', 'Man City', 'Barcelona'] },
+        { name: 'Raphinha', nationality: 'Brazilian', age: 27, position: 'Winger', league: 'La Liga', club: 'Barcelona', value: '50M', clubs: ['Avai', 'Vitoria Guimaraes', 'Sporting CP', 'Rennes', 'Leeds', 'Barcelona'] },
+        { name: 'Ronald Araujo', nationality: 'Uruguayan', age: 25, position: 'Defender', league: 'La Liga', club: 'Barcelona', value: '70M', clubs: ['Rentistas', 'Boston River', 'Barcelona'] },
+        { name: 'Jules Kounde', nationality: 'French', age: 25, position: 'Defender', league: 'La Liga', club: 'Barcelona', value: '50M', clubs: ['Bordeaux', 'Sevilla', 'Barcelona'] },
+        { name: 'Alejandro Balde', nationality: 'Spanish', age: 20, position: 'Defender', league: 'La Liga', club: 'Barcelona', value: '40M', clubs: ['Barcelona'] },
+        { name: 'Marc-Andre ter Stegen', nationality: 'German', age: 32, position: 'Goalkeeper', league: 'La Liga', club: 'Barcelona', value: '28M', clubs: ['Gladbach', 'Barcelona'] },
+        { name: 'Federico Valverde', nationality: 'Uruguayan', age: 25, position: 'Midfielder', league: 'La Liga', club: 'Real Madrid', value: '120M', clubs: ['Penarol', 'Deportivo La Coruna', 'Real Madrid'] },
+        { name: 'Aurelien Tchouameni', nationality: 'French', age: 24, position: 'Midfielder', league: 'La Liga', club: 'Real Madrid', value: '90M', clubs: ['Bordeaux', 'Monaco', 'Real Madrid'] },
+        { name: 'Eduardo Camavinga', nationality: 'French', age: 21, position: 'Midfielder', league: 'La Liga', club: 'Real Madrid', value: '90M', clubs: ['Rennes', 'Real Madrid'] },
+        { name: 'Arda Guler', nationality: 'Turkish', age: 19, position: 'Midfielder', league: 'La Liga', club: 'Real Madrid', value: '45M', clubs: ['Fenerbahce', 'Real Madrid'] },
+        { name: 'Brahim Diaz', nationality: 'Moroccan', age: 24, position: 'Forward', league: 'La Liga', club: 'Real Madrid', value: '40M', clubs: ['Malaga', 'Man City', 'Real Madrid', 'AC Milan'] },
+        { name: 'Rodrygo Goes', nationality: 'Brazilian', age: 23, position: 'Forward', league: 'La Liga', club: 'Real Madrid', value: '110M', clubs: ['Santos', 'Real Madrid'] },
+        { name: 'Eder Militao', nationality: 'Brazilian', age: 26, position: 'Defender', league: 'La Liga', club: 'Real Madrid', value: '60M', clubs: ['Sao Paulo', 'Porto', 'Real Madrid'] },
+        { name: 'Antonio Rudiger', nationality: 'German', age: 31, position: 'Defender', league: 'La Liga', club: 'Real Madrid', value: '25M', clubs: ['Stuttgart', 'Roma', 'Chelsea', 'Real Madrid'] },
+        { name: 'Ferland Mendy', nationality: 'French', age: 29, position: 'Defender', league: 'La Liga', club: 'Real Madrid', value: '22M', clubs: ['Lehavre', 'Lyon', 'Real Madrid'] },
+        { name: 'Dani Carvajal', nationality: 'Spanish', age: 32, position: 'Defender', league: 'La Liga', club: 'Real Madrid', value: '12M', clubs: ['Real Madrid', 'Leverkusen'] },
+        { name: 'Thibaut Courtois', nationality: 'Belgian', age: 32, position: 'Goalkeeper', league: 'La Liga', club: 'Real Madrid', value: '28M', clubs: ['Genk', 'Atletico Madrid', 'Chelsea', 'Real Madrid'] },
+        { name: 'Andriy Lunin', nationality: 'Ukrainian', age: 25, position: 'Goalkeeper', league: 'La Liga', club: 'Real Madrid', value: '25M', clubs: ['Dnipro', 'Zorya Luhansk', 'Real Madrid', 'Leganes', 'Valladolid', 'Oviedo'] },
+        { name: 'Nico Williams', nationality: 'Spanish', age: 21, position: 'Winger', league: 'La Liga', club: 'Athletic Bilbao', value: '70M', clubs: ['Athletic Bilbao'] },
+        { name: 'Oihan Sancet', nationality: 'Spanish', age: 24, position: 'Midfielder', league: 'La Liga', club: 'Athletic Bilbao', value: '35M', clubs: ['Athletic Bilbao'] },
+        { name: 'Takefusa Kubo', nationality: 'Japanese', age: 23, position: 'Winger', league: 'La Liga', club: 'Real Sociedad', value: '60M', clubs: ['FC Tokyo', 'Yokohama F. Marinos', 'Real Madrid', 'Mallorca', 'Villarreal', 'Getafe', 'Real Sociedad'] },
+        { name: 'Martin Zubimendi', nationality: 'Spanish', age: 25, position: 'Midfielder', league: 'La Liga', club: 'Real Sociedad', value: '50M', clubs: ['Real Sociedad'] },
+        { name: 'Mikel Merino', nationality: 'Spanish', age: 28, position: 'Premier League', club: 'Arsenal', value: '50M', clubs: ['Osasuna', 'Dortmund', 'Newcastle', 'Real Sociedad', 'Arsenal'] },
+        { name: 'Robin Le Normand', nationality: 'Spanish', age: 27, position: 'La Liga', club: 'Atletico Madrid', value: '40M', clubs: ['Brest', 'Real Sociedad', 'Atletico Madrid'] },
+        { name: 'Alexander Sorloth', nationality: 'Norwegian', age: 28, position: 'Striker', league: 'La Liga', club: 'Atletico Madrid', value: '25M', clubs: ['Rosenborg', 'Bodo/Glimt', 'Groningen', 'Midtjylland', 'Crystal Palace', 'Gent', 'Trabzonspor', 'Leipzig', 'Real Sociedad', 'Villarreal', 'Atletico Madrid'] },
+        { name: 'Conor Gallagher', nationality: 'English', age: 24, position: 'Midfielder', league: 'La Liga', club: 'Atletico Madrid', value: '50M', clubs: ['Charlton', 'Swansea', 'West Brom', 'Crystal Palace', 'Chelsea', 'Atletico Madrid'] },
+        { name: 'Jan Oblak', nationality: 'Slovenian', age: 31, position: 'Goalkeeper', league: 'La Liga', club: 'Atletico Madrid', value: '28M', clubs: ['Olimpija Ljubljana', 'Benfica', 'Atletico Madrid'] },
+        { name: 'Rodrigo De Paul', nationality: 'Argentine', age: 30, position: 'Midfielder', league: 'La Liga', club: 'Atletico Madrid', value: '30M', clubs: ['Racing Club', 'Valencia', 'Udinese', 'Atletico Madrid'] },
+        { name: 'Marcos Llorente', nationality: 'Spanish', age: 29, position: 'Midfielder', league: 'La Liga', club: 'Atletico Madrid', value: '30M', clubs: ['Real Madrid', 'Alaves', 'Atletico Madrid'] },
+        { name: 'Alvaro Morata', nationality: 'Spanish', age: 31, position: 'Striker', league: 'Serie A', club: 'AC Milan', value: '16M', clubs: ['Real Madrid', 'Juventus', 'Chelsea', 'Atletico Madrid', 'AC Milan'] },
+        { name: 'Dusan Vlahovic', nationality: 'Serbian', age: 24, position: 'Striker', league: 'Serie A', club: 'Juventus', value: '65M', clubs: ['Partizan', 'Fiorentina', 'Juventus'] },
+        { name: 'Kenan Yildiz', nationality: 'Turkish', age: 19, position: 'Forward', league: 'Serie A', club: 'Juventus', value: '40M', clubs: ['Bayern Munich', 'Juventus'] },
+        { name: 'Teun Koopmeiners', nationality: 'Dutch', age: 26, position: 'Midfielder', league: 'Serie A', club: 'Juventus', value: '55M', clubs: ['AZ Alkmaar', 'Atalanta', 'Juventus'] },
+        { name: 'Douglas Luiz', nationality: 'Brazilian', age: 26, position: 'Midfielder', league: 'Serie A', club: 'Juventus', value: '70M', clubs: ['Vasco da Gama', 'Girona', 'Aston Villa', 'Juventus'] },
+        { name: 'Bremer', nationality: 'Brazilian', age: 27, position: 'Defender', league: 'Serie A', club: 'Juventus', value: '60M', clubs: ['Atletico Mineiro', 'Torino', 'Juventus'] },
+        { name: 'Manuel Locatelli', nationality: 'Italian', age: 26, position: 'Midfielder', league: 'Serie A', club: 'Juventus', value: '28M', clubs: ['Milan', 'Sassuolo', 'Juventus'] },
+        { name: 'Federico Chiesa', nationality: 'Italian', age: 26, position: 'Winger', league: 'Premier League', club: 'Liverpool', value: '35M', clubs: ['Fiorentina', 'Juventus', 'Liverpool'] },
+        { name: 'Nicolo Barella', nationality: 'Italian', age: 27, position: 'Midfielder', league: 'Serie A', club: 'Inter Milan', value: '80M', clubs: ['Cagliari', 'Como', 'Inter Milan'] },
+        { name: 'Hakan Calhanoglu', nationality: 'Turkish', age: 30, position: 'Midfielder', league: 'Serie A', club: 'Inter Milan', value: '45M', clubs: ['Karlsruher', 'Hamburg', 'Leverkusen', 'Milan', 'Inter Milan'] },
+        { name: 'Alessandro Bastoni', nationality: 'Italian', age: 25, position: 'Defender', league: 'Serie A', club: 'Inter Milan', value: '70M', clubs: ['Atalanta', 'Parma', 'Inter Milan'] },
+        { name: 'Benjamin Pavard', nationality: 'French', age: 28, position: 'Defender', league: 'Serie A', club: 'Inter Milan', value: '50M', clubs: ['Lille', 'Stuttgart', 'Bayern Munich', 'Inter Milan'] },
+        { name: 'Yann Sommer', nationality: 'Swiss', age: 35, position: 'Goalkeeper', league: 'Serie A', club: 'Inter Milan', value: '5M', clubs: ['Basel', 'Vaduz', 'Gladbach', 'Bayern Munich', 'Inter Milan'] },
+        { name: 'Theo Hernandez', nationality: 'French', age: 26, position: 'Defender', league: 'Serie A', club: 'AC Milan', value: '60M', clubs: ['Atletico Madrid', 'Alaves', 'Real Madrid', 'Real Sociedad', 'AC Milan'] },
+        { name: 'Mike Maignan', nationality: 'French', age: 28, position: 'Goalkeeper', league: 'Serie A', club: 'AC Milan', value: '38M', clubs: ['Lille', 'AC Milan'] },
+        { name: 'Christian Pulisic', nationality: 'American', age: 25, position: 'Winger', league: 'Serie A', club: 'AC Milan', value: '40M', clubs: ['Dortmund', 'Chelsea', 'AC Milan'] },
+        { name: 'Fikayo Tomori', nationality: 'English', age: 26, position: 'Defender', league: 'Serie A', club: 'AC Milan', value: '40M', clubs: ['Chelsea', 'Brighton', 'Hull', 'Derby', 'AC Milan'] },
+        { name: 'Ismael Bennacer', nationality: 'Algerian', age: 26, position: 'Midfielder', league: 'Serie A', club: 'AC Milan', value: '35M', clubs: ['Arles-Avignon', 'Arsenal', 'Tours', 'Empoli', 'AC Milan'] },
+        { name: 'Romelu Lukaku', nationality: 'Belgian', age: 31, position: 'Striker', league: 'Serie A', club: 'Napoli', value: '30M', clubs: ['Anderlecht', 'Chelsea', 'West Brom', 'Everton', 'Man United', 'Inter Milan', 'Roma', 'Napoli'] },
+        { name: 'Scott McTominay', nationality: 'Scottish', age: 27, position: 'Midfielder', league: 'Serie A', club: 'Napoli', value: '32M', clubs: ['Man United', 'Napoli'] },
+        { name: 'Billy Gilmour', nationality: 'Scottish', age: 23, position: 'Midfielder', league: 'Serie A', club: 'Napoli', value: '18M', clubs: ['Chelsea', 'Norwich', 'Brighton', 'Napoli'] },
+        { name: 'Stanislav Lobotka', nationality: 'Slovakian', age: 29, position: 'Midfielder', league: 'Serie A', club: 'Napoli', value: '28M', clubs: ['Trencin', 'Nordsjalland', 'Celta Vigo', 'Napoli'] },
+        { name: 'Giovanni Di Lorenzo', nationality: 'Italian', age: 30, position: 'Defender', league: 'Serie A', club: 'Napoli', value: '15M', clubs: ['Reggina', 'Cuneo', 'Matera', 'Empoli', 'Napoli'] },
+        { name: 'Alex Meret', nationality: 'Italian', age: 27, position: 'Goalkeeper', league: 'Serie A', club: 'Napoli', value: '12M', clubs: ['Udinese', 'Spal', 'Napoli'] },
+        { name: 'Leroy Sane', nationality: 'German', age: 28, position: 'Winger', league: 'Bundesliga', club: 'Bayern Munich', value: '70M', clubs: ['Schalke', 'Man City', 'Bayern Munich'] },
+        { name: 'Serge Gnabry', nationality: 'German', age: 28, position: 'Winger', league: 'Bundesliga', club: 'Bayern Munich', value: '40M', clubs: ['Arsenal', 'West Brom', 'Werder Bremen', 'Hoffenheim', 'Bayern Munich'] },
+        { name: 'Kingsley Coman', nationality: 'French', age: 28, position: 'Winger', league: 'Bundesliga', club: 'Bayern Munich', value: '50M', clubs: ['PSG', 'Juventus', 'Bayern Munich'] },
+        { name: 'Michael Olise', nationality: 'French', age: 22, position: 'Winger', league: 'Bundesliga', club: 'Bayern Munich', value: '55M', clubs: ['Reading', 'Crystal Palace', 'Bayern Munich'] },
+        { name: 'Joao Palhinha', nationality: 'Portuguese', age: 28, position: 'Midfielder', league: 'Bundesliga', club: 'Bayern Munich', value: '55M', clubs: ['Sporting CP', 'Moreirense', 'Belenenses', 'Braga', 'Fulham', 'Bayern Munich'] },
+        { name: 'Joshua Kimmich', nationality: 'German', age: 29, position: 'Midfielder', league: 'Bundesliga', club: 'Bayern Munich', value: '50M', clubs: ['Stuttgart', 'RB Leipzig', 'Bayern Munich'] },
+        { name: 'Leon Goretzka', nationality: 'German', age: 29, position: 'Midfielder', league: 'Bundesliga', club: 'Bayern Munich', value: '30M', clubs: ['Bochum', 'Schalke', 'Bayern Munich'] },
+        { name: 'Alphonso Davies', nationality: 'Canadian', age: 23, position: 'Defender', league: 'Bundesliga', club: 'Bayern Munich', value: '50M', clubs: ['Vancouver Whitecaps', 'Bayern Munich'] },
+        { name: 'Dayot Upamecano', nationality: 'French', age: 25, position: 'Defender', league: 'Bundesliga', club: 'Bayern Munich', value: '45M', clubs: ['Liefering', 'Salzburg', 'Leipzig', 'Bayern Munich'] },
+        { name: 'Kim Min-jae', nationality: 'South Korean', age: 27, position: 'Defender', league: 'Bundesliga', club: 'Bayern Munich', value: '55M', clubs: ['Gyeongju KHNP', 'Jeonbuk', 'Beijing Guoan', 'Fenerbahce', 'Napoli', 'Bayern Munich'] },
+        { name: 'Manuel Neuer', nationality: 'German', age: 38, position: 'Goalkeeper', league: 'Bundesliga', club: 'Bayern Munich', value: '4M', clubs: ['Schalke', 'Bayern Munich'] },
+        { name: 'Granit Xhaka', nationality: 'Swiss', age: 31, position: 'Midfielder', league: 'Bundesliga', club: 'Bayer Leverkusen', value: '20M', clubs: ['Basel', 'Gladbach', 'Arsenal', 'Leverkusen'] },
+        { name: 'Alejandro Grimaldo', nationality: 'Spanish', age: 28, position: 'Defender', league: 'Bundesliga', club: 'Bayer Leverkusen', value: '45M', clubs: ['Barcelona', 'Benfica', 'Leverkusen'] },
+        { name: 'Jeremie Frimpong', nationality: 'Dutch', age: 23, position: 'Defender', league: 'Bundesliga', club: 'Bayer Leverkusen', value: '50M', clubs: ['Man City', 'Celtic', 'Leverkusen'] },
+        { name: 'Victor Boniface', nationality: 'Nigerian', age: 23, position: 'Striker', league: 'Bundesliga', club: 'Bayer Leverkusen', value: '40M', clubs: ['Real Bodomin', 'Union SG', 'Leverkusen'] },
+        { name: 'Patrik Schick', nationality: 'Czech', age: 28, position: 'Striker', league: 'Bundesliga', club: 'Bayer Leverkusen', value: '22M', clubs: ['Sparta Prague', 'Bohemians', 'Sampdoria', 'Roma', 'Leipzig', 'Leverkusen'] },
+        { name: 'Robert Andrich', nationality: 'German', age: 29, position: 'Midfielder', league: 'Bundesliga', club: 'Bayer Leverkusen', value: '17M', clubs: ['Hertha BSC', 'Dresden', 'Wehen Wiesbaden', 'Heidenheim', 'Union Berlin', 'Leverkusen'] },
+        { name: 'Jonathan Tah', nationality: 'German', age: 28, position: 'Defender', league: 'Bundesliga', club: 'Bayer Leverkusen', value: '30M', clubs: ['Hamburg', 'Dusseldorf', 'Leverkusen'] },
+        { name: 'Lukas Hradecky', nationality: 'Finnish', age: 34, position: 'Goalkeeper', league: 'Bundesliga', club: 'Bayer Leverkusen', value: '2.5M', clubs: ['Esbjerg', 'Brondby', 'Frankfurt', 'Leverkusen'] },
+        { name: 'Lucas Chevalier', nationality: 'French', age: 22, position: 'Goalkeeper', league: 'Ligue 1', club: 'Lille', value: '35M', clubs: ['Lille', 'Valenciennes'] },
+        { name: 'Jonathan David', nationality: 'Canadian', age: 24, position: 'Striker', league: 'Ligue 1', club: 'Lille', value: '50M', clubs: ['Gent', 'Lille'] },
+        { name: 'Angel Gomes', nationality: 'English', age: 23, position: 'Midfielder', league: 'Ligue 1', club: 'Lille', value: '25M', clubs: ['Man United', 'Boavista', 'Lille'] },
+        { name: 'Jurrien Timber', nationality: 'Dutch', age: 23, position: 'Defender', league: 'Premier League', club: 'Arsenal', value: '38M', clubs: ['Ajax', 'Arsenal'] },
+        { name: 'David Raya', nationality: 'Spanish', age: 28, position: 'Goalkeeper', league: 'Premier League', club: 'Arsenal', value: '35M', clubs: ['Blackburn', 'Southport', 'Brentford', 'Arsenal'] },
+        { name: 'Riccardo Calafiori', nationality: 'Italian', age: 22, position: 'Defender', league: 'Premier League', club: 'Arsenal', value: '45M', clubs: ['Roma', 'Genoa', 'Basel', 'Bologna', 'Arsenal'] },
+        { name: 'Rico Lewis', nationality: 'English', age: 19, position: 'Defender', league: 'Premier League', club: 'Man City', value: '38M', clubs: ['Man City'] },
+        { name: 'Endrick', nationality: 'Brazilian', age: 17, position: 'Forward', league: 'La Liga', club: 'Real Madrid', value: '60M', clubs: ['Palmeiras', 'Real Madrid'] },
+        { name: 'Axel Disasi', nationality: 'French', age: 26, position: 'Defender', league: 'Premier League', club: 'Chelsea', value: '40M', clubs: ['Paris FC', 'Reims', 'Monaco', 'Chelsea'] },
+        { name: 'Benoit Badiashile', nationality: 'French', age: 23, position: 'Defender', league: 'Premier League', club: 'Chelsea', value: '30M', clubs: ['Monaco', 'Chelsea'] },
+        { name: 'Wesley Fofana', nationality: 'French', age: 23, position: 'Defender', league: 'Premier League', club: 'Chelsea', value: '30M', clubs: ['Saint-Etienne', 'Leicester', 'Chelsea'] },
+        { name: 'Sacha Boey', nationality: 'French', age: 23, position: 'Defender', league: 'Bundesliga', club: 'Bayern Munich', value: '22M', clubs: ['Rennes', 'Dijon', 'Galatasaray', 'Bayern Munich'] },
+        { name: 'Mathys Tel', nationality: 'French', age: 19, position: 'Forward', league: 'Bundesliga', club: 'Bayern Munich', value: '40M', clubs: ['Rennes', 'Bayern Munich'] },
+        { name: 'Warren Zaire-Emery', nationality: 'French', age: 18, position: 'Midfielder', league: 'Ligue 1', club: 'PSG', value: '60M', clubs: ['PSG'] },
+        { name: 'Bradley Barcola', nationality: 'French', age: 21, position: 'Forward', league: 'Ligue 1', club: 'PSG', value: '65M', clubs: ['Lyon', 'PSG'] },
+        { name: 'Randal Kolo Muani', nationality: 'French', age: 25, position: 'Striker', league: 'Ligue 1', club: 'PSG', value: '40M', clubs: ['Nantes', 'Boulogne', 'Frankfurt', 'PSG'] },
+        { name: 'Ousmane Dembele', nationality: 'French', age: 27, position: 'Winger', league: 'Ligue 1', club: 'PSG', value: '60M', clubs: ['Rennes', 'Dortmund', 'Barcelona', 'PSG'] },
+        { name: 'Lucas Hernandez', nationality: 'French', age: 28, position: 'Defender', league: 'Ligue 1', club: 'PSG', value: '40M', clubs: ['Atletico Madrid', 'Bayern Munich', 'PSG'] },
+        { name: 'Presnel Kimpembe', nationality: 'French', age: 28, position: 'Defender', league: 'Ligue 1', club: 'PSG', value: '20M', clubs: ['PSG'] },
+        { name: 'Ollie Watkins', nationality: 'English', age: 28, position: 'Striker', league: 'Premier League', club: 'Aston Villa', value: '65M', clubs: ['Exeter City', 'Weston-super-Mare', 'Brentford', 'Aston Villa'] },
+        { name: 'Ezri Konsa', nationality: 'English', age: 26, position: 'Defender', league: 'Premier League', club: 'Aston Villa', value: '35M', clubs: ['Charlton', 'Brentford', 'Aston Villa'] },
+        { name: 'Jacob Ramsey', nationality: 'English', age: 23, position: 'Midfielder', league: 'Premier League', club: 'Aston Villa', value: '35M', clubs: ['Aston Villa', 'Doncaster'] },
+        { name: 'Morgan Rogers', nationality: 'English', age: 21, position: 'Forward', league: 'Premier League', club: 'Aston Villa', value: '22M', clubs: ['West Brom', 'Man City', 'Lincoln City', 'Bournemouth', 'Blackpool', 'Middlesbrough', 'Aston Villa'] },
+        { name: 'Federico Dimarco', nationality: 'Italian', age: 26, position: 'Defender', league: 'Serie A', club: 'Inter Milan', value: '50M', clubs: ['Inter Milan', 'Ascoli', 'Empoli', 'Sion', 'Parma', 'Verona'] },
+        { name: 'Davide Frattesi', nationality: 'Italian', age: 24, position: 'Midfielder', league: 'Serie A', club: 'Inter Milan', value: '35M', clubs: ['Roma', 'Sassuolo', 'Ascoli', 'Empoli', 'Monza', 'Inter Milan'] },
+        { name: 'Francesco Acerbi', nationality: 'Italian', age: 36, position: 'Defender', league: 'Serie A', club: 'Inter Milan', value: '4M', clubs: ['Pavia', 'Reggina', 'Chievo', 'Genoa', 'Milan', 'Sassuolo', 'Lazio', 'Inter Milan'] },
+        { name: 'Matteo Darmian', nationality: 'Italian', age: 34, position: 'Defender', league: 'Serie A', club: 'Inter Milan', value: '4M', clubs: ['Milan', 'Padova', 'Palermo', 'Torino', 'Man United', 'Parma', 'Inter Milan'] },
+        { name: 'Andrea Cambiaso', nationality: 'Italian', age: 24, position: 'Defender', league: 'Serie A', club: 'Juventus', value: '30M', clubs: ['Genoa', 'Albissola', 'Savona', 'Alessandria', 'Empoli', 'Bologna', 'Juventus'] },
+        { name: 'Nicolo Fagioli', nationality: 'Italian', age: 23, position: 'Midfielder', league: 'Serie A', club: 'Juventus', value: '15M', clubs: ['Cremonese', 'Juventus'] },
+        { name: 'Federico Gatti', nationality: 'Italian', age: 26, position: 'Defender', league: 'Serie A', club: 'Juventus', value: '18M', clubs: ['Pavone', 'Verbania', 'Pro Patria', 'Frosinone', 'Juventus'] },
+        { name: 'Mattia Perin', nationality: 'Italian', age: 31, position: 'Goalkeeper', league: 'Serie A', club: 'Juventus', value: '3M', clubs: ['Genoa', 'Padova', 'Pescara', 'Juventus'] },
+        { name: 'Fermin Lopez', nationality: 'Spanish', age: 21, position: 'Midfielder', league: 'La Liga', club: 'Barcelona', value: '30M', clubs: ['Barcelona', 'Linares'] },
+        { name: 'Marc Casado', nationality: 'Spanish', age: 20, position: 'Midfielder', league: 'La Liga', club: 'Barcelona', value: '15M', clubs: ['Barcelona'] },
+        { name: 'Xavi Simons', nationality: 'Dutch', age: 21, position: 'Midfielder', league: 'Bundesliga', club: 'RB Leipzig', value: '80M', clubs: ['Barcelona', 'PSG', 'PSV', 'Leipzig'] },
+        { name: 'Lois Openda', nationality: 'Belgian', age: 24, position: 'Striker', league: 'Bundesliga', club: 'RB Leipzig', value: '60M', clubs: ['Club Brugge', 'Vitesse', 'Lens', 'Leipzig'] },
+        { name: 'Benjamin Sesko', nationality: 'Slovenian', age: 21, position: 'Striker', league: 'Bundesliga', club: 'RB Leipzig', value: '50M', clubs: ['Domzale', 'Salzburg', 'Liefering', 'Leipzig'] },
+        { name: 'Castello Lukeba', nationality: 'French', age: 21, position: 'Defender', league: 'Bundesliga', club: 'RB Leipzig', value: '40M', clubs: ['Lyon', 'Leipzig'] },
+        { name: 'Willi Orban', nationality: 'Hungarian', age: 31, position: 'Defender', league: 'Bundesliga', club: 'RB Leipzig', value: '10M', clubs: ['Kaiserslautern', 'Leipzig'] },
+        { name: 'Peter Gulacsi', nationality: 'Hungarian', age: 34, position: 'Goalkeeper', league: 'Bundesliga', club: 'RB Leipzig', value: '3M', clubs: ['MTK Budapest', 'Liverpool', 'Hereford', 'Tranmere', 'Hull', 'Salzburg', 'Leipzig'] }
+      ];
+
+      // ──────────────────────────  a• a• a• a• a• a•  STATE a• a• a• a• a• a• a• 
+
+
+      const LOGO_URLS = {
+
+        'premier-league': 'https://crests.football-data.org/PL.png',
+
+        'la-liga': 'https://crests.football-data.org/PD.png',
+
+        'ucl': 'https://crests.football-data.org/CL.png',
+
+        'world-cup': 'https://upload.wikimedia.org/wikipedia/en/thumb/1/17/2026_FIFA_World_Cup_emblem.svg/960px-2026_FIFA_World_Cup_emblem.svg.png',
+
+        'bundesliga': 'https://crests.football-data.org/BL1.png',
+
+        'serie-a': 'https://crests.football-data.org/SA.png',
+
+        'ligue-1': 'https://crests.football-data.org/FL1.png',
+        'man-utd': 'https://crests.football-data.org/66.png',
+        'man-city': 'https://crests.football-data.org/65.png',
+        'chelsea': 'https://crests.football-data.org/61.png',
+        'arsenal': 'https://crests.football-data.org/57.png',
+        'liverpool': 'https://crests.football-data.org/64.png',
+        'real-madrid': 'https://crests.football-data.org/86.png',
+        'barcelona': 'https://crests.football-data.org/81.png',
+        'atletico': 'https://crests.football-data.org/78.png',
+      };
+
+      const COUNTRY_CODES = {
+        'Mexico': 'mx', 'Switzerland': 'ch', 'Senegal': 'sn', 'Japan': 'jp',
+        'Canada': 'ca', 'Germany': 'de', 'Colombia': 'co', 'Australia': 'au',
+        'United States': 'us', 'Spain': 'es', 'Uruguay': 'uy', 'Nigeria': 'ng',
+        'France': 'fr', 'Austria': 'at', 'Egypt': 'eg', 'Ecuador': 'ec',
+        'Brazil': 'br', 'Poland': 'pl', 'South Korea': 'kr', 'Morocco': 'ma',
+        'England': 'gb-eng', 'Ukraine': 'ua', 'Jamaica': 'jm', 'Iraq': 'iq',
+        'Portugal': 'pt', 'Turkey': 'tr', 'Ivory Coast': 'ci', 'Scotland': 'gb-sct',
+        'Italy': 'it', 'Denmark': 'dk', 'Cameroon': 'cm', 'Iran': 'ir',
+        'Argentina': 'ar', 'Sweden': 'se', 'Algeria': 'dz', 'Saudi Arabia': 'sa',
+        'Belgium': 'be', 'Croatia': 'hr', 'South Africa': 'za', 'Panama': 'pa',
+        'Netherlands': 'nl', 'Peru': 'pe', 'Ghana': 'gh', 'Costa Rica': 'cr',
+        'Chile': 'cl', 'New Zealand': 'nz', 'Tunisia': 'tn', 'Mali': 'ml',
+        'Czechia': 'cz', 'Bosnia & Herzegovina': 'ba', 'Qatar': 'qa', 'Haiti': 'ht',
+        'Paraguay': 'py', 'Türkiye': 'tr', 'Curaçao': 'cw', 'Cape Verde': 'cv',
+        'Norway': 'no', 'Jordan': 'jo', 'Uzbekistan': 'uz', 'DR Congo': 'cd'
+      };
+
+      const WC_TEAMS = [
+        { name: 'Argentina', ranking: 1, confederation: 'CONMEBOL', recent: 'World Cup 2022 Champions, Copa America 2024 Winners' },
+        { name: 'France', ranking: 2, confederation: 'UEFA', recent: 'World Cup 2022 Runners-up, Euro 2024 Semi-finalists' },
+        { name: 'England', ranking: 3, confederation: 'UEFA', recent: 'Euro 2024 Runners-up, World Cup 2022 Quarter-finalists' },
+        { name: 'Portugal', ranking: 4, confederation: 'UEFA', recent: 'Euro 2024 Quarter-finalists' },
+        { name: 'Brazil', ranking: 5, confederation: 'CONMEBOL', recent: 'World Cup 2022 Quarter-finalists' },
+        { name: 'Belgium', ranking: 6, confederation: 'UEFA', recent: 'Euro 2024 Round of 16' },
+        { name: 'Netherlands', ranking: 7, confederation: 'UEFA', recent: 'Euro 2024 Semi-finalists, World Cup 2022 Quarter-finalists' },
+        { name: 'Spain', ranking: 8, confederation: 'UEFA', recent: 'Euro 2024 Winners, Nations League 2023 Winners' },
+        { name: 'Croatia', ranking: 10, confederation: 'UEFA', recent: 'World Cup 2022 3rd Place, Nations League 2023 Runners-up' },
+        { name: 'Uruguay', ranking: 11, confederation: 'CONMEBOL', recent: 'Copa America 2024 3rd Place' },
+        { name: 'Germany', ranking: 12, confederation: 'UEFA', recent: 'Euro 2024 Quarter-finalists' },
+        { name: 'Morocco', ranking: 13, confederation: 'CAF', recent: 'World Cup 2022 4th Place' },
+        { name: 'Colombia', ranking: 14, confederation: 'CONMEBOL', recent: 'Copa America 2024 Runners-up' },
+        { name: 'Mexico', ranking: 15, confederation: 'CONCACAF', recent: 'Gold Cup 2023 Winners' },
+        { name: 'United States', ranking: 16, confederation: 'CONCACAF', recent: 'CONCACAF Nations League 2024 Winners' },
+        { name: 'Japan', ranking: 17, confederation: 'AFC', recent: 'Asian Cup 2023 Quarter-finalists' },
+        { name: 'Senegal', ranking: 18, confederation: 'CAF', recent: 'AFCON 2023 Round of 16' },
+        { name: 'Switzerland', ranking: 19, confederation: 'UEFA', recent: 'Euro 2024 Quarter-finalists' },
+        { name: 'Iran', ranking: 20, confederation: 'AFC', recent: 'Asian Cup 2023 Semi-finalists' },
+        { name: 'South Korea', ranking: 22, confederation: 'AFC', recent: 'Asian Cup 2023 Semi-finalists' },
+        { name: 'Australia', ranking: 23, confederation: 'AFC', recent: 'Asian Cup 2023 Quarter-finalists' },
+        { name: 'Austria', ranking: 25, confederation: 'UEFA', recent: 'Euro 2024 Round of 16' },
+        { name: 'Sweden', ranking: 26, confederation: 'UEFA', recent: 'Nations League B' },
+        { name: 'Türkiye', ranking: 27, confederation: 'UEFA', recent: 'Euro 2024 Quarter-finalists' },
+        { name: 'Ecuador', ranking: 31, confederation: 'CONMEBOL', recent: 'Copa America 2024 Quarter-finalists' },
+        { name: 'Czechia', ranking: 34, confederation: 'UEFA', recent: 'Euro 2024 Group Stage' },
+        { name: 'Qatar', ranking: 35, confederation: 'AFC', recent: 'Asian Cup 2023 Winners' },
+        { name: 'Panama', ranking: 35, confederation: 'CONCACAF', recent: 'Copa America 2024 Quarter-finalists' },
+        { name: 'Egypt', ranking: 36, confederation: 'CAF', recent: 'AFCON 2023 Round of 16' },
+        { name: 'Ivory Coast', ranking: 38, confederation: 'CAF', recent: 'AFCON 2023 Winners' },
+        { name: 'Scotland', ranking: 39, confederation: 'UEFA', recent: 'Euro 2024 Group Stage' },
+        { name: 'Tunisia', ranking: 41, confederation: 'CAF', recent: 'AFCON 2023 Group Stage' },
+        { name: 'Algeria', ranking: 43, confederation: 'CAF', recent: 'AFCON 2023 Group Stage' },
+        { name: 'Norway', ranking: 47, confederation: 'UEFA', recent: 'Nations League B' },
+        { name: 'Canada', ranking: 48, confederation: 'CONCACAF', recent: 'Copa America 2024 4th Place' },
+        { name: 'Saudi Arabia', ranking: 53, confederation: 'AFC', recent: 'Asian Cup 2023 Round of 16' },
+        { name: 'Iraq', ranking: 58, confederation: 'AFC', recent: 'Asian Cup 2023 Round of 16' },
+        { name: 'South Africa', ranking: 59, confederation: 'CAF', recent: 'AFCON 2023 3rd Place' },
+        { name: 'Uzbekistan', ranking: 60, confederation: 'AFC', recent: 'Asian Cup 2023 Quarter-finalists' },
+        { name: 'DR Congo', ranking: 61, confederation: 'CAF', recent: 'AFCON 2023 4th Place' },
+        { name: 'Paraguay', ranking: 62, confederation: 'CONMEBOL', recent: 'Copa America 2024 Group Stage' },
+        { name: 'Ghana', ranking: 64, confederation: 'CAF', recent: 'AFCON 2023 Group Stage' },
+        { name: 'Cape Verde', ranking: 65, confederation: 'CAF', recent: 'AFCON 2023 Quarter-finalists' },
+        { name: 'Jordan', ranking: 68, confederation: 'AFC', recent: 'Asian Cup 2023 Runners-up' },
+        { name: 'Bosnia & Herzegovina', ranking: 75, confederation: 'UEFA', recent: 'Euro 2024 Play-offs' },
+        { name: 'Haiti', ranking: 86, confederation: 'CONCACAF', recent: 'Gold Cup 2023 Group Stage' },
+        { name: 'Curaçao', ranking: 88, confederation: 'CONCACAF', recent: 'CONCACAF Nations League B' },
+        { name: 'New Zealand', ranking: 94, confederation: 'OFC', recent: 'OFC Nations Cup Winners' }
+      ];
+
+      const WC_GROUPS = {
+        A: { name: 'Group A', teams: [ { name: 'Mexico', p: 0, gd: 0, pts: 0 }, { name: 'South Africa', p: 0, gd: 0, pts: 0 }, { name: 'South Korea', p: 0, gd: 0, pts: 0 }, { name: 'Czechia', p: 0, gd: 0, pts: 0 } ] },
+        B: { name: 'Group B', teams: [ { name: 'Canada', p: 0, gd: 0, pts: 0 }, { name: 'Bosnia & Herzegovina', p: 0, gd: 0, pts: 0 }, { name: 'Qatar', p: 0, gd: 0, pts: 0 }, { name: 'Switzerland', p: 0, gd: 0, pts: 0 } ] },
+        C: { name: 'Group C', teams: [ { name: 'Brazil', p: 0, gd: 0, pts: 0 }, { name: 'Morocco', p: 0, gd: 0, pts: 0 }, { name: 'Scotland', p: 0, gd: 0, pts: 0 }, { name: 'Haiti', p: 0, gd: 0, pts: 0 } ] },
+        D: { name: 'Group D', teams: [ { name: 'United States', p: 0, gd: 0, pts: 0 }, { name: 'Paraguay', p: 0, gd: 0, pts: 0 }, { name: 'Australia', p: 0, gd: 0, pts: 0 }, { name: 'Türkiye', p: 0, gd: 0, pts: 0 } ] },
+        E: { name: 'Group E', teams: [ { name: 'Germany', p: 0, gd: 0, pts: 0 }, { name: 'Ecuador', p: 0, gd: 0, pts: 0 }, { name: 'Ivory Coast', p: 0, gd: 0, pts: 0 }, { name: 'Curaçao', p: 0, gd: 0, pts: 0 } ] },
+        F: { name: 'Group F', teams: [ { name: 'Netherlands', p: 0, gd: 0, pts: 0 }, { name: 'Japan', p: 0, gd: 0, pts: 0 }, { name: 'Tunisia', p: 0, gd: 0, pts: 0 }, { name: 'Sweden', p: 0, gd: 0, pts: 0 } ] },
+        G: { name: 'Group G', teams: [ { name: 'Belgium', p: 0, gd: 0, pts: 0 }, { name: 'Iran', p: 0, gd: 0, pts: 0 }, { name: 'Egypt', p: 0, gd: 0, pts: 0 }, { name: 'New Zealand', p: 0, gd: 0, pts: 0 } ] },
+        H: { name: 'Group H', teams: [ { name: 'Spain', p: 0, gd: 0, pts: 0 }, { name: 'Uruguay', p: 0, gd: 0, pts: 0 }, { name: 'Saudi Arabia', p: 0, gd: 0, pts: 0 }, { name: 'Cape Verde', p: 0, gd: 0, pts: 0 } ] },
+        I: { name: 'Group I', teams: [ { name: 'France', p: 0, gd: 0, pts: 0 }, { name: 'Senegal', p: 0, gd: 0, pts: 0 }, { name: 'Norway', p: 0, gd: 0, pts: 0 }, { name: 'Iraq', p: 0, gd: 0, pts: 0 } ] },
+        J: { name: 'Group J', teams: [ { name: 'Argentina', p: 0, gd: 0, pts: 0 }, { name: 'Austria', p: 0, gd: 0, pts: 0 }, { name: 'Algeria', p: 0, gd: 0, pts: 0 }, { name: 'Jordan', p: 0, gd: 0, pts: 0 } ] },
+        K: { name: 'Group K', teams: [ { name: 'Portugal', p: 0, gd: 0, pts: 0 }, { name: 'Colombia', p: 0, gd: 0, pts: 0 }, { name: 'Uzbekistan', p: 0, gd: 0, pts: 0 }, { name: 'DR Congo', p: 0, gd: 0, pts: 0 } ] },
+        L: { name: 'Group L', teams: [ { name: 'England', p: 0, gd: 0, pts: 0 }, { name: 'Croatia', p: 0, gd: 0, pts: 0 }, { name: 'Panama', p: 0, gd: 0, pts: 0 }, { name: 'Ghana', p: 0, gd: 0, pts: 0 } ] }
+      };
+
+      const WC_PLAYERS = [
+        // France
+        { name: 'Kylian Mbappé', team: 'France', pos: 'Forward', subPos: 'Striker', club: 'Real Madrid', age: 27, goals: 48, assists: 18, caps: 79, marketValue: 180, popularity: 98, form: 9.5, formIndicator: '🔥 In Form', stats: '48 Goals, 18 Assists' },
+        { name: 'Antoine Griezmann', team: 'France', pos: 'Forward', subPos: 'Attacking Midfielder', club: 'Atletico Madrid', age: 35, goals: 44, assists: 38, caps: 129, marketValue: 25, popularity: 88, form: 8.2, formIndicator: '⭐ Stable', stats: '44 Goals, 38 Assists' },
+        { name: 'Mike Maignan', team: 'France', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'AC Milan', age: 30, cleanSheets: 18, saves: 98, savePct: 81, caps: 16, marketValue: 38, popularity: 82, form: 8.7, formIndicator: '📈 Rising', stats: '18 CS, 98 Saves' },
+        { name: 'William Saliba', team: 'France', pos: 'Defender', subPos: 'Centre-Back', club: 'Arsenal', age: 25, goals: 2, assists: 1, caps: 15, marketValue: 80, popularity: 89, form: 9.3, formIndicator: '🔥 Elite', stats: '15 Caps, 10 CS' },
+        { name: 'Warren Zaïre-Emery', team: 'France', pos: 'Midfielder', subPos: 'Central Midfielder', club: 'PSG', age: 20, goals: 4, assists: 7, caps: 3, marketValue: 60, popularity: 84, form: 8.8, formIndicator: '📈 Rising', stats: '4 Goals, 7 Assists' },
+        // Argentina
+        { name: 'Lionel Messi', team: 'Argentina', pos: 'Forward', subPos: 'Forward', club: 'Inter Miami', age: 38, goals: 106, assists: 56, caps: 180, marketValue: 30, popularity: 99, form: 9.6, formIndicator: '🔥 GOAT', stats: '106 Goals, 56 Assists' },
+        { name: 'Lautaro Martínez', team: 'Argentina', pos: 'Forward', subPos: 'Striker', club: 'Inter Milan', age: 28, goals: 26, assists: 8, caps: 56, marketValue: 110, popularity: 90, form: 9.0, formIndicator: '🔥 In Form', stats: '26 Goals, 8 Assists' },
+        { name: 'Julián Álvarez', team: 'Argentina', pos: 'Forward', subPos: 'Striker', club: 'Atletico Madrid', age: 26, goals: 10, assists: 12, caps: 31, marketValue: 90, popularity: 88, form: 8.5, formIndicator: '⭐ Stable', stats: '10 Goals, 12 Assists' },
+        { name: 'Emiliano Martínez', team: 'Argentina', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Aston Villa', age: 33, cleanSheets: 22, saves: 105, savePct: 79, caps: 39, marketValue: 28, popularity: 91, form: 9.2, formIndicator: '🔥 Big Game', stats: '22 CS, 105 Saves' },
+        { name: 'Enzo Fernández', team: 'Argentina', pos: 'Midfielder', subPos: 'Central Midfielder', club: 'Chelsea', age: 25, goals: 4, assists: 8, caps: 22, marketValue: 80, popularity: 86, form: 8.1, formIndicator: '⭐ Stable', stats: '4 Goals, 8 Assists' },
+        { name: 'Alexis Mac Allister', team: 'Argentina', pos: 'Midfielder', subPos: 'Central Midfielder', club: 'Liverpool', age: 27, goals: 8, assists: 10, caps: 25, marketValue: 75, popularity: 87, form: 8.9, formIndicator: '📈 Rising', stats: '8 Goals, 10 Assists' },
+        { name: 'Alejandro Garnacho', team: 'Argentina', pos: 'Forward', subPos: 'Winger', club: 'Manchester United', age: 21, goals: 7, assists: 5, caps: 5, marketValue: 45, popularity: 89, form: 8.4, formIndicator: '📈 Young Star', stats: '7 Goals, 5 Assists' },
+        // England
+        { name: 'Jude Bellingham', team: 'England', pos: 'Midfielder', subPos: 'Attacking Midfielder', club: 'Real Madrid', age: 22, goals: 25, assists: 16, caps: 29, marketValue: 180, popularity: 97, form: 9.6, formIndicator: '🔥 Golden Boy', stats: '25 Goals, 16 Assists' },
+        { name: 'Harry Kane', team: 'England', pos: 'Forward', subPos: 'Striker', club: 'Bayern Munich', age: 32, goals: 62, assists: 22, caps: 89, marketValue: 110, popularity: 92, form: 9.1, formIndicator: '🔥 Lethal', stats: '62 Goals, 22 Assists' },
+        { name: 'Bukayo Saka', team: 'England', pos: 'Forward', subPos: 'Winger', club: 'Arsenal', age: 24, goals: 15, assists: 17, caps: 32, marketValue: 130, popularity: 93, form: 9.2, formIndicator: '🔥 Spark', stats: '15 Goals, 17 Assists' },
+        { name: 'Phil Foden', team: 'England', pos: 'Forward', subPos: 'Winger', club: 'Manchester City', age: 26, goals: 19, assists: 14, caps: 34, marketValue: 150, popularity: 91, form: 8.9, formIndicator: '⭐ Stable', stats: '19 Goals, 14 Assists' },
+        { name: 'Declan Rice', team: 'England', pos: 'Midfielder', subPos: 'Defensive Midfielder', club: 'Arsenal', age: 27, goals: 5, assists: 9, caps: 50, marketValue: 120, popularity: 89, form: 9.0, formIndicator: '🔥 Engine', stats: '5 Goals, 9 Assists' },
+        { name: 'Jordan Pickford', team: 'England', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Everton', age: 32, cleanSheets: 15, saves: 121, savePct: 76, caps: 60, marketValue: 22, popularity: 80, form: 8.3, formIndicator: '⭐ Solid', stats: '15 CS, 121 Saves' },
+        { name: 'Kobbie Mainoo', team: 'England', pos: 'Midfielder', subPos: 'Central Midfielder', club: 'Manchester United', age: 21, goals: 3, assists: 2, caps: 8, marketValue: 50, popularity: 88, form: 8.7, formIndicator: '📈 Young Star', stats: '3 Goals, 2 Assists' },
+        { name: 'Cole Palmer', team: 'England', pos: 'Forward', subPos: 'Attacking Midfielder', club: 'Chelsea', age: 24, goals: 27, assists: 15, caps: 4, marketValue: 90, popularity: 94, form: 9.7, formIndicator: '🔥 Ice Cold', stats: '27 Goals, 15 Assists' },
+        // Brazil
+        { name: 'Vinicius Jr', team: 'Brazil', pos: 'Forward', subPos: 'Winger', club: 'Real Madrid', age: 25, goals: 24, assists: 11, caps: 30, marketValue: 180, popularity: 96, form: 9.5, formIndicator: '🔥 Elite', stats: '24 Goals, 11 Assists' },
+        { name: 'Rodrygo', team: 'Brazil', pos: 'Forward', subPos: 'Winger', club: 'Real Madrid', age: 25, goals: 17, assists: 9, caps: 22, marketValue: 110, popularity: 89, form: 8.6, formIndicator: '⭐ Stable', stats: '17 Goals, 9 Assists' },
+        { name: 'Endrick', team: 'Brazil', pos: 'Forward', subPos: 'Striker', club: 'Real Madrid', age: 19, goals: 3, assists: 1, caps: 4, marketValue: 60, popularity: 91, form: 8.8, formIndicator: '📈 Wonderkid', stats: '3 Goals, 1 Assist' },
+        { name: 'Alisson Becker', team: 'Brazil', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Liverpool', age: 33, cleanSheets: 20, saves: 88, savePct: 82, caps: 63, marketValue: 32, popularity: 88, form: 8.9, formIndicator: '🔥 Elite', stats: '20 CS, 88 Saves' },
+        { name: 'Bruno Guimarães', team: 'Brazil', pos: 'Midfielder', subPos: 'Defensive Midfielder', club: 'Newcastle', age: 28, goals: 7, assists: 10, caps: 20, marketValue: 85, popularity: 84, form: 8.5, formIndicator: '⭐ Stable', stats: '7 Goals, 10 Assists' },
+        // Spain
+        { name: 'Lamine Yamal', team: 'Spain', pos: 'Forward', subPos: 'Winger', club: 'Barcelona', age: 18, goals: 7, assists: 14, caps: 14, marketValue: 120, popularity: 98, form: 9.7, formIndicator: '🔥 Sensational', stats: '7 Goals, 14 Assists' },
+        { name: 'Rodri', team: 'Spain', pos: 'Midfielder', subPos: 'Defensive Midfielder', club: 'Manchester City', age: 29, goals: 9, assists: 14, caps: 49, marketValue: 120, popularity: 95, form: 9.8, formIndicator: '🔥 Masterclass', stats: '9 Goals, 14 Assists' },
+        { name: 'Pedri', team: 'Spain', pos: 'Midfielder', subPos: 'Central Midfielder', club: 'Barcelona', age: 23, goals: 4, assists: 8, caps: 24, marketValue: 80, popularity: 91, form: 8.7, formIndicator: '📈 Rising', stats: '4 Goals, 8 Assists' },
+        { name: 'Gavi', team: 'Spain', pos: 'Midfielder', subPos: 'Central Midfielder', club: 'Barcelona', age: 21, goals: 5, assists: 6, caps: 27, marketValue: 90, popularity: 90, form: 8.4, formIndicator: '⭐ Returning', stats: '5 Goals, 6 Assists' },
+        { name: 'Nico Williams', team: 'Spain', pos: 'Forward', subPos: 'Winger', club: 'Athletic Bilbao', age: 23, goals: 8, assists: 17, caps: 20, marketValue: 70, popularity: 92, form: 9.1, formIndicator: '🔥 Speed', stats: '8 Goals, 17 Assists' },
+        { name: 'Dani Olmo', team: 'Spain', pos: 'Midfielder', subPos: 'Attacking Midfielder', club: 'Barcelona', age: 28, goals: 12, assists: 8, caps: 39, marketValue: 60, popularity: 86, form: 8.9, formIndicator: '🔥 In Form', stats: '12 Goals, 8 Assists' },
+        { name: 'Unai Simón', team: 'Spain', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Athletic Bilbao', age: 28, cleanSheets: 17, saves: 92, savePct: 78, caps: 40, marketValue: 30, popularity: 81, form: 8.6, formIndicator: '⭐ Solid', stats: '17 CS, 92 Saves' },
+        // Germany
+        { name: 'Jamal Musiala', team: 'Germany', pos: 'Midfielder', subPos: 'Attacking Midfielder', club: 'Bayern Munich', age: 23, goals: 12, assists: 8, caps: 25, marketValue: 110, popularity: 94, form: 9.4, formIndicator: '🔥 Magic', stats: '12 Goals, 8 Assists' },
+        { name: 'Florian Wirtz', team: 'Germany', pos: 'Midfielder', subPos: 'Attacking Midfielder', club: 'Leverkusen', age: 23, goals: 18, assists: 20, caps: 18, marketValue: 130, popularity: 93, form: 9.6, formIndicator: '🔥 Elite', stats: '18 Goals, 20 Assists' },
+        { name: 'Kai Havertz', team: 'Germany', pos: 'Forward', subPos: 'Striker', club: 'Arsenal', age: 27, goals: 14, assists: 7, caps: 46, marketValue: 70, popularity: 87, form: 8.8, formIndicator: '📈 Form', stats: '14 Goals, 7 Assists' },
+        { name: 'Joshua Kimmich', team: 'Germany', pos: 'Midfielder', subPos: 'Central Midfielder', club: 'Bayern Munich', age: 31, goals: 2, assists: 10, caps: 86, marketValue: 50, popularity: 86, form: 8.3, formIndicator: '⭐ Stable', stats: '2 Goals, 10 Assists' },
+        { name: 'Antonio Rüdiger', team: 'Germany', pos: 'Defender', subPos: 'Centre-Back', club: 'Real Madrid', age: 33, goals: 3, assists: 1, caps: 68, marketValue: 25, popularity: 89, form: 9.1, formIndicator: '🔥 Wall', stats: '68 Caps, 3 Goals' },
+        { name: 'Marc-André ter Stegen', team: 'Germany', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Barcelona', age: 34, cleanSheets: 14, saves: 82, savePct: 75, caps: 40, marketValue: 28, popularity: 83, form: 8.2, formIndicator: '⭐ Stable', stats: '14 CS, 82 Saves' },
+        // Portugal
+        { name: 'Cristiano Ronaldo', team: 'Portugal', pos: 'Forward', subPos: 'Striker', club: 'Al Nassr', age: 41, goals: 128, assists: 46, caps: 206, marketValue: 15, popularity: 99, form: 8.9, formIndicator: '🔥 Legend', stats: '128 Goals, 46 Assists' },
+        { name: 'Bruno Fernandes', team: 'Portugal', pos: 'Midfielder', subPos: 'Attacking Midfielder', club: 'Manchester United', age: 31, goals: 20, assists: 22, caps: 64, marketValue: 70, popularity: 90, form: 8.8, formIndicator: '⭐ Engine', stats: '20 Goals, 22 Assists' },
+        { name: 'Bernardo Silva', team: 'Portugal', pos: 'Midfielder', subPos: 'Attacking Midfielder', club: 'Manchester City', age: 31, goals: 11, assists: 12, caps: 88, marketValue: 70, popularity: 88, form: 8.5, formIndicator: '⭐ Stable', stats: '11 Goals, 12 Assists' },
+        { name: 'Rafael Leão', team: 'Portugal', pos: 'Forward', subPos: 'Winger', club: 'AC Milan', age: 26, goals: 15, assists: 14, caps: 26, marketValue: 90, popularity: 89, form: 8.7, formIndicator: '📈 Spark', stats: '15 Goals, 14 Assists' },
+        { name: 'João Neves', team: 'Portugal', pos: 'Midfielder', subPos: 'Defensive Midfielder', club: 'PSG', age: 21, goals: 2, assists: 4, caps: 7, marketValue: 55, popularity: 85, form: 8.8, formIndicator: '📈 Young Star', stats: '2 Goals, 4 Assists' },
+        { name: 'Rúben Dias', team: 'Portugal', pos: 'Defender', subPos: 'Centre-Back', club: 'Manchester City', age: 29, goals: 1, assists: 2, caps: 56, marketValue: 80, popularity: 89, form: 9.0, formIndicator: '🔥 Solid', stats: '56 Caps, 1 Goal' },
+        { name: 'Diogo Costa', team: 'Portugal', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Porto', age: 26, cleanSheets: 19, saves: 76, savePct: 80, caps: 22, marketValue: 45, popularity: 86, form: 9.0, formIndicator: '🔥 Pen Stopper', stats: '19 CS, 76 Saves' },
+        // Netherlands
+        { name: 'Virgil van Dijk', team: 'Netherlands', pos: 'Defender', subPos: 'Centre-Back', club: 'Liverpool', age: 34, goals: 4, assists: 2, caps: 66, marketValue: 30, popularity: 92, form: 9.2, formIndicator: '🔥 Captain', stats: '66 Caps, 4 Goals' },
+        { name: 'Cody Gakpo', team: 'Netherlands', pos: 'Forward', subPos: 'Winger', club: 'Liverpool', age: 27, goals: 12, assists: 6, caps: 24, marketValue: 50, popularity: 85, form: 8.7, formIndicator: '📈 Form', stats: '12 Goals, 6 Assists' },
+        { name: 'Xavi Simons', team: 'Netherlands', pos: 'Midfielder', subPos: 'Attacking Midfielder', club: 'RB Leipzig', age: 23, goals: 10, assists: 15, caps: 13, marketValue: 80, popularity: 88, form: 9.0, formIndicator: '🔥 Spark', stats: '10 Goals, 15 Assists' },
+        { name: 'Bart Verbruggen', team: 'Netherlands', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Brighton', age: 23, cleanSheets: 10, saves: 65, savePct: 74, caps: 8, marketValue: 20, popularity: 75, form: 8.4, formIndicator: '📈 Rising', stats: '10 CS, 65 Saves' },
+        // Italy / Norway
+        { name: 'Erling Haaland', team: 'Norway', pos: 'Forward', subPos: 'Striker', club: 'Manchester City', age: 25, goals: 31, assists: 8, caps: 33, marketValue: 180, popularity: 97, form: 9.5, formIndicator: '🔥 Terminator', stats: '31 Goals, 8 Assists' },
+        { name: 'Martin Ødegaard', team: 'Norway', pos: 'Midfielder', subPos: 'Attacking Midfielder', club: 'Arsenal', age: 27, goals: 3, assists: 10, caps: 59, marketValue: 110, popularity: 91, form: 9.0, formIndicator: '🔥 Maestro', stats: '3 Goals, 10 Assists' },
+        { name: 'Gianluigi Donnarumma', team: 'Italy', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'PSG', age: 27, cleanSheets: 16, saves: 112, savePct: 79, caps: 62, marketValue: 40, popularity: 87, form: 8.8, formIndicator: '⭐ Solid', stats: '16 CS, 112 Saves' },
+        { name: 'Riccardo Calafiori', team: 'Italy', pos: 'Defender', subPos: 'Centre-Back', club: 'Arsenal', age: 24, goals: 2, assists: 5, caps: 5, marketValue: 45, popularity: 88, form: 9.1, formIndicator: '📈 Rising', stats: '5 Caps, 1 Goal' },
+        // Uruguay
+        { name: 'Federico Valverde', team: 'Uruguay', pos: 'Midfielder', subPos: 'Central Midfielder', club: 'Real Madrid', age: 27, goals: 6, assists: 8, caps: 56, marketValue: 120, popularity: 92, form: 9.3, formIndicator: '🔥 Engine', stats: '6 Goals, 8 Assists' },
+        { name: 'Darwin Núñez', team: 'Uruguay', pos: 'Forward', subPos: 'Striker', club: 'Liverpool', age: 26, goals: 18, assists: 8, caps: 25, marketValue: 70, popularity: 88, form: 8.6, formIndicator: '⚡ Chaos', stats: '18 Goals, 8 Assists' },
+        // Belgium
+        { name: 'Kevin De Bruyne', team: 'Belgium', pos: 'Midfielder', subPos: 'Central Midfielder', club: 'Manchester City', age: 34, goals: 26, assists: 49, caps: 99, marketValue: 60, popularity: 95, form: 9.0, formIndicator: '⭐ Maestro', stats: '26 Goals, 49 Assists' },
+        { name: 'Jeremy Doku', team: 'Belgium', pos: 'Forward', subPos: 'Winger', club: 'Manchester City', age: 24, goals: 6, assists: 10, caps: 22, marketValue: 65, popularity: 87, form: 8.5, formIndicator: '📈 Dribbler', stats: '6 Goals, 10 Assists' },
+        // Colombia
+        { name: 'Luis Díaz', team: 'Colombia', pos: 'Forward', subPos: 'Winger', club: 'Liverpool', age: 29, goals: 12, assists: 5, caps: 47, marketValue: 75, popularity: 89, form: 9.0, formIndicator: '🔥 Dynamic', stats: '12 Goals, 5 Assists' },
+        { name: 'James Rodríguez', team: 'Colombia', pos: 'Midfielder', subPos: 'Attacking Midfielder', club: 'Rayo Vallecano', age: 34, goals: 28, assists: 32, caps: 100, marketValue: 5, popularity: 86, form: 9.2, formIndicator: '🔥 Copa MVP', stats: '28 Goals, 32 Assists' },
+        // USA
+        { name: 'Christian Pulisic', team: 'United States', pos: 'Forward', subPos: 'Winger', club: 'AC Milan', age: 27, goals: 28, assists: 16, caps: 64, marketValue: 40, popularity: 90, form: 9.3, formIndicator: '🔥 Captain America', stats: '28 Goals, 16 Assists' },
+        { name: 'Weston McKennie', team: 'United States', pos: 'Midfielder', subPos: 'Central Midfielder', club: 'Juventus', age: 27, goals: 11, assists: 9, caps: 49, marketValue: 28, popularity: 82, form: 8.2, formIndicator: '⭐ Solid', stats: '11 Goals, 9 Assists' },
+        // Canada
+        { name: 'Alphonso Davies', team: 'Canada', pos: 'Defender', subPos: 'Full-Back', club: 'Bayern Munich', age: 25, goals: 15, assists: 18, caps: 47, marketValue: 50, popularity: 89, form: 8.7, formIndicator: '⭐ Stable', stats: '15 Goals, 18 Assists' },
+        { name: 'Jonathan David', team: 'Canada', pos: 'Forward', subPos: 'Striker', club: 'Lille', age: 26, goals: 26, assists: 8, caps: 48, marketValue: 50, popularity: 83, form: 8.9, formIndicator: '📈 In Form', stats: '26 Goals, 8 Assists' },
+        // Mexico
+        { name: 'Santiago Giménez', team: 'Mexico', pos: 'Forward', subPos: 'Striker', club: 'Feyenoord', age: 25, goals: 24, assists: 6, caps: 25, marketValue: 40, popularity: 85, form: 8.4, formIndicator: '⭐ Stable', stats: '24 Goals, 6 Assists' },
+        { name: 'Edson Álvarez', team: 'Mexico', pos: 'Midfielder', subPos: 'Defensive Midfielder', club: 'West Ham', age: 28, goals: 5, assists: 2, caps: 74, marketValue: 35, popularity: 83, form: 8.5, formIndicator: '⭐ Leader', stats: '5 Goals, 2 Assists' },
+        // Morocco
+        { name: 'Achraf Hakimi', team: 'Morocco', pos: 'Defender', subPos: 'Full-Back', club: 'PSG', age: 27, goals: 8, assists: 12, caps: 72, marketValue: 65, popularity: 90, form: 8.9, formIndicator: '⭐ Stable', stats: '8 Goals, 12 Assists' },
+        { name: 'Brahim Díaz', team: 'Morocco', pos: 'Forward', subPos: 'Attacking Midfielder', club: 'Real Madrid', age: 26, goals: 9, assists: 7, caps: 6, marketValue: 40, popularity: 86, form: 8.7, formIndicator: '📈 Form', stats: '9 Goals, 7 Assists' },
+        // Nigeria / Egypt
+        { name: 'Mohamed Salah', team: 'Egypt', pos: 'Forward', subPos: 'Winger', club: 'Liverpool', age: 33, goals: 56, assists: 31, caps: 98, marketValue: 55, popularity: 95, form: 9.3, formIndicator: '🔥 Egyptian King', stats: '56 Goals, 31 Assists' },
+        { name: 'Ademola Lookman', team: 'Nigeria', pos: 'Forward', subPos: 'Winger', club: 'Atalanta', age: 28, goals: 17, assists: 10, caps: 19, marketValue: 40, popularity: 88, form: 9.3, formIndicator: '🔥 Hot', stats: '17 Goals, 10 Assists' },
+        // South Korea
+        { name: 'Son Heung-min', team: 'South Korea', pos: 'Forward', subPos: 'Winger', club: 'Tottenham', age: 33, goals: 44, assists: 25, caps: 123, marketValue: 45, popularity: 93, form: 9.0, formIndicator: '⭐ Legend', stats: '44 Goals, 25 Assists' },
+        // Japan
+        { name: 'Kaoru Mitoma', team: 'Japan', pos: 'Forward', subPos: 'Winger', club: 'Brighton', age: 29, goals: 8, assists: 9, caps: 20, marketValue: 45, popularity: 88, form: 8.6, formIndicator: '⭐ Tricky', stats: '8 Goals, 9 Assists' },
+        { name: 'Takefusa Kubo', team: 'Japan', pos: 'Forward', subPos: 'Winger', club: 'Real Sociedad', age: 25, goals: 7, assists: 11, caps: 32, marketValue: 50, popularity: 87, form: 8.5, formIndicator: '⭐ Creative', stats: '7 Goals, 11 Assists' },
+        // Senegal
+        { name: 'Nicolas Jackson', team: 'Senegal', pos: 'Forward', subPos: 'Striker', club: 'Chelsea', age: 24, goals: 15, assists: 6, caps: 14, marketValue: 35, popularity: 84, form: 8.6, formIndicator: '📈 Improving', stats: '15 Goals, 6 Assists' },
+        // Croatia
+        { name: 'Luka Modric', team: 'Croatia', pos: 'Midfielder', subPos: 'Central Midfielder', club: 'Real Madrid', age: 40, goals: 24, assists: 29, caps: 174, marketValue: 6, popularity: 94, form: 8.8, formIndicator: '⭐ Timeless', stats: '24 Goals, 29 Assists' },
+        { name: 'Joško Gvardiol', team: 'Croatia', pos: 'Defender', subPos: 'Centre-Back', club: 'Manchester City', age: 24, goals: 5, assists: 3, caps: 30, marketValue: 75, popularity: 89, form: 9.1, formIndicator: '🔥 Strong', stats: '30 Caps, 5 Goals' },
+        // Additional Young Players / Türkiye
+        { name: 'Arda Güler', team: 'Türkiye', pos: 'Midfielder', subPos: 'Attacking Midfielder', club: 'Real Madrid', age: 21, goals: 6, assists: 4, caps: 12, marketValue: 45, popularity: 90, form: 8.9, formIndicator: '📈 Wonderkid', stats: '6 Goals, 4 Assists' },
+        { name: 'Kenan Yildiz', team: 'Türkiye', pos: 'Forward', subPos: 'Winger', club: 'Juventus', age: 21, goals: 4, assists: 3, caps: 8, marketValue: 30, popularity: 85, form: 8.4, formIndicator: '📈 Young Talent', stats: '4 Goals, 3 Assists' },
+        { name: 'Aleksandar Pavlovic', team: 'Germany', pos: 'Midfielder', subPos: 'Defensive Midfielder', club: 'Bayern Munich', age: 22, goals: 2, assists: 3, caps: 2, marketValue: 30, popularity: 80, form: 8.2, formIndicator: '⭐ Steady', stats: '2 Goals, 3 Assists' },
+        { name: 'Rico Lewis', team: 'England', pos: 'Defender', subPos: 'Full-Back', club: 'Manchester City', age: 21, goals: 2, assists: 4, caps: 4, marketValue: 38, popularity: 81, form: 8.5, formIndicator: '⭐ Versatile', stats: '4 Caps, 2 Goals' },
+        { name: 'Lewis Hall', team: 'England', pos: 'Defender', subPos: 'Full-Back', club: 'Newcastle', age: 21, goals: 1, assists: 3, caps: 1, marketValue: 25, popularity: 78, form: 8.1, formIndicator: '⭐ Active', stats: '1 Cap, 1 Goal' },
+        { name: 'Mathys Tel', team: 'France', pos: 'Forward', subPos: 'Striker', club: 'Bayern Munich', age: 21, goals: 9, assists: 4, caps: 2, marketValue: 40, popularity: 82, form: 8.0, formIndicator: '⭐ Promising', stats: '9 Goals, 4 Assists' },
+        { name: 'Zeki Amdouni', team: 'Switzerland', pos: 'Forward', subPos: 'Striker', club: 'Benfica', age: 25, goals: 8, assists: 2, caps: 19, marketValue: 18, popularity: 79, form: 8.1, formIndicator: '⭐ Stable', stats: '8 Goals, 2 Assists' },
+        { name: 'Camara Lamine', team: 'Senegal', pos: 'Midfielder', subPos: 'Central Midfielder', club: 'Monaco', age: 22, goals: 5, assists: 6, caps: 15, marketValue: 15, popularity: 78, form: 8.4, formIndicator: '📈 Form', stats: '5 Goals, 6 Assists' },
+        { name: 'Georgiy Sudakov', team: 'Ukraine', pos: 'Midfielder', subPos: 'Attacking Midfielder', club: 'Shakhtar', age: 23, goals: 10, assists: 12, caps: 14, marketValue: 35, popularity: 80, form: 8.5, formIndicator: '⭐ Creative', stats: '10 Goals, 12 Assists' },
+        { name: 'Artem Dovbyk', team: 'Ukraine', pos: 'Forward', subPos: 'Striker', club: 'Roma', age: 28, goals: 24, assists: 8, caps: 26, marketValue: 35, popularity: 83, form: 8.7, formIndicator: '⭐ Stable', stats: '24 Goals, 8 Assists' },
+        // Goalkeepers
+        { name: 'Thibaut Courtois', team: 'Belgium', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Real Madrid', age: 34, cleanSheets: 15, saves: 65, savePct: 83, caps: 102, marketValue: 28, popularity: 90, form: 9.1, formIndicator: '🔥 World Class', stats: '15 CS, 65 Saves' },
+        { name: 'Yassine Bounou', team: 'Morocco', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Al Hilal', age: 35, cleanSheets: 18, saves: 80, savePct: 78, caps: 65, marketValue: 12, popularity: 87, form: 8.8, formIndicator: '⭐ Stable', stats: '18 CS, 80 Saves' },
+        { name: 'Andriy Lunin', team: 'Ukraine', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Real Madrid', age: 27, cleanSheets: 12, saves: 72, savePct: 80, caps: 12, marketValue: 25, popularity: 85, form: 8.7, formIndicator: '⭐ Reliable', stats: '12 CS, 72 Saves' },
+        { name: 'Yann Sommer', team: 'Switzerland', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Inter Milan', age: 37, cleanSheets: 19, saves: 88, savePct: 79, caps: 90, marketValue: 5, popularity: 83, form: 8.6, formIndicator: '⭐ Experienced', stats: '19 CS, 88 Saves' },
+        { name: 'André Onana', team: 'Cameroon', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Manchester United', age: 30, cleanSheets: 11, saves: 142, savePct: 75, caps: 40, marketValue: 35, popularity: 86, form: 8.4, formIndicator: '⭐ Active', stats: '11 CS, 142 Saves' },
+        // Defenders
+        { name: 'John Stones', team: 'England', pos: 'Defender', subPos: 'Centre-Back', club: 'Manchester City', age: 32, goals: 1, assists: 1, caps: 72, marketValue: 38, popularity: 85, form: 8.5, formIndicator: '⭐ Solid', stats: '72 Caps, 1 Goal' },
+        { name: 'Marquinhos', team: 'Brazil', pos: 'Defender', subPos: 'Centre-Back', club: 'PSG', age: 32, goals: 0, assists: 2, caps: 84, marketValue: 50, popularity: 86, form: 8.6, formIndicator: '⭐ Veteran', stats: '84 Caps, 2 Assists' },
+        { name: 'Cristian Romero', team: 'Argentina', pos: 'Defender', subPos: 'Centre-Back', club: 'Tottenham', age: 28, goals: 3, assists: 1, caps: 32, marketValue: 60, popularity: 88, form: 9.2, formIndicator: '🔥 Aggressive', stats: '32 Caps, 3 Goals' },
+        { name: 'Lisandro Martínez', team: 'Argentina', pos: 'Defender', subPos: 'Centre-Back', club: 'Manchester United', age: 28, goals: 1, assists: 1, caps: 20, marketValue: 45, popularity: 87, form: 8.7, formIndicator: '⭐ Stable', stats: '20 Caps, 1 Goal' },
+        { name: 'Ibrahima Konaté', team: 'France', pos: 'Defender', subPos: 'Centre-Back', club: 'Liverpool', age: 27, goals: 1, assists: 0, caps: 14, marketValue: 45, popularity: 82, form: 8.6, formIndicator: '⭐ Solid', stats: '14 Caps, 1 Goal' }
+      ];
+
+      const WC_FIXTURES = [
+        { id: 1, home: 'Mexico', away: 'South Korea', date: 'Jun 11', time: '15:00', venue: 'Estadio Azteca, Mexico City', group: 'Group A' },
+        { id: 2, home: 'Canada', away: 'Switzerland', date: 'Jun 12', time: '12:00', venue: 'BC Place, Vancouver', group: 'Group B' },
+        { id: 3, home: 'Brazil', away: 'Morocco', date: 'Jun 12', time: '18:00', venue: 'MetLife Stadium, NY/NJ', group: 'Group C' },
+        { id: 4, home: 'United States', away: 'Türkiye', date: 'Jun 13', time: '16:00', venue: 'SoFi Stadium, Los Angeles', group: 'Group D' }
+      ];
+
+      window.QUESTIONS = QUESTIONS;
+      window.LEADERBOARD_DATA = LEADERBOARD_DATA;
+      window.CATEGORIES_DATA = CATEGORIES_DATA;
+      window.TRANSFER_PLAYERS = TRANSFER_PLAYERS;
+      window.LOGO_URLS = LOGO_URLS;
+      window.COUNTRY_CODES = COUNTRY_CODES;
+      window.WC_TEAMS = WC_TEAMS;
+      window.WC_GROUPS = WC_GROUPS;
+      window.WC_PLAYERS = WC_PLAYERS;
+      window.WC_FIXTURES = WC_FIXTURES;

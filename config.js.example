@@ -1,0 +1,5 @@
+// Application Configuration Example
+// Copy this file to 'config.js' and fill in your details.
+window.ENV = {
+  SPORTSDB_API_URL: 'https://www.thesportsdb.com/api/v1/json/3/searchplayers.php',
+};
