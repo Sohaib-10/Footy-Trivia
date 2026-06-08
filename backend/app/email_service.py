@@ -62,12 +62,12 @@ def _send_via_smtp_sync(to: str, subject: str, body: str) -> None:
 
     try:
         if settings.SMTP_USE_SSL:
-            with smtplib.SMTP_SSL(settings.SMTP_HOST, port, timeout=30) as server:
+            with smtplib.SMTP_SSL(settings.SMTP_HOST, port, timeout=20) as server:
                 if settings.SMTP_USER and settings.SMTP_PASSWORD:
                     server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
                 server.send_message(message)
         else:
-            with smtplib.SMTP(settings.SMTP_HOST, port, timeout=30) as server:
+            with smtplib.SMTP(settings.SMTP_HOST, port, timeout=20) as server:
                 if settings.SMTP_USE_TLS:
                     server.starttls()
                 if settings.SMTP_USER and settings.SMTP_PASSWORD:
@@ -75,6 +75,11 @@ def _send_via_smtp_sync(to: str, subject: str, body: str) -> None:
                 server.send_message(message)
     except smtplib.SMTPException as exc:
         raise EmailDeliveryError(f"SMTP error: {exc}") from exc
+    except OSError as exc:
+        # Connection refused / timeout — common when the host blocks outbound SMTP ports.
+        raise EmailDeliveryError(
+            f"SMTP connection failed ({exc}). The host may block outbound SMTP; use an HTTP email API (Resend)."
+        ) from exc
 
 
 async def send_email(to: str, subject: str, body: str) -> bool:
