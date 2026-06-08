@@ -3,7 +3,11 @@
       // LEADERBOARD_DATA loaded from data.js
       // CATEGORIES_DATA loaded from data.js
       // TRANSFER_PLAYERS loaded from data.js
-      const API_BASE_URL = (window.ENV && window.ENV.API_BASE_URL) || 'http://localhost:8000';
+      const API_BASE_URL = (window.ENV && window.ENV.API_BASE_URL) || (
+        (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
+          ? 'http://localhost:8002'
+          : 'https://footytrivia-api.onrender.com'
+      );
 
       async function apiRequest(endpoint, options = {}) {
         const url = `${API_BASE_URL}${endpoint}`;
