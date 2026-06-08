@@ -1,10 +1,3 @@
 {
-  "functions": {
-    "api/**/*.py": {
-      "maxDuration": 60
-    },
-    "backend/app/**/*.py": {
-      "maxDuration": 60
-    }
-  }
+  "cleanUrls": true
 }
