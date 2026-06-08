@@ -1,9 +1,8 @@
 // Static Datasets for Footy-Trivia Application
 
-      const QUESTIONS = {
+            const QUESTIONS = {
 
         'premier-league': [
-
           { q: 'Which club has won the most Premier League titles?', opts: ['Manchester United', 'Chelsea', 'Arsenal', 'Liverpool'], ans: 0, cat: 'Premier League', diff: 'easy', hint: 'Sir Alex Ferguson managed this club to most of their titles.' },
 
           { q: 'Who is the all-time top scorer in Premier League history?', opts: ['Wayne Rooney', 'Alan Shearer', 'Andrew Cole', 'Frank Lampard'], ans: 1, cat: 'Premier League', diff: 'easy', hint: 'He played for Blackburn Rovers and Newcastle United.' },
@@ -23,8 +22,6 @@
           { q: 'How many times has Liverpool won the UEFA Champions League?', opts: ['5', '6', '7', '8'], ans: 1, cat: 'Champions League', diff: 'medium', hint: 'Their latest win was in 2019 vs Tottenham.' },
 
           { q: 'Which player holds the record for most Champions League goals?', opts: ['Lionel Messi', 'Raul', 'Robert Lewandowski', 'Cristiano Ronaldo'], ans: 3, cat: 'Champions League', diff: 'medium', hint: 'He also holds the record for most international goals.' },
-
-          // Expanded 15 questions
 
           { q: 'Which team went undefeated in the 2003-04 Premier League season?', opts: ['Manchester United', 'Arsenal', 'Chelsea', 'Liverpool'], ans: 1, cat: 'Premier League', diff: 'easy', hint: 'The Invincibles.' },
 
@@ -54,12 +51,22 @@
 
           { q: 'Which manager won the Premier League with two different clubs?', opts: ['Sir Alex Ferguson', 'Kenny Dalglish', 'Jose Mourinho', 'Pep Guardiola'], ans: 1, cat: 'Premier League', diff: 'hard', hint: 'Blackburn Rovers and Liverpool.' },
 
-          { q: 'Who was the first player to score 30+ goals in a 38-game Premier League season?', opts: ['Alan Shearer', 'Andy Cole', 'Cristiano Ronaldo', 'Mohamed Salah'], ans: 2, cat: 'Premier League', diff: 'hard', hint: 'Manchester United winger in 2007-08.' }
+          { q: 'Who was the first player to score 30+ goals in a 38-game Premier League season?', opts: ['Alan Shearer', 'Andy Cole', 'Cristiano Ronaldo', 'Mohamed Salah'], ans: 2, cat: 'Premier League', diff: 'hard', hint: 'Manchester United winger in 2007-08.' },
 
+          { q: 'Who has won the most Premier League Manager of the Month awards?', opts: ['Sir Alex Ferguson', 'Arsene Wenger', 'Jose Mourinho', 'Pep Guardiola'], ans: 0, cat: 'Premier League', diff: 'medium', hint: 'He managed Manchester United for over two decades.' },
+
+          { q: 'Which club won the Premier League title in the 1994-95 season?', opts: ['Manchester United', 'Blackburn Rovers', 'Arsenal', 'Leeds United'], ans: 1, cat: 'Premier League', diff: 'easy', hint: 'Led by Alan Shearer up front.' },
+
+          { q: 'Which player scored the first-ever Premier League goal in 1992?', opts: ['Teddy Sheringham', 'Alan Shearer', 'Brian Deane', 'Eric Cantona'], ans: 2, cat: 'Premier League', diff: 'hard', hint: 'He scored it for Sheffield United against Manchester United.' },
+
+          { q: 'Which player has scored the most penalties in Premier League history?', opts: ['Frank Lampard', 'Alan Shearer', 'Steven Gerrard', 'Harry Kane'], ans: 1, cat: 'Premier League', diff: 'medium', hint: 'He is also the all-time top scorer.' },
+
+          { q: 'Who holds the record for most clean sheets in Premier League history?', opts: ['David James', 'Petr Cech', 'Mark Schwarzer', 'David De Gea'], ans: 1, cat: 'Premier League', diff: 'medium', hint: 'He played for Chelsea and Arsenal, keeping 202 clean sheets.' },
+
+          { q: 'Which club holds the record for the most points in a single Premier League season?', opts: ['Liverpool', 'Chelsea', 'Manchester City', 'Manchester United'], ans: 2, cat: 'Premier League', diff: 'easy', hint: 'They achieved 100 points in the 2017-18 season.' }
         ],
 
         'la-liga': [
-
           { q: 'Which club has won the most La Liga titles?', opts: ['FC Barcelona', 'Real Madrid', 'Atletico Madrid', 'Valencia'], ans: 1, cat: 'La Liga', diff: 'easy', hint: 'Los Blancos, the white ones.' },
 
           { q: 'Who is La Liga\'s all-time top scorer?', opts: ['Ronaldo Nazario', 'Lionel Messi', 'Karim Benzema', 'Raul'], ans: 1, cat: 'La Liga', diff: 'medium', hint: 'An Argentine, usually wearing #10.' },
@@ -69,8 +76,6 @@
           { q: 'What year did Barcelona complete the historic treble?', opts: ['2006', '2009', '2011', '2015'], ans: 1, cat: 'La Liga', diff: 'medium', hint: 'Pep Guardiola\'s first season as manager.' },
 
           { q: 'Which player won the Golden Boot at the 2022 World Cup?', opts: ['Messi', 'Mbappe', 'Giroud', 'Alvarez'], ans: 1, cat: 'World Cup', diff: 'medium', hint: 'He scored 8 goals in the tournament.' },
-
-          // Expanded 15 questions
 
           { q: 'What is the home stadium of Atletico Madrid?', opts: ['San Mames', 'Mestalla', 'Metropolitano', 'Ramon Sanchez Pizjuan'], ans: 2, cat: 'La Liga', diff: 'easy', hint: 'Replaced the Vicente Calderon.' },
 
@@ -92,7 +97,7 @@
 
           { q: 'Who scored the fastest goal in La Liga history?', opts: ['Lionel Messi', 'Seydou Keita', 'Joseba Llorente', 'Karim Benzema'], ans: 2, cat: 'La Liga', diff: 'hard', hint: '7.82 seconds for Real Valladolid in 2008.' },
 
-          { q: 'What is the capacity of Barcelona\'s Camp Nou stadium before recent renovations?', opts: ['80,000', '90,000', '99,354', '105,000'], ans: 2, cat: 'La Liga', diff: 'medium', hint: 'Largest stadium in Europe.' },
+          { q: 'What is the capacity of Barcelona\'s Camp Nou stadium before recent renovations?', opts: ['8', '00', '9', '00', '9', '54', '10', '00'], ans: 2, cat: 'La Liga', diff: 'medium', hint: 'Largest stadium in Europe.' },
 
           { q: 'Which team is the only non-relegated team in La Liga alongside Real Madrid and Barcelona?', opts: ['Atletico Madrid', 'Valencia', 'Athletic Bilbao', 'Sevilla'], ans: 2, cat: 'La Liga', diff: 'hard', hint: 'Basque club with a home-grown only policy.' },
 
@@ -100,12 +105,26 @@
 
           { q: 'Which La Liga stadium is famous for its unique structure built next to a river?', opts: ['Mestalla', 'San Mames', 'Ramon Sanchez Pizjuan', 'Estadio de la Ceramica'], ans: 1, cat: 'La Liga', diff: 'hard', hint: 'Located in Bilbao.' },
 
-          { q: 'In 2020, which team was relegated from La Liga after 26 years in the top flight?', opts: ['Espanyol', 'Deportivo La Coruna', 'Zaragoza', 'Malaga'], ans: 0, cat: 'La Liga', diff: 'hard', hint: 'Barcelona-based club.' }
+          { q: 'In 2020, which team was relegated from La Liga after 26 years in the top flight?', opts: ['Espanyol', 'Deportivo La Coruna', 'Zaragoza', 'Malaga'], ans: 0, cat: 'La Liga', diff: 'hard', hint: 'Barcelona-based club.' },
 
+          { q: 'Which club won the La Liga title in the 1999-2000 season?', opts: ['Real Madrid', 'Barcelona', 'Deportivo La Coruña', 'Valencia'], ans: 2, cat: 'La Liga', diff: 'hard', hint: 'Galician club\'s only league title.' },
+
+          { q: 'Who is Real Madrid\'s second all-time leading goalscorer in La Liga?', opts: ['Raul', 'Karim Benzema', 'Alfredo Di Stefano', 'Hugo Sanchez'], ans: 1, cat: 'La Liga', diff: 'medium', hint: 'French striker who won the Ballon d\'Or in 2022.' },
+
+          { q: 'Which club is nicknamed \'Los Armeros\' (The Gunsmiths)?', opts: ['Eibar', 'Getafe', 'Alaves', 'Osasuna'], ans: 0, cat: 'La Liga', diff: 'hard', hint: 'Basque club known for its small stadium Ipurua.' },
+
+          { q: 'Who is Barcelona\'s all-time leading appearance maker?', opts: ['Xavi', 'Lionel Messi', 'Andres Iniesta', 'Sergio Busquets'], ans: 1, cat: 'La Liga', diff: 'medium', hint: 'He made 778 appearances for the club.' },
+
+          { q: 'Which team has won the Copa del Rey the most times?', opts: ['Real Madrid', 'Athletic Bilbao', 'Barcelona', 'Atletico Madrid'], ans: 2, cat: 'La Liga', diff: 'medium', hint: 'They have won it 31 times.' },
+
+          { q: 'Which city hosts the Derby del Turia?', opts: ['Seville', 'Valencia', 'Barcelona', 'Madrid'], ans: 1, cat: 'La Liga', diff: 'hard', hint: 'Contested between Valencia and Levante.' },
+
+          { q: 'Who was the top scorer in La Liga for the 2023-24 season?', opts: ['Jude Bellingham', 'Artem Dovbyk', 'Robert Lewandowski', 'Alexander Sorloth'], ans: 1, cat: 'La Liga', diff: 'medium', hint: 'Ukrainian striker who played for Girona.' },
+
+          { q: 'Which club plays their home games at the San Mames stadium?', opts: ['Real Sociedad', 'Athletic Bilbao', 'Osasuna', 'Celta Vigo'], ans: 1, cat: 'La Liga', diff: 'easy', hint: 'They only sign players from the Basque country.' }
         ],
 
         'ucl': [
-
           { q: 'Which club has won the most Champions League titles?', opts: ['AC Milan', 'Bayern Munich', 'Barcelona', 'Real Madrid'], ans: 3, cat: 'Champions League', diff: 'easy', hint: 'Los Blancos have 15 titles.' },
 
           { q: 'Where was the 2023 Champions League final held?', opts: ['Wembley', 'Ataturk', 'Lusail', 'Olympiastadion'], ans: 1, cat: 'Champions League', diff: 'medium', hint: 'Istanbul, Turkey.' },
@@ -115,8 +134,6 @@
           { q: 'Which player has won the most Champions League titles?', opts: ['Cristiano Ronaldo', 'Iker Casillas', 'Karim Benzema', 'Luka Modrić'], ans: 3, cat: 'Champions League', diff: 'hard', hint: 'Real Madrid midfielder, won it 6 times.' },
 
           { q: 'What is the UEFA Champions League anthem called?', opts: ['Hymn to Joy', 'March of the Champions', 'The Anthem', 'Champions League Theme'], ans: 3, cat: 'Champions League', diff: 'easy', hint: 'Simply named after the competition.' },
-
-          // Expanded 15 questions
 
           { q: 'Which club did Chelsea defeat in the 2012 Champions League final to win their first title?', opts: ['Bayern Munich', 'Barcelona', 'Manchester United', 'Real Madrid'], ans: 0, cat: 'Champions League', diff: 'easy', hint: 'Final was played at Allianz Arena.' },
 
@@ -138,7 +155,7 @@
 
           { q: 'Which club won three consecutive Champions League trophies from 2016 to 2018?', opts: ['Bayern Munich', 'Real Madrid', 'Barcelona', 'Juventus'], ans: 1, cat: 'Champions League', diff: 'easy', hint: 'Managed by Zinedine Zidane.' },
 
-          { q: 'What capacity does Wembley Stadium hold for a Champions League final?', opts: ['75,000', '80,000', '86,000', '90,000'], ans: 3, cat: 'Champions League', diff: 'medium', hint: 'Largest stadium in the UK.' },
+          { q: 'What capacity does Wembley Stadium hold for a Champions League final?', opts: ['7', '00', '8', '00', '8', '00', '9', '00'], ans: 3, cat: 'Champions League', diff: 'medium', hint: 'Largest stadium in the UK.' },
 
           { q: 'Which manager won the Champions League with Porto in 2004?', opts: ['Jose Mourinho', 'Bobby Robson', 'Andre Villas-Boas', 'Carlo Ancelotti'], ans: 0, cat: 'Champions League', diff: 'easy', hint: '"The Special One".' },
 
@@ -146,12 +163,20 @@
 
           { q: 'Which club did Arsenal lose to in their only Champions League final appearance in 2006?', opts: ['Barcelona', 'Real Madrid', 'Milan', 'Bayern Munich'], ans: 0, cat: 'Champions League', diff: 'easy', hint: 'Played in Paris.' },
 
-          { q: 'In what year was the European Cup rebranded as the UEFA Champions League?', opts: ['1990', '1992', '1994', '1996'], ans: 1, cat: 'Champions League', diff: 'medium', hint: 'Rebranded in 1992.' }
+          { q: 'In what year was the European Cup rebranded as the UEFA Champions League?', opts: ['1990', '1992', '1994', '1996'], ans: 1, cat: 'Champions League', diff: 'medium', hint: 'Rebranded in 1992.' },
 
+          { q: 'Which team is the only one to win the Champions League three times in a row in the modern era?', opts: ['Barcelona', 'Bayern Munich', 'AC Milan', 'Real Madrid'], ans: 3, cat: 'Champions League', diff: 'easy', hint: 'Won it in 2016, 2017, and 2018.' },
+
+          { q: 'Who scored the winning goal in the 2020 Champions League final between PSG and Bayern?', opts: ['Kingsley Coman', 'Robert Lewandowski', 'Thomas Muller', 'Serge Gnabry'], ans: 0, cat: 'Champions League', diff: 'medium', hint: 'Former PSG youth academy player.' },
+
+          { q: 'Which club won the Champions League in 1999 with two injury-time goals?', opts: ['Real Madrid', 'Bayern Munich', 'Manchester United', 'Juventus'], ans: 2, cat: 'Champions League', diff: 'easy', hint: 'Sheringham and Solskjaer scored in the final minutes.' },
+
+          { q: 'Who is the youngest manager to win the UEFA Champions League?', opts: ['Jose Mourinho', 'Pep Guardiola', 'Julian Nagelsmann', 'Zinedine Zidane'], ans: 1, cat: 'Champions League', diff: 'medium', hint: 'Won it with Barcelona in 2009 at age 38.' },
+
+          { q: 'Which club did Jose Mourinho win his second Champions League title with in 2010?', opts: ['Porto', 'Chelsea', 'Real Madrid', 'Inter Milan'], ans: 3, cat: 'Champions League', diff: 'easy', hint: 'Part of a historic treble for the Italian giants.' }
         ],
 
         'world-cup': [
-
           { q: 'Which country hosted the 2022 FIFA World Cup?', opts: ['Saudi Arabia', 'UAE', 'Qatar', 'Bahrain'], ans: 2, cat: 'World Cup', diff: 'easy', hint: 'First Middle Eastern host.' },
 
           { q: 'Who is the all-time top scorer at FIFA World Cups?', opts: ['Pele', 'Ronaldo Nazario', 'Miroslav Klose', 'Gerd Muller'], ans: 2, cat: 'World Cup', diff: 'medium', hint: 'German striker, 16 World Cup goals.' },
@@ -162,15 +187,13 @@
 
           { q: 'Which country has appeared in the most World Cup finals?', opts: ['Germany', 'Brazil', 'Italy', 'Argentina'], ans: 0, cat: 'World Cup', diff: 'hard', hint: '8 finals.' },
 
-          // Expanded 15 questions
-
           { q: 'Who won the Golden Boot at the 2018 FIFA World Cup in Russia?', opts: ['Kylian Mbappe', 'Antoine Griezmann', 'Luka Modric', 'Harry Kane'], ans: 3, cat: 'World Cup', diff: 'medium', hint: 'English captain scored 6 goals.' },
 
           { q: 'Which nation has won the most FIFA World Cup tournaments?', opts: ['Germany', 'Italy', 'Brazil', 'Argentina'], ans: 2, cat: 'World Cup', diff: 'easy', hint: '5 times winners.' },
 
           { q: 'Who scored the winning goal for Spain in the 2010 World Cup final?', opts: ['Xavi', 'Andres Iniesta', 'David Villa', 'Iker Casillas'], ans: 1, cat: 'World Cup', diff: 'easy', hint: 'Midfielder scored in the 116th minute.' },
 
-          { q: 'What was the capacity of Lusail Iconic Stadium for the 2022 World Cup Final?', opts: ['70,000', '80,000', '88,966', '95,000'], ans: 2, cat: 'World Cup', diff: 'hard', hint: 'Capacity was just under 89,000.' },
+          { q: 'What was the capacity of Lusail Iconic Stadium for the 2022 World Cup Final?', opts: ['7', '00', '8', '00', '8', '66', '9', '00'], ans: 2, cat: 'World Cup', diff: 'hard', hint: 'Capacity was just under 89,000.' },
 
           { q: 'Which manager won the World Cup both as a player and as a manager?', opts: ['Didier Deschamps', 'Franz Beckenbauer', 'Mario Zagallo', 'All of these'], ans: 3, cat: 'World Cup', diff: 'hard', hint: 'All three achieved this feat.' },
 
@@ -192,15 +215,24 @@
 
           { q: 'Which African nation became the first to reach a World Cup semi-final in 2022?', opts: ['Cameroon', 'Senegal', 'Morocco', 'Ghana'], ans: 2, cat: 'World Cup', diff: 'easy', hint: 'Defeated Portugal in the QF.' },
 
-          { q: 'Which country has hosted the World Cup twice?', opts: ['Mexico', 'Italy', 'France', 'All of these'], ans: 3, cat: 'World Cup', diff: 'hard', hint: 'All three nations have hosted twice.' }
+          { q: 'Which country has hosted the World Cup twice?', opts: ['Mexico', 'Italy', 'France', 'All of these'], ans: 3, cat: 'World Cup', diff: 'hard', hint: 'All three nations have hosted twice.' },
 
+          { q: 'Which player has played the most matches in World Cup history?', opts: ['Lothar Matthaus', 'Miroslav Klose', 'Lionel Messi', 'Paolo Maldini'], ans: 2, cat: 'World Cup', diff: 'medium', hint: 'He reached 26 matches in Qatar 2022.' },
+
+          { q: 'Which country is the only one to have played in every single FIFA World Cup?', opts: ['Germany', 'Italy', 'Argentina', 'Brazil'], ans: 3, cat: 'World Cup', diff: 'easy', hint: 'They have also won the most titles.' },
+
+          { q: 'Who scored the fastest goal in FIFA World Cup history?', opts: ['Hakan Sukur', 'Clint Dempsey', 'Bryan Robson', 'Bernard Lacombe'], ans: 0, cat: 'World Cup', diff: 'hard', hint: 'Scored in 11 seconds against South Korea in 2002.' },
+
+          { q: 'Which team won the 2010 FIFA World Cup?', opts: ['Germany', 'Netherlands', 'Spain', 'Argentina'], ans: 2, cat: 'World Cup', diff: 'easy', hint: 'Defeated the Netherlands 1-0 in the final.' },
+
+          { q: 'Which nation did Croatia beat in the semi-finals to reach the 2018 World Cup final?', opts: ['England', 'Russia', 'Denmark', 'Argentina'], ans: 0, cat: 'World Cup', diff: 'easy', hint: 'Won 2-1 after extra time.' }
         ],
 
         'daily': [
-
           { q: 'Which English club is known as "The Gunners"?', opts: ['Chelsea', 'Arsenal', 'West Ham', 'Tottenham'], ans: 1, cat: 'Daily Challenge', diff: 'easy', hint: 'They play at the Emirates Stadium.' },
 
           { q: 'Kylian Mbappe is from which country?', opts: ['Belgium', 'Senegal', 'France', 'Algeria'], ans: 2, cat: 'Daily Challenge', diff: 'easy', hint: 'Les Bleus.' },
+
           { q: 'Which position does Thibaut Courtois play?', opts: ['Midfielder', 'Striker', 'Defender', 'Goalkeeper'], ans: 3, cat: 'Daily Challenge', diff: 'easy', hint: 'Belgian international.' },
 
           { q: 'Who managed Barcelona during their 2008-2012 golden era?', opts: ['Luis Enrique', 'Tito Vilanova', 'Pep Guardiola', 'Johan Cruyff'], ans: 2, cat: 'Daily Challenge', diff: 'medium', hint: 'Now manages Manchester City.' },
@@ -214,6 +246,7 @@
           { q: 'In what year did Zinedine Zidane retire?', opts: ['2004', '2006', '2008', '2010'], ans: 1, cat: 'Daily Challenge', diff: 'medium', hint: 'Infamously retired after the 2006 World Cup.' },
 
           { q: 'Which club has the record for the most Premier League wins in a season?', opts: ['Arsenal', 'Liverpool', 'Chelsea', 'Manchester City'], ans: 3, cat: 'Daily Challenge', diff: 'medium', hint: '2017-18, 32 wins.' },
+
           { q: 'Who won the 2022 Ballon d\'Or?', opts: ['Benzema', 'Haaland', 'Mbappe', 'Messi'], ans: 0, cat: 'Daily Challenge', diff: 'medium', hint: 'French striker.' },
 
           { q: 'Which nation won the 2023 FIFA Women\'s World Cup?', opts: ['England', 'USA', 'Spain', 'Sweden'], ans: 2, cat: 'Daily Challenge', diff: 'medium', hint: 'Defeated England in the final.' },
@@ -222,27 +255,305 @@
 
           { q: 'Which manager won the Champions League with Inter Milan in 2010?', opts: ['Jose Mourinho', 'Roberto Mancini', 'Rafa Benitez', 'Pep Guardiola'], ans: 0, cat: 'Daily Challenge', diff: 'medium', hint: 'Part of a historic treble.' },
 
-          { q: 'What capacity does Wembley Stadium hold?', opts: ['75,000', '80,000', '90,000', '100,000'], ans: 2, cat: 'Daily Challenge', diff: 'medium', hint: 'Largest in the UK.' },
+          { q: 'Who holds the record for most Ballon d\'Or awards?', opts: ['Cristiano Ronaldo', 'Michel Platini', 'Johan Cruyff', 'Lionel Messi'], ans: 3, cat: 'Daily Challenge', diff: 'medium', hint: 'Has won it 8 times.' },
 
-          { q: 'Who scored the "Aguerrooooo" goal in 2012?', opts: ['Edin Dzeko', 'Sergio Aguero', 'Mario Balotelli', 'David Silva'], ans: 1, cat: 'Daily Challenge', diff: 'easy', hint: 'Argentine striker.' },
+          { q: 'Which player is nicknamed \'The Egyptian King\'?', opts: ['Mohamed Elneny', 'Mohamed Salah', 'Mostafa Mohamed', 'Trézéguet'], ans: 1, cat: 'Daily Challenge', diff: 'easy', hint: 'Winger playing for Liverpool.' },
 
-          { q: 'Which country hosted the Euro 2024 tournament?', opts: ['England', 'France', 'Germany', 'Spain'], ans: 2, cat: 'Daily Challenge', diff: 'easy', hint: 'Berlin hosted the final.' },
+          { q: 'Which club plays at the Allianz Arena?', opts: ['Borussia Dortmund', 'Bayern Munich', 'RB Leipzig', 'Bayer Leverkusen'], ans: 1, cat: 'Daily Challenge', diff: 'easy', hint: 'German powerhouse based in Munich.' },
 
-          { q: 'Who holds the record for most Ballon d\'Or awards?', opts: ['Cristiano Ronaldo', 'Michel Platini', 'Johan Cruyff', 'Lionel Messi'], ans: 3, cat: 'Daily Challenge', diff: 'medium', hint: 'Has won it 8 times.' }
+          { q: 'Which country won the UEFA Euro 2024 tournament?', opts: ['England', 'France', 'Spain', 'Germany'], ans: 2, cat: 'Daily Challenge', diff: 'easy', hint: 'Defeated England 2-1 in the final.' },
 
+          { q: 'Who won the Ballon d\'Or in 2007 before the Messi-Ronaldo era began?', opts: ['Kaka', 'Ronaldinho', 'Thierry Henry', 'Fabio Cannavaro'], ans: 0, cat: 'Daily Challenge', diff: 'medium', hint: 'AC Milan playmaker.' },
+
+          { q: 'Which club did Neymar join PSG from in a world record transfer?', opts: ['Santos', 'Barcelona', 'Real Madrid', 'Monaco'], ans: 1, cat: 'Daily Challenge', diff: 'easy', hint: 'Moved for €222 million in 2017.' },
+
+          { q: 'Who is the all-time top scorer for the England national team?', opts: ['Wayne Rooney', 'Harry Kane', 'Bobby Charlton', 'Gary Lineker'], ans: 1, cat: 'Daily Challenge', diff: 'easy', hint: 'Currently plays in the Bundesliga.' },
+
+          { q: 'Which country hosted the 2014 FIFA World Cup?', opts: ['South Africa', 'Brazil', 'Russia', 'Germany'], ans: 1, cat: 'Daily Challenge', diff: 'easy', hint: 'Germany won the tournament there.' },
+
+          { q: 'What is the home stadium of Juventus?', opts: ['San Siro', 'Allianz Stadium', 'Stadio Olimpico', 'Diego Armando Maradona Stadium'], ans: 1, cat: 'Daily Challenge', diff: 'easy', hint: 'Located in Turin.' },
+
+          { q: 'Who won the Ballon d\'Or in 2018, breaking the Messi-Ronaldo dominance?', opts: ['Luka Modric', 'Antoine Griezmann', 'Kylian Mbappe', 'Cristiano Ronaldo'], ans: 0, cat: 'Daily Challenge', diff: 'easy', hint: 'Real Madrid and Croatia midfielder.' },
+
+          { q: 'Which team is nicknamed \'The Red Devils\' in England?', opts: ['Liverpool', 'Arsenal', 'Manchester United', 'Crawley Town'], ans: 2, cat: 'Daily Challenge', diff: 'easy', hint: 'They play at Old Trafford.' },
+
+          { q: 'Who scored the winning goal for Germany in the 2014 World Cup Final?', opts: ['Thomas Muller', 'Miroslav Klose', 'Mario Gotze', 'Toni Kroos'], ans: 2, cat: 'Daily Challenge', diff: 'easy', hint: 'Volleyed in extra time.' }
+        ],
+
+        'man-utd': [
+          { q: 'Who is Manchester United\'s all-time leading goalscorer?', opts: ['Bobby Charlton', 'Wayne Rooney', 'Ryan Giggs', 'Denis Law'], ans: 1, cat: 'Manchester United', diff: 'easy', hint: 'He scored 253 goals for the club.' },
+
+          { q: 'In what year did Manchester United win their historic Treble?', opts: ['1998', '1999', '2001', '2008'], ans: 1, cat: 'Manchester United', diff: 'easy', hint: 'Beat Bayern Munich dramatically in Barcelona.' },
+
+          { q: 'Who was the manager of Manchester United before Sir Alex Ferguson?', opts: ['Dave Sexton', 'Ron Atkinson', 'Tommy Docherty', 'Wilf McGuinness'], ans: 1, cat: 'Manchester United', diff: 'hard', hint: 'Managed from 1981 to 1986.' },
+
+          { q: 'Which club did Cristiano Ronaldo join Manchester United from in 2003?', opts: ['Benfica', 'Porto', 'Sporting CP', 'Braga'], ans: 2, cat: 'Manchester United', diff: 'easy', hint: 'Portuguese club based in Lisbon.' },
+
+          { q: 'What is the name of Manchester United\'s home stadium?', opts: ['Anfield', 'Old Trafford', 'Stamford Bridge', 'Emirates Stadium'], ans: 1, cat: 'Manchester United', diff: 'easy', hint: 'Known as the Theatre of Dreams.' },
+
+          { q: 'Who holds the record for the most appearances for Manchester United?', opts: ['Bobby Charlton', 'Paul Scholes', 'Ryan Giggs', 'Gary Neville'], ans: 2, cat: 'Manchester United', diff: 'medium', hint: '963 appearances.' }
+        ],
+
+        'man-city': [
+          { q: 'Who scored the famous 93:20 winning goal to win Man City the 2012 Premier League?', opts: ['Mario Balotelli', 'Edin Dzeko', 'Sergio Aguero', 'Yaya Toure'], ans: 2, cat: 'Manchester City', diff: 'easy', hint: 'Argentine legendary striker.' },
+
+          { q: 'In what year did Pep Guardiola become the manager of Manchester City?', opts: ['2014', '2015', '2016', '2017'], ans: 2, cat: 'Manchester City', diff: 'medium', hint: 'Joined after managing Bayern Munich.' },
+
+          { q: 'What was Manchester City\'s home stadium before moving to the Etihad Stadium?', opts: ['Hyde Road', 'Maine Road', 'Belle Vue', 'Boundary Park'], ans: 1, cat: 'Manchester City', diff: 'medium', hint: 'They played there from 1923 to 2003.' },
+
+          { q: 'Which player won the Premier League Player of the Season award for City in their treble-winning 2022-23 season?', opts: ['Kevin De Bruyne', 'Erling Haaland', 'Rodri', 'Ilkay Gundogan'], ans: 1, cat: 'Manchester City', diff: 'easy', hint: 'Scored 36 Premier League goals.' },
+
+          { q: 'Who was the captain of Manchester City during their 2023 Champions League final win?', opts: ['Kevin De Bruyne', 'Kyle Walker', 'Ruben Dias', 'Ilkay Gundogan'], ans: 3, cat: 'Manchester City', diff: 'medium', hint: 'German midfielder who later joined Barcelona.' },
+
+          { q: 'Who did Manchester City beat to win their first ever European Cup/Champions League?', opts: ['Real Madrid', 'Inter Milan', 'Bayern Munich', 'AC Milan'], ans: 1, cat: 'Manchester City', diff: 'easy', hint: '1-0 victory in Istanbul, Rodri scored.' }
+        ],
+
+        'chelsea': [
+          { q: 'Who is Chelsea\'s all-time leading goalscorer?', opts: ['Didier Drogba', 'Bobby Tambling', 'Frank Lampard', 'Eden Hazard'], ans: 2, cat: 'Chelsea FC', diff: 'easy', hint: 'Midfielder who scored 211 goals.' },
+
+          { q: 'Which manager won Chelsea their first Premier League title in 2004-05?', opts: ['Claudio Ranieri', 'Carlo Ancelotti', 'Jose Mourinho', 'Guus Hiddink'], ans: 2, cat: 'Chelsea FC', diff: 'easy', hint: 'The Special One.' },
+
+          { q: 'Who did Chelsea defeat in the 2021 Champions League final?', opts: ['Real Madrid', 'Bayern Munich', 'Manchester City', 'Atletico Madrid'], ans: 2, cat: 'Chelsea FC', diff: 'easy', hint: 'Kai Havertz scored the only goal.' },
+
+          { q: 'What is Chelsea\'s home stadium?', opts: ['Craven Cottage', 'Stamford Bridge', 'Selhurst Park', 'The Den'], ans: 1, cat: 'Chelsea FC', diff: 'easy', hint: 'Located in Fulham, London.' },
+
+          { q: 'Who scored the winning penalty for Chelsea in the 2012 Champions League shootout against Bayern Munich?', opts: ['Frank Lampard', 'Ashley Cole', 'Didier Drogba', 'David Luiz'], ans: 2, cat: 'Chelsea FC', diff: 'medium', hint: 'Ivorian legendary striker.' },
+
+          { q: 'In what year was Chelsea FC founded?', opts: ['1888', '1905', '1910', '1920'], ans: 1, cat: 'Chelsea FC', diff: 'hard', hint: 'Founded in The Rising Sun pub.' }
+        ],
+
+        'arsenal': [
+          { q: 'What nickname is given to Arsenal\'s unbeaten 2003-04 Premier League team?', opts: ['The Unbeatables', 'The Invincibles', 'The Gunners', 'The Centurions'], ans: 1, cat: 'Arsenal FC', diff: 'easy', hint: '26 wins, 12 draws, 0 losses.' },
+
+          { q: 'Who is Arsenal\'s all-time leading goalscorer?', opts: ['Ian Wright', 'Thierry Henry', 'Cliff Bastin', 'Dennis Bergkamp'], ans: 1, cat: 'Arsenal FC', diff: 'easy', hint: 'French striker, scored 228 goals.' },
+
+          { q: 'Who was the manager of Arsenal during their 2003-04 unbeaten season?', opts: ['George Graham', 'Bruce Rioch', 'Arsene Wenger', 'Mikel Arteta'], ans: 2, cat: 'Arsenal FC', diff: 'easy', hint: 'Longest-serving manager in Arsenal history.' },
+
+          { q: 'Before moving to the Emirates Stadium in 2006, where did Arsenal play their home matches?', opts: ['White Hart Lane', 'Highbury', 'Plumstead', 'The Valley'], ans: 1, cat: 'Arsenal FC', diff: 'easy', hint: 'Played there from 1913 to 2006.' },
+
+          { q: 'Which player holds the record for most appearances for Arsenal?', opts: ['Tony Adams', 'David O\'Leary', 'Patrick Vieira', 'Thierry Henry'], ans: 1, cat: 'Arsenal FC', diff: 'hard', hint: '722 appearances.' },
+
+          { q: 'Which club did Arsenal sign playmaker Martin Odegaard from?', opts: ['Real Sociedad', 'Real Madrid', 'Heerenveen', 'Vitesse'], ans: 1, cat: 'Arsenal FC', diff: 'easy', hint: 'Spanish giants.' }
+        ],
+
+        'liverpool': [
+          { q: 'How many Champions League/European Cup titles have Liverpool won?', opts: ['4', '5', '6', '7'], ans: 2, cat: 'Liverpool FC', diff: 'easy', hint: 'Most of any English club.' },
+
+          { q: 'Who is Liverpool\'s all-time top goalscorer?', opts: ['Steven Gerrard', 'Robbie Fowler', 'Ian Rush', 'Kenny Dalglish'], ans: 2, cat: 'Liverpool FC', diff: 'medium', hint: 'Welsh striker who scored 346 goals.' },
+
+          { q: 'What is the famous anthem sung by Liverpool fans before matches?', opts: ['Blue Moon', 'Glory Glory', 'You\'ll Never Walk Alone', 'Forever Blowing Bubbles'], ans: 2, cat: 'Liverpool FC', diff: 'easy', hint: 'By Gerry and the Pacemakers.' },
+
+          { q: 'Which team did Liverpool famously defeat in the 2005 Champions League final after trailing 3-0?', opts: ['Real Madrid', 'Juventus', 'AC Milan', 'Bayern Munich'], ans: 2, cat: 'Liverpool FC', diff: 'easy', hint: 'The Miracle of Istanbul.' },
+
+          { q: 'Who managed Liverpool to their first Premier League title in 30 years in 2019-20?', opts: ['Brendan Rodgers', 'Rafael Benitez', 'Jurgen Klopp', 'Kenny Dalglish'], ans: 2, cat: 'Liverpool FC', diff: 'easy', hint: 'German manager who left in 2024.' },
+
+          { q: 'What is the name of Liverpool\'s home stadium?', opts: ['Goodison Park', 'Anfield', 'Old Trafford', 'St James\' Park'], ans: 1, cat: 'Liverpool FC', diff: 'easy', hint: 'Features the famous Spion Kop stand.' }
+        ],
+
+        'real-madrid': [
+          { q: 'Who is Real Madrid\'s all-time leading goalscorer?', opts: ['Raul', 'Karim Benzema', 'Alfredo Di Stefano', 'Cristiano Ronaldo'], ans: 3, cat: 'Real Madrid', diff: 'easy', hint: 'Scored 450 goals in 438 games.' },
+
+          { q: 'How many Champions League/European Cup trophies has Real Madrid won?', opts: ['10', '12', '14', '15'], ans: 3, cat: 'Real Madrid', diff: 'easy', hint: 'Most successful club in European football history.' },
+
+          { q: 'Which team does Real Madrid contest \'El Clasico\' against?', opts: ['Atletico Madrid', 'FC Barcelona', 'Valencia', 'Sevilla'], ans: 1, cat: 'Real Madrid', diff: 'easy', hint: 'Greatest rivalry in Spanish football.' },
+
+          { q: 'Who is the only manager to win the Champions League 5 times, including with Real Madrid?', opts: ['Pep Guardiola', 'Carlo Ancelotti', 'Zinedine Zidane', 'Jose Mourinho'], ans: 1, cat: 'Real Madrid', diff: 'medium', hint: 'Italian manager known as Don Carlo.' },
+
+          { q: 'What is the nickname given to Real Madrid\'s team because of their white shirts?', opts: ['Los Colchoneros', 'Los Blancos', 'Los Culers', 'Los Merengues'], ans: 1, cat: 'Real Madrid', diff: 'easy', hint: 'The Whites.' },
+
+          { q: 'In which stadium does Real Madrid play their home matches?', opts: ['Wanda Metropolitano', 'Santiago Bernabeu', 'San Siro', 'Mestalla'], ans: 1, cat: 'Real Madrid', diff: 'easy', hint: 'Famous stadium in Madrid.' }
+        ],
+
+        'barcelona': [
+          { q: 'Who is FC Barcelona\'s all-time leading goalscorer?', opts: ['Luis Suarez', 'Cesar Rodriguez', 'Lionel Messi', 'Ronaldinho'], ans: 2, cat: 'FC Barcelona', diff: 'easy', hint: '672 official goals.' },
+
+          { q: 'What is the name of Barcelona\'s famous youth academy?', opts: ['La Masia', 'Cantera', 'Castilla', 'Cobham'], ans: 0, cat: 'FC Barcelona', diff: 'easy', hint: 'The Farmhouse.' },
+
+          { q: 'Who managed Barcelona to a historic sextuple in 2009?', opts: ['Luis Enrique', 'Frank Rijkaard', 'Pep Guardiola', 'Johan Cruyff'], ans: 2, cat: 'FC Barcelona', diff: 'medium', hint: 'Now manager of Manchester City.' },
+
+          { q: 'What is the motto of FC Barcelona?', opts: ['Hala Madrid', 'Mes que un club', 'Mia San Mia', 'Visca Barca'], ans: 1, cat: 'FC Barcelona', diff: 'easy', hint: 'More than a club.' },
+
+          { q: 'Which player scored the winning goal in the 1992 European Cup Final to win Barca their first title?', opts: ['Hristo Stoichkov', 'Michael Laudrup', 'Ronald Koeman', 'Pep Guardiola'], ans: 2, cat: 'FC Barcelona', diff: 'hard', hint: 'Scored a free kick in extra time vs Sampdoria.' },
+
+          { q: 'In which year did Barcelona win their last Champions League title?', opts: ['2009', '2011', '2015', '2018'], ans: 2, cat: 'FC Barcelona', diff: 'medium', hint: 'Part of their second treble under Luis Enrique.' }
+        ],
+
+        'atletico': [
+          { q: 'Who is the long-serving manager of Atletico Madrid who took over in 2011?', opts: ['Diego Simeone', 'Mauricio Pochettino', 'Unai Emery', 'Marcelino'], ans: 0, cat: 'Atletico Madrid', diff: 'easy', hint: 'Argentine manager nicknamed El Cholo.' },
+
+          { q: 'What is the nickname of Atletico Madrid?', opts: ['Los Colchoneros', 'Los Blancos', 'Los Culers', 'Los Leones'], ans: 0, cat: 'Atletico Madrid', diff: 'medium', hint: 'The Mattress Makers.' },
+
+          { q: 'What is the name of Atletico Madrid\'s home stadium?', opts: ['Vicente Calderon', 'Santiago Bernabeu', 'Metropolitano', 'Mestalla'], ans: 2, cat: 'Atletico Madrid', diff: 'easy', hint: 'Formerly known as Wanda Metropolitano.' },
+
+          { q: 'Which club did Atletico Madrid defeat in the 2018 Europa League final?', opts: ['Athletic Bilbao', 'Marseille', 'Arsenal', 'Fulham'], ans: 1, cat: 'Atletico Madrid', diff: 'hard', hint: 'French club, 3-0 victory.' },
+
+          { q: 'Who scored the dramatic title-winning goal for Atletico Madrid on the final day of the 2020-21 La Liga season?', opts: ['Luis Suarez', 'Koke', 'Angel Correa', 'Marcos Llorente'], ans: 0, cat: 'Atletico Madrid', diff: 'medium', hint: 'Uruguayan striker who signed from Barcelona.' },
+
+          { q: 'How many times have Atletico Madrid finished as Champions League/European Cup runners-up?', opts: ['1', '2', '3', '4'], ans: 2, cat: 'Atletico Madrid', diff: 'hard', hint: '1974, 2014, and 2016.' }
+        ],
+
+        'bundesliga': [
+          { q: 'Which club has won the most Bundesliga titles?', opts: ['Borussia Dortmund', 'Bayern Munich', 'Hamburger SV', 'Werder Bremen'], ans: 1, cat: 'Bundesliga', diff: 'easy', hint: 'They won 11 consecutive titles from 2013 to 2023.' },
+
+          { q: 'Who is the Bundesliga\'s all-time leading goalscorer?', opts: ['Robert Lewandowski', 'Gerd Muller', 'Jupp Heynckes', 'Klaus Fischer'], ans: 1, cat: 'Bundesliga', diff: 'medium', hint: 'Der Bomber, scored 365 goals.' },
+
+          { q: 'Which team completed an unbeaten domestic double in the 2023-24 season?', opts: ['Bayern Munich', 'Borussia Dortmund', 'Bayer Leverkusen', 'VfB Stuttgart'], ans: 2, cat: 'Bundesliga', diff: 'easy', hint: 'Managed by Xabi Alonso.' },
+
+          { q: 'What is the classic rivalry match between Bayern Munich and Borussia Dortmund called?', opts: ['Revierderby', 'Der Klassiker', 'Nordderby', 'Rheinderby'], ans: 1, cat: 'Bundesliga', diff: 'easy', hint: 'The German Classic.' },
+
+          { q: 'Which player holds the record for the most goals scored in a single Bundesliga season?', opts: ['Gerd Muller', 'Robert Lewandowski', 'Harry Kane', 'Pierre-Emerick Aubameyang'], ans: 1, cat: 'Bundesliga', diff: 'medium', hint: '41 goals in the 2020-21 season.' },
+
+          { q: 'Which club is nicknamed \'Die Fohlen\' (The Foals)?', opts: ['Borussia Monchengladbach', 'Eintracht Frankfurt', 'VfB Stuttgart', 'FC Koln'], ans: 0, cat: 'Bundesliga', diff: 'medium', hint: 'Traditional club based in North Rhine-Westphalia.' },
+
+          { q: 'Which team plays their home matches at the Signal Iduna Park?', opts: ['Schalke 04', 'Borussia Dortmund', 'Werder Bremen', 'Hertha Berlin'], ans: 1, cat: 'Bundesliga', diff: 'easy', hint: 'Home of the Yellow Wall.' },
+
+          { q: 'Who is the youngest player to score a goal in Bundesliga history?', opts: ['Nuri Sahin', 'Florian Wirtz', 'Youssoufa Moukoko', 'Jamal Musiala'], ans: 2, cat: 'Bundesliga', diff: 'hard', hint: 'Scored at age 16 years and 28 days for Dortmund in 2020.' },
+
+          { q: 'Which manager won the Bundesliga with Wolfsburg in 2009?', opts: ['Felix Magath', 'Jupp Heynckes', 'Jurgen Klopp', 'Dieter Hecking'], ans: 0, cat: 'Bundesliga', diff: 'hard', hint: 'German manager famous for his tough fitness training.' },
+
+          { q: 'Which Bundesliga club is owned entirely by the chemical company Bayer?', opts: ['Bayer Leverkusen', 'Bayer Uerdingen', 'FC Koln', 'Mainz 05'], ans: 0, cat: 'Bundesliga', diff: 'easy', hint: 'Nicknamed Werkself.' },
+
+          { q: 'Who has made the most appearances in Bundesliga history?', opts: ['Karl-Heinz Korbel', 'Oliver Kahn', 'Manfred Kaltz', 'Lothar Matthaus'], ans: 0, cat: 'Bundesliga', diff: 'hard', hint: '602 matches, all for Eintracht Frankfurt.' },
+
+          { q: 'Which club won the Bundesliga in the 2003-04 season?', opts: ['Bayern Munich', 'Werder Bremen', 'Stuttgart', 'Schalke 04'], ans: 1, cat: 'Bundesliga', diff: 'medium', hint: 'Led by Brazilian striker Ailton.' },
+
+          { q: 'What is the name of the stadium where Bayern Munich plays?', opts: ['Allianz Arena', 'Olympiastadion', 'Signal Iduna Park', 'RheinEnergieStadion'], ans: 0, cat: 'Bundesliga', diff: 'easy', hint: 'Famous for its color-changing outer panels.' },
+
+          { q: 'Which club is known as \'Die Roten Bullen\'?', opts: ['Mainz 05', 'RB Leipzig', 'Hoffenheim', 'Freiburg'], ans: 1, cat: 'Bundesliga', diff: 'easy', hint: 'Founded in 2009, backed by Red Bull.' },
+
+          { q: 'Which player was nicknamed \'Der Bomber\'?', opts: ['Gerd Muller', 'Karl-Heinz Rummenigge', 'Miroslav Klose', 'Jupp Heynckes'], ans: 0, cat: 'Bundesliga', diff: 'medium', hint: 'Scored 365 Bundesliga goals.' },
+
+          { q: 'Which team was promoted to the Bundesliga for the first time in their history in 2019?', opts: ['Paderborn', 'Union Berlin', 'Heidenheim', 'Darmstadt'], ans: 1, cat: 'Bundesliga', diff: 'medium', hint: 'Based in East Berlin, plays at An der Alten Försterei.' },
+
+          { q: 'Who is the all-time leading foreign goalscorer in the Bundesliga?', opts: ['Claudio Pizarro', 'Robert Lewandowski', 'Giovane Elber', 'Pierre-Emerick Aubameyang'], ans: 1, cat: 'Bundesliga', diff: 'easy', hint: 'Polish striker who played for Dortmund and Bayern.' },
+
+          { q: 'Which club won their first ever Bundesliga title in 2024?', opts: ['Bayer Leverkusen', 'Stuttgart', 'RB Leipzig', 'Eintracht Frankfurt'], ans: 0, cat: 'Bundesliga', diff: 'easy', hint: 'Went completely undefeated domestically.' },
+
+          { q: 'What is the name of the derby between Schalke 04 and Borussia Dortmund?', opts: ['Klassiker', 'Revierderby', 'Nordderby', 'Rheinderby'], ans: 1, cat: 'Bundesliga', diff: 'easy', hint: 'Contested in the Ruhr region.' },
+
+          { q: 'Which player scored 5 goals in 9 minutes after coming on as a sub in 2015?', opts: ['Robert Lewandowski', 'Pierre-Emerick Aubameyang', 'Thomas Muller', 'Arjen Robben'], ans: 0, cat: 'Bundesliga', diff: 'easy', hint: 'Achieved against Wolfsburg.' },
+
+          { q: 'Which club is known as \'The Billy Goats\'?', opts: ['FC Koln', 'Hamburger SV', 'Werder Bremen', 'Mainz 05'], ans: 0, cat: 'Bundesliga', diff: 'medium', hint: 'Keep a real goat mascot named Hennes.' },
+
+          { q: 'Who is the youngest manager in Bundesliga history?', opts: ['Julian Nagelsmann', 'Domenico Tedesco', 'Thomas Tuchel', 'Hansi Flick'], ans: 0, cat: 'Bundesliga', diff: 'medium', hint: 'Appointed Hoffenheim boss at age 28 in 2016.' },
+
+          { q: 'Which team plays at the MHPArena?', opts: ['Karlsruher SC', 'VfB Stuttgart', 'Freiburg', 'Augsburg'], ans: 1, cat: 'Bundesliga', diff: 'medium', hint: 'They won the Bundesliga in 2007.' },
+
+          { q: 'Which German club\'s motto is \'Mia San Mia\'?', opts: ['Borussia Dortmund', 'Bayern Munich', 'Schalke 04', 'Werder Bremen'], ans: 1, cat: 'Bundesliga', diff: 'easy', hint: 'Translates to \'We Are Who We Are\'.' },
+
+          { q: 'Which club did Thomas Müller spend his entire professional career with?', opts: ['Stuttgart', '1860 Munich', 'Bayern Munich', 'Nurnberg'], ans: 2, cat: 'Bundesliga', diff: 'easy', hint: 'Legendary space investigator.' }
+        ],
+
+        'serie-a': [
+          { q: 'Which club has won the most Serie A titles?', opts: ['AC Milan', 'Inter Milan', 'Juventus', 'Roma'], ans: 2, cat: 'Serie A', diff: 'easy', hint: 'Also known as the Old Lady, with over 36 titles.' },
+
+          { q: 'Who is Serie A\'s all-time leading goalscorer?', opts: ['Francesco Totti', 'Silvio Piola', 'Gunnar Nordahl', 'Giuseppe Meazza'], ans: 1, cat: 'Serie A', diff: 'hard', hint: 'Scored 274 goals between 1929 and 1954.' },
+
+          { q: 'What name is given to the Milan derby between AC Milan and Inter Milan?', opts: ['Derby d\'Italia', 'Derby della Capitale', 'Derby della Madonnina', 'Derby della Lanterna'], ans: 2, cat: 'Serie A', diff: 'medium', hint: 'Named after the statue of the Virgin Mary on Milan Cathedral.' },
+
+          { q: 'Which team won their first Serie A title in 33 years in the 2022-23 season?', opts: ['Lazio', 'Napoli', 'Fiorentina', 'Roma'], ans: 1, cat: 'Serie A', diff: 'easy', hint: 'Sparked massive celebrations in Naples.' },
+
+          { q: 'Which player holds the record for most Serie A appearances?', opts: ['Paolo Maldini', 'Francesco Totti', 'Gianluigi Buffon', 'Javier Zanetti'], ans: 2, cat: 'Serie A', diff: 'medium', hint: '657 matches, mostly with Juventus.' },
+
+          { q: 'Which club is nicknamed \'I Nerazzurri\'?', opts: ['AC Milan', 'Inter Milan', 'Atalanta', 'Lazio'], ans: 1, cat: 'Serie A', diff: 'easy', hint: 'Translates to the Black and Blues.' },
+
+          { q: 'Which club is nicknamed \'I Rossoneri\'?', opts: ['AC Milan', 'Inter Milan', 'Bologna', 'Roma'], ans: 0, cat: 'Serie A', diff: 'easy', hint: 'Translates to the Red and Blacks.' },
+
+          { q: 'Which stadium is shared by AC Milan and Inter Milan?', opts: ['San Siro', 'Stadio Olimpico', 'Allianz Stadium', 'Stadio Diego Armando Maradona'], ans: 0, cat: 'Serie A', diff: 'easy', hint: 'Also known as Stadio Giuseppe Meazza.' },
+
+          { q: 'Who is Juventus\'s all-time leading goalscorer?', opts: ['Alessandro Del Piero', 'Roberto Baggio', 'Michel Platini', 'David Trezeguet'], ans: 0, cat: 'Serie A', diff: 'easy', hint: 'Scored 290 goals for the club.' },
+
+          { q: 'Which club won the Serie A title in the 1999-2000 season?', opts: ['Roma', 'AC Milan', 'Lazio', 'Juventus'], ans: 2, cat: 'Serie A', diff: 'hard', hint: 'Based in Rome, featuring Nedved, Veron, and Nesta.' },
+
+          { q: 'What is the derby between Juventus and Inter Milan called?', opts: ['Derby della Madonnina', 'Derby d\'Italia', 'Derby del Sole', 'Derby della Capitale'], ans: 1, cat: 'Serie A', diff: 'medium', hint: 'The Derby of Italy.' },
+
+          { q: 'Which team is nicknamed \'La Viola\' (The Violet)?', opts: ['Palermo', 'Fiorentina', 'Bologna', 'Sampdoria'], ans: 1, cat: 'Serie A', diff: 'easy', hint: 'Play in Florence, wearing purple.' },
+
+          { q: 'Who was the manager of AC Milan during their dominant early 1990s era?', opts: ['Arrigo Sacchi', 'Fabio Capello', 'Carlo Ancelotti', 'Marcello Lippi'], ans: 1, cat: 'Serie A', diff: 'hard', hint: 'Led them to a 58-match unbeaten streak.' },
+
+          { q: 'Which team plays their home matches at the Stadio Olimpico?', opts: ['Napoli', 'Roma & Lazio', 'Fiorentina', 'Sampdoria & Genoa'], ans: 1, cat: 'Serie A', diff: 'easy', hint: 'Shared stadium in the capital city.' },
+
+          { q: 'Which legendary player spent his entire 25-year career at Roma?', opts: ['Daniele De Rossi', 'Francesco Totti', 'Alessandro Florenzi', 'Giuseppe Giannini'], ans: 1, cat: 'Serie A', diff: 'easy', hint: 'Known as \'Il Capitano\'.' },
+
+          { q: 'Which team won the Serie A title in the 2023-24 season?', opts: ['Juventus', 'AC Milan', 'Inter Milan', 'Napoli'], ans: 2, cat: 'Serie A', diff: 'easy', hint: 'They earned their second star on their shirt.' },
+
+          { q: 'Which club is known as \'La Vecchia Signora\' (The Old Lady)?', opts: ['Juventus', 'AC Milan', 'Inter Milan', 'Genoa'], ans: 0, cat: 'Serie A', diff: 'easy', hint: 'The most successful club in Italy.' },
+
+          { q: 'Who is the only goalkeeper to win the Serie A Footballer of the Year award?', opts: ['Gianluigi Buffon', 'Francesco Toldo', 'Julio Cesar', 'Samir Handanovic'], ans: 0, cat: 'Serie A', diff: 'medium', hint: 'Won it in 2017 with Juventus.' },
+
+          { q: 'Which club did Diego Maradona play for in Serie A?', opts: ['Napoli', 'Barcelona', 'Sevilla', 'Boca Juniors'], ans: 0, cat: 'Serie A', diff: 'easy', hint: 'Led them to their first two Scudetti.' },
+
+          { q: 'Which city does the club Torino FC come from?', opts: ['Milan', 'Turin', 'Rome', 'Genoa'], ans: 1, cat: 'Serie A', diff: 'easy', hint: 'Share a city with Juventus.' },
+
+          { q: 'What is the derby between Roma and Lazio called?', opts: ['Derby della Capitale', 'Derby del Sole', 'Derby della Lanterna', 'Derby dell\'Appennino'], ans: 0, cat: 'Serie A', diff: 'easy', hint: 'Derby of the Capital.' },
+
+          { q: 'Which manager won the Serie A title with Juventus, AC Milan, and Inter Milan?', opts: ['Giovanni Trapattoni', 'Antonio Conte', 'Massimiliano Allegri', 'Marcello Lippi'], ans: 0, cat: 'Serie A', diff: 'hard', hint: 'Legendary Italian coach, also managed Bayern Munich.' },
+
+          { q: 'Which club won the Scudetto in 1970, their only league title to date?', opts: ['Cagliari', 'Verona', 'Bologna', 'Sampdoria'], ans: 0, cat: 'Serie A', diff: 'hard', hint: 'Based in Sardinia, led by Gigi Riva.' },
+
+          { q: 'Who holds the record for the most goals in a single Serie A season?', opts: ['Gonzalo Higuain & Ciro Immobile', 'Cristiano Ronaldo', 'Luca Toni', 'Zlatan Ibrahimovic'], ans: 0, cat: 'Serie A', diff: 'medium', hint: 'Both scored 36 goals (Higuain in 2016, Immobile in 2020).' },
+
+          { q: 'Which player was known as \'Il Divin Codino\' (The Divine Ponytail)?', opts: ['Roberto Baggio', 'Andrea Pirlo', 'Gianfranco Zola', 'Alessandro Del Piero'], ans: 0, cat: 'Serie A', diff: 'medium', hint: 'Famous for his penalty miss in the 1994 World Cup final.' }
+        ],
+
+        'ligue-1': [
+          { q: 'Which club has won the most Ligue 1 titles?', opts: ['Saint-Etienne', 'Marseille', 'Monaco', 'Paris Saint-Germain'], ans: 3, cat: 'Ligue 1', diff: 'easy', hint: 'Recently surpassed Saint-Etienne\'s record of 10 titles.' },
+
+          { q: 'Who is Ligue 1\'s all-time leading goalscorer?', opts: ['Kylian Mbappe', 'Jean-Pierre Papin', 'Delio Onnis', 'Zlatan Ibrahimovic'], ans: 2, cat: 'Ligue 1', diff: 'hard', hint: 'Argentine striker, scored 299 goals from 1971 to 1986.' },
+
+          { q: 'What is the name of the rivalry match between Paris Saint-Germain and Marseille?', opts: ['Derby du Nord', 'Le Classique', 'Choc des Olympiques', 'Derby de la Cote d\'Azur'], ans: 1, cat: 'Ligue 1', diff: 'easy', hint: 'The French Classic.' },
+
+          { q: 'Which club did Eden Hazard play for when he won the Ligue 1 title in 2011?', opts: ['Lyon', 'Marseille', 'Lille', 'Monaco'], ans: 2, cat: 'Ligue 1', diff: 'medium', hint: 'North French club, defeated PSG to the title.' },
+
+          { q: 'Which team won Ligue 1 in 2016-17 with stars like Mbappe, Falcao, and Bernardo Silva?', opts: ['Lyon', 'Monaco', 'Lille', 'Nice'], ans: 1, cat: 'Ligue 1', diff: 'easy', hint: 'Based in the principality of Monaco.' },
+
+          { q: 'Which club is nicknamed \'Les Gones\'?', opts: ['Marseille', 'Lyon', 'Lille', 'Saint-Etienne'], ans: 1, cat: 'Ligue 1', diff: 'medium', hint: 'Based in France\'s third-largest city.' },
+
+          { q: 'What is Paris Saint-Germain\'s home stadium?', opts: ['Stade de France', 'Parc des Princes', 'Stade Velodrome', 'Stade Louis II'], ans: 1, cat: 'Ligue 1', diff: 'easy', hint: 'Located in Paris.' },
+
+          { q: 'Who is Paris Saint-Germain\'s all-time leading goalscorer?', opts: ['Edinson Cavani', 'Zlatan Ibrahimovic', 'Kylian Mbappe', 'Neymar'], ans: 2, cat: 'Ligue 1', diff: 'easy', hint: 'Scored 256 goals before leaving in 2024.' },
+
+          { q: 'Which club won seven consecutive Ligue 1 titles from 2002 to 2008?', opts: ['Paris Saint-Germain', 'Lyon', 'Marseille', 'Monaco'], ans: 1, cat: 'Ligue 1', diff: 'easy', hint: 'Dominated French football in the 2000s.' },
+
+          { q: 'Which Ligue 1 team plays their home games at the Stade Vélodrome?', opts: ['Marseille', 'Nice', 'Monaco', 'Montpellier'], ans: 0, cat: 'Ligue 1', diff: 'easy', hint: 'Port city in the south of France.' },
+
+          { q: 'Which French club is the only one to have won the UEFA Champions League?', opts: ['Paris Saint-Germain', 'Lyon', 'Marseille', 'Monaco'], ans: 2, cat: 'Ligue 1', diff: 'medium', hint: 'Won it in 1993.' },
+
+          { q: 'What is the nickname of the French national league trophy?', opts: ['L\'Hexagone', 'Hexagoal', 'Ligue Cup', 'Le Bouclier'], ans: 1, cat: 'Ligue 1', diff: 'hard', hint: 'Refers to the shape of France.' },
+
+          { q: 'Which club won the Ligue 1 title in the 2020-21 season?', opts: ['Paris Saint-Germain', 'Lille', 'Monaco', 'Lyon'], ans: 1, cat: 'Ligue 1', diff: 'medium', hint: 'Nicknamed Les Dogues.' },
+
+          { q: 'Who is the manager of Paris Saint-Germain as of 2024?', opts: ['Thomas Tuchel', 'Mauricio Pochettino', 'Luis Enrique', 'Christophe Galtier'], ans: 2, cat: 'Ligue 1', diff: 'easy', hint: 'Former Barcelona and Spain manager.' },
+
+          { q: 'Which team plays their home matches at the Stade Louis II?', opts: ['Monaco', 'Nice', 'Marseille', 'Cannes'], ans: 0, cat: 'Ligue 1', diff: 'easy', hint: 'Principality club.' },
+
+          { q: 'Which city is home to the club LOSC?', opts: ['Lyon', 'Lille', 'Lens', 'Lorient'], ans: 1, cat: 'Ligue 1', diff: 'easy', hint: 'Close to the Belgian border.' },
+
+          { q: 'Who is the youngest player to debut for Monaco, breaking Thierry Henry\'s record?', opts: ['Kylian Mbappe', 'Anthony Martial', 'Bernardo Silva', 'Yannick Carrasco'], ans: 0, cat: 'Ligue 1', diff: 'medium', hint: 'Made his debut in 2015 at age 16.' },
+
+          { q: 'Which club is known as \'Les Verts\' (The Greens)?', opts: ['Saint-Etienne', 'Nantes', 'Rennes', 'Metz'], ans: 0, cat: 'Ligue 1', diff: 'easy', hint: 'Wore green shirts, dominated in the 1970s.' },
+
+          { q: 'Which club did Zlatan Ibrahimovic play for in France?', opts: ['Paris Saint-Germain', 'Marseille', 'Monaco', 'Lyon'], ans: 0, cat: 'Ligue 1', diff: 'easy', hint: 'Said \'I came like a king, left like a legend\'.' },
+
+          { q: 'Which city does the derby \'Derby du Rhône\' take place in?', opts: ['Lyon & Saint-Etienne', 'Marseille & Nice', 'Lille & Lens', 'Paris & Marseille'], ans: 0, cat: 'Ligue 1', diff: 'medium', hint: 'Rivalry between Saint-Etienne and Lyon.' },
+
+          { q: 'Who won the Ligue 1 Player of the Year award in the 2023-24 season?', opts: ['Ousmane Dembele', 'Kylian Mbappe', 'Pierre-Emerick Aubameyang', 'Alexandre Lacazette'], ans: 1, cat: 'Ligue 1', diff: 'easy', hint: 'Won his 5th consecutive award.' },
+
+          { q: 'Which club did Eden Hazard play for when he won the Ligue 1 title?', opts: ['Lille', 'Lyon', 'Marseille', 'Monaco'], ans: 0, cat: 'Ligue 1', diff: 'easy', hint: 'Won the double in 2011.' },
+
+          { q: 'Which Ligue 1 club has the motto \'Droit au but\' (Straight to the goal)?', opts: ['Marseille', 'PSG', 'Lyon', 'Nantes'], ans: 0, cat: 'Ligue 1', diff: 'medium', hint: 'Featured on their club crest.' },
+
+          { q: 'Which team won Ligue 1 in 2011-12 in a historic surprise?', opts: ['Montpellier', 'Lille', 'Auxerre', 'Bordeaux'], ans: 0, cat: 'Ligue 1', diff: 'medium', hint: 'Led by Olivier Giroud\'s goals.' },
+
+          { q: 'Which club did Karim Benzema play for before joining Real Madrid?', opts: ['Marseille', 'Lyon', 'Saint-Etienne', 'Bordeaux'], ans: 1, cat: 'Ligue 1', diff: 'easy', hint: 'Won four Ligue 1 titles with them.' }
         ]
-
       };
 
-      for (const key of ['bundesliga', 'serie-a', 'ligue-1', 'man-utd', 'man-city', 'chelsea', 'arsenal', 'liverpool', 'real-madrid', 'barcelona', 'atletico']) {
-
+      for (const key of ['man-utd', 'man-city', 'chelsea', 'arsenal', 'liverpool', 'real-madrid', 'barcelona', 'atletico']) {
         if (!QUESTIONS[key]) QUESTIONS[key] = QUESTIONS['premier-league'].slice(0, 5);
-
       }
 
-
       const LEADERBOARD_DATA = [
-
         { name: 'FutbolKing99', score: 9820, correct: 142, streak: 15, country: '🇧🇷', level: 42 },
 
         { name: 'TacticsGuru', score: 8750, correct: 128, streak: 11, country: '🇬🇧', level: 38 },
@@ -264,21 +575,21 @@
 
       const CATEGORIES_DATA = [
 
-        { id: 'premier-league', icon: 'PL', logo: 'https://crests.football-data.org/PL.png', name: 'Premier League', count: '10 questions', color: '#3d0099' },
+        { id: 'premier-league', icon: 'PL', logo: 'https://crests.football-data.org/PL.png', name: 'Premier League', count: '31 questions', color: '#3d0099' },
 
-        { id: 'la-liga', icon: 'LL', logo: 'https://crests.football-data.org/PD.png', name: 'La Liga', count: '8 questions', color: '#ee8707' },
+        { id: 'la-liga', icon: 'LL', logo: 'https://crests.football-data.org/PD.png', name: 'La Liga', count: '28 questions', color: '#ee8707' },
 
-        { id: 'ucl', icon: 'UCL', logo: 'https://crests.football-data.org/CL.png', name: 'Champions League', count: '8 questions', color: '#1a1aff' },
+        { id: 'ucl', icon: 'UCL', logo: 'https://crests.football-data.org/CL.png', name: 'Champions League', count: '25 questions', color: '#1a1aff' },
 
-        { id: 'world-cup', icon: 'WC', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/17/2026_FIFA_World_Cup_emblem.svg/960px-2026_FIFA_World_Cup_emblem.svg.png', name: 'World Cup', count: '8 questions', color: '#006633' },
+        { id: 'world-cup', icon: 'WC', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/17/2026_FIFA_World_Cup_emblem.svg/960px-2026_FIFA_World_Cup_emblem.svg.png', name: 'World Cup', count: '25 questions', color: '#006633' },
 
-        { id: 'bundesliga', icon: 'BL', logo: 'https://crests.football-data.org/BL1.png', name: 'Bundesliga', count: '6 questions', color: '#d4021d' },
+        { id: 'bundesliga', icon: 'BL', logo: 'https://crests.football-data.org/BL1.png', name: 'Bundesliga', count: '25 questions', color: '#d4021d' },
 
-        { id: 'serie-a', icon: 'SA', logo: 'https://crests.football-data.org/SA.png', name: 'Serie A', count: '5 questions', color: '#0033A0' },
+        { id: 'serie-a', icon: 'SA', logo: 'https://crests.football-data.org/SA.png', name: 'Serie A', count: '25 questions', color: '#0033A0' },
 
-        { id: 'ligue-1', icon: 'L1', logo: 'https://crests.football-data.org/FL1.png', name: 'Ligue 1', count: '4 questions', color: '#003f6e' },
+        { id: 'ligue-1', icon: 'L1', logo: 'https://crests.football-data.org/FL1.png', name: 'Ligue 1', count: '25 questions', color: '#003f6e' },
 
-        { id: 'daily', icon: 'DC', logo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path><path d="M12 2a6 6 0 0 1 6 6v5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"></path></svg>', name: 'Daily Challenge', count: '10 questions', color: '#d4a017' },
+        { id: 'daily', icon: 'DC', logo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path><path d="M12 2a6 6 0 0 1 6 6v5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"></path></svg>', name: 'Daily Challenge', count: '25 questions', color: '#d4a017' },
 
         { id: 'all-categories', icon: '🗂️', logo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>', name: 'All Categories', count: 'Browse more', color: '#6b7280' },
 

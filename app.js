@@ -1,8 +1,30 @@
-﻿      // ──────────────────────────  a• a• a• a• a• a•  DATA a• a• a• a• a• a• a• 
+      // ──────────────────────────  a• a• a• a• a• a•  DATA a• a• a• a• a• a• a• 
       // QUESTIONS loaded from data.js
       // LEADERBOARD_DATA loaded from data.js
       // CATEGORIES_DATA loaded from data.js
       // TRANSFER_PLAYERS loaded from data.js
+      const API_BASE_URL = (window.ENV && window.ENV.API_BASE_URL) || 'http://localhost:8000';
+
+      async function apiRequest(endpoint, options = {}) {
+        const url = `${API_BASE_URL}${endpoint}`;
+        const token = localStorage.getItem('footytrivia_token');
+        if (token) {
+          if (!options.headers) options.headers = {};
+          options.headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        try {
+          const response = await fetch(url, options);
+          if (!response.ok) {
+            const err = await response.json().catch(() => ({ detail: 'API request failed' }));
+            throw new Error(err.detail || 'API request failed');
+          }
+          return await response.json();
+        } catch (error) {
+          console.error(`API Error for ${endpoint}:`, error);
+          throw error;
+        }
+      }
       let state = {
         currentPage: 'home',
         quiz: { active: false, questions: [], idx: 0, score: 0, correct: 0, streak: 0, bestStreak: 0, hintPenalty: 1, timer: null, timeLeft: 15, mode: 'solo', diff: 'easy', hintsUsed: [] },
@@ -33,6 +55,16 @@
             l.classList.remove('active');
           }
         });
+        if (page === 'categories') {
+          const activeExplorer = document.querySelector('.questions-explorer-pane.active');
+          if (activeExplorer && activeExplorer.dataset.currentCategory) {
+            const currentCat = activeExplorer.dataset.currentCategory;
+            const explorerId = activeExplorer.id;
+            activeExplorer.classList.remove('active');
+            activeExplorer.removeAttribute('data-current-category');
+            toggleCategoryQuestions(currentCat, explorerId);
+          }
+        }
         if (page === 'worldcup') {
           const activeTabBtn = document.querySelector('.wc-nav-tabs .wc-tab.active');
           const activeTabId = activeTabBtn ? activeTabBtn.getAttribute('onclick').match(/'([^']+)'/)[1] : 'dashboard';
@@ -68,6 +100,20 @@
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
         el.classList.add('active');
       }
+      function isCategoryCompleted(categoryId) {
+        if (!categoryId) return false;
+        const completed = JSON.parse(localStorage.getItem('footytrivia_completed_categories') || '[]');
+        return completed.includes(categoryId);
+      }
+      function markCategoryCompleted(categoryId) {
+        if (!categoryId) return;
+        const completed = JSON.parse(localStorage.getItem('footytrivia_completed_categories') || '[]');
+        if (!completed.includes(categoryId)) {
+          completed.push(categoryId);
+          localStorage.setItem('footytrivia_completed_categories', JSON.stringify(completed));
+        }
+      }
+
       function showClub(clubId) {
         const clubs = {
           'man-utd': { name: 'Manchester United', logo: LOGO_URLS['man-utd'], color1: '#da291c', color2: '#fbe122', league: 'Premier League', founded: 1878, stadium: 'Old Trafford', manager: 'Ruben Amorim', trophies: ['PL x13', 'UCL x3', 'Club WC x1'], desc: 'One of the most successful clubs in English football history. 20 league titles and 3 European Cups.' },
@@ -77,9 +123,12 @@
           'liverpool': { name: 'Liverpool FC', logo: LOGO_URLS['liverpool'], color1: '#c8102e', color2: '#00b2a9', league: 'Premier League', founded: 1892, stadium: 'Anfield', manager: 'Arne Slot', trophies: ['UCL x6', 'PL x1', 'Club WC x1'], desc: 'Six-time European champions. Klopp high-pressing style brought the club back to the summit.' },
           'real-madrid': { name: 'Real Madrid CF', logo: LOGO_URLS['real-madrid'], color1: '#febe10', color2: '#fff', league: 'La Liga', founded: 1902, stadium: 'Santiago Bernabeu', manager: 'Carlo Ancelotti', trophies: ['UCL x15', 'La Liga x35', 'Club WC x8'], desc: 'The most successful club in Champions League history with 15 titles.' },
           'barcelona': { name: 'FC Barcelona', logo: LOGO_URLS['barcelona'], color1: '#004D98', color2: '#A50044', league: 'La Liga', founded: 1899, stadium: 'Spotify Camp Nou', manager: 'Hansi Flick', trophies: ['UCL x5', 'La Liga x27', 'Copa x31'], desc: 'More than a club. Home of the legendary Cruyff, Messi, and the tiki-taka era under Guardiola.' },
+          'atletico': { name: 'Atlético Madrid', logo: LOGO_URLS['atletico'], color1: '#cb3524', color2: '#1a2f64', league: 'La Liga', founded: 1903, stadium: 'Metropolitano', manager: 'Diego Simeone', trophies: ['La Liga x11', 'UEL x3', 'Copa x10'], desc: 'Known as Los Colchoneros, they have been a major force in Spanish and European football under Diego Simeone.' }
         };
         const club = clubs[clubId] || clubs['man-utd'];
         setClubBg(clubId);
+        const pool = QUESTIONS[clubId] || [];
+        const completed = isCategoryCompleted(clubId);
         document.getElementById('club-page-content').innerHTML = `
     <div style="height:6px;background:var(--surface2)"></div>
     <div class="section">
@@ -103,6 +152,51 @@
           </div>
         </div>
       </div>
+
+      <!-- Actual Questions Section -->
+      <div class="card" style="margin-bottom:2rem; background: var(--surface2); border: 1px solid var(--border);">
+        <h3 style="font-family:var(--font-display);font-weight:700;letter-spacing:.5px;margin-bottom:1.2rem;text-transform:uppercase;">
+          Explore ${club.name} Questions (${pool.length})
+        </h3>
+        <div class="explorer-list" style="max-height: 350px;">
+          ${pool.map((q, idx) => `
+            <div class="explorer-item" style="background:var(--surface);">
+              <div class="explorer-q-meta">
+                <span style="font-size:0.75rem; color:var(--text3); font-weight:600; text-transform:uppercase;">Question ${idx + 1}</span>
+                <span class="q-difficulty ${q.diff}">${q.diff}</span>
+              </div>
+              <div class="explorer-q-text">${q.q}</div>
+              <div class="explorer-actions">
+                <button class="btn-explorer-action" onclick="toggleExplorerAnswer(this, ${idx}, ${completed})">
+                  <span>👁️</span> Show ${completed ? 'Options & Answer' : 'Options'}
+                </button>
+              </div>
+              <div class="explorer-answer-details hidden">
+                <div class="explorer-options-list">
+                  ${q.opts.map((opt, oIdx) => {
+                    const isCorrect = oIdx === q.ans;
+                    const letter = ['A', 'B', 'C', 'D'][oIdx];
+                    const optionClass = completed ? (isCorrect ? 'correct' : 'incorrect') : '';
+                    return `
+                      <div class="explorer-option ${optionClass}">
+                        <span class="explorer-option-letter">${letter}</span>
+                        <span class="explorer-option-text">${opt}</span>
+                        ${completed && isCorrect ? `<span class="explorer-option-badge">Correct</span>` : ''}
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+                ${completed && q.hint ? `
+                  <div class="explorer-hint">
+                    <span>💡</span> <strong>Hint:</strong> ${q.hint}
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
       <div style="display:flex;gap:1rem;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="startQuiz('${clubId}')">Start Club Trivia</button>
         <button class="btn btn-ghost" onclick="showPage('categories')">&larr; Back to Categories</button>
@@ -110,6 +204,127 @@
     </div>`;
         showPage('club');
       }
+
+      function toggleCategoryQuestions(categoryId, explorerId) {
+        const explorerEl = document.getElementById(explorerId);
+        if (!explorerEl) return;
+
+        // If the explorer is already active and showing this category, hide it
+        const isCurrent = explorerEl.dataset.currentCategory === categoryId;
+        
+        // Hide all explorer panes first
+        document.querySelectorAll('.questions-explorer-pane').forEach(el => {
+          el.classList.remove('active');
+        });
+
+        if (isCurrent && explorerEl.classList.contains('active')) {
+          explorerEl.classList.remove('active');
+          explorerEl.removeAttribute('data-current-category');
+          return;
+        }
+
+        // Set league background watermark
+        setLeagueBg(categoryId);
+
+        // Fetch questions from QUESTIONS
+        const pool = QUESTIONS[categoryId] || [];
+        const catData = CATEGORIES_DATA.find(c => c.id === categoryId) || { name: categoryId, color: '#2563eb' };
+        const catName = catData.name;
+        const catColor = catData.color || '#2563eb';
+        const completed = isCategoryCompleted(categoryId);
+
+        explorerEl.dataset.currentCategory = categoryId;
+        explorerEl.innerHTML = `
+          <div class="explorer-header">
+            <div>
+              <h3 class="explorer-title" style="border-left: 4px solid ${catColor}; padding-left: 0.75rem;">
+                ${catName} Questions <span>(${pool.length} available)</span>
+              </h3>
+            </div>
+            <button class="btn btn-primary" onclick="startQuiz('${categoryId}')">Play Category Quiz</button>
+          </div>
+          <div class="explorer-list">
+            ${pool.map((q, idx) => `
+              <div class="explorer-item">
+                <div class="explorer-q-meta">
+                  <span style="font-size:0.75rem; color:var(--text3); font-weight:600; text-transform:uppercase;">Question ${idx + 1}</span>
+                  <span class="q-difficulty ${q.diff}">${q.diff}</span>
+                </div>
+                <div class="explorer-q-text">${q.q}</div>
+                <div class="explorer-actions">
+                  <button class="btn-explorer-action" onclick="toggleExplorerAnswer(this, ${idx}, ${completed})">
+                    <span>👁️</span> Show ${completed ? 'Options & Answer' : 'Options'}
+                  </button>
+                </div>
+                <div class="explorer-answer-details hidden">
+                  <div class="explorer-options-list">
+                    ${q.opts.map((opt, oIdx) => {
+                      const isCorrect = oIdx === q.ans;
+                      const letter = ['A', 'B', 'C', 'D'][oIdx];
+                      const optionClass = completed ? (isCorrect ? 'correct' : 'incorrect') : '';
+                      return `
+                        <div class="explorer-option ${optionClass}">
+                          <span class="explorer-option-letter">${letter}</span>
+                          <span class="explorer-option-text">${opt}</span>
+                          ${completed && isCorrect ? `<span class="explorer-option-badge">Correct</span>` : ''}
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                  ${completed && q.hint ? `
+                    <div class="explorer-hint">
+                      <span>💡</span> <strong>Hint:</strong> ${q.hint}
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        
+        explorerEl.classList.add('active');
+        // Scroll to the explorer pane smoothly
+        explorerEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      function toggleExplorerAnswer(btn, idx, completed) {
+        const itemEl = btn.closest('.explorer-item');
+        const detailsEl = itemEl.querySelector('.explorer-answer-details');
+        const showText = completed ? 'Options & Answer' : 'Options';
+        if (detailsEl.classList.contains('hidden')) {
+          detailsEl.classList.remove('hidden');
+          btn.innerHTML = `<span>🙈</span> Hide ${showText}`;
+        } else {
+          detailsEl.classList.add('hidden');
+          btn.innerHTML = `<span>👁️</span> Show ${showText}`;
+        }
+      }
+
+      function checkDailyLimit() {
+        const today = new Date().toDateString();
+        const attempts = JSON.parse(localStorage.getItem('footytrivia_daily_attempts') || '{}');
+        if (attempts.date !== today) {
+          attempts.date = today;
+          attempts.count = 0;
+          localStorage.setItem('footytrivia_daily_attempts', JSON.stringify(attempts));
+        }
+        if (attempts.count >= 10) {
+          showToast('You have reached the daily limit of 10 quizzes. Please try again tomorrow!', 'warning');
+          return false;
+        }
+        return true;
+      }
+      function incrementDailyAttempts() {
+        const today = new Date().toDateString();
+        const attempts = JSON.parse(localStorage.getItem('footytrivia_daily_attempts') || '{}');
+        if (attempts.date !== today) {
+          attempts.date = today;
+          attempts.count = 0;
+        }
+        attempts.count++;
+        localStorage.setItem('footytrivia_daily_attempts', JSON.stringify(attempts));
+      }
+
       // ──────────────────────────  a• a• a• a• a• a•  QUIZ ENGINE a• a• a• a• a• a• a• 
       function startQuiz(category) {
         if (!checkDailyLimit()) return;
@@ -166,30 +381,15 @@
           if (state.selectedMode === 'blitz') {
             pts *= 2;
           }
+          if (state.selectedMode === 'ranked') {
+            pts = Math.floor(pts * 1.5);
+          }
           q.score += pts;
         } else {
           q.streak = 0;
         }
-        let aiCorrect = false;
-        let aiPts = 0;
-        if (state.selectedMode === 'ai') {
-          const aiProb = { easy: 0.8, medium: 0.65, hard: 0.5, legendary: 0.35 }[question.diff] || 0.6;
-          aiCorrect = Math.random() < aiProb;
-          if (aiCorrect) {
-            q.aiCorrect = (q.aiCorrect || 0) + 1;
-            const aiBase = { easy: 100, medium: 150, hard: 200, legendary: 300 }[question.diff] || 100;
-            const aiBonus = Math.floor(Math.random() * 30);
-            aiPts = aiBase + aiBonus;
-            q.aiScore = (q.aiScore || 0) + aiPts;
-          }
-        }
-        const scoreText = state.selectedMode === 'ai' ? `YOU: ${q.score} | AI: ${q.aiScore || 0}` : `${q.score} PTS`;
-        document.getElementById('q-score').textContent = scoreText;
+        document.getElementById('q-score').textContent = `${q.score} PTS`;
         showFeedback(correct, pts, q.streak);
-        if (state.selectedMode === 'ai') {
-          let aiMsg = aiCorrect ? `🤖 Bot Guardiola got it CORRECT (+${aiPts} PTS)` : `🤖 Bot Guardiola got it WRONG`;
-          document.getElementById('fb-sub').innerHTML = (correct && q.streak >= 3 ? `🔥 ${q.streak} in a row! Bonus applied!<br/>` : '') + aiMsg;
-        }
         if (!correct && state.selectedMode === 'hardcore') {
           setTimeout(() => {
             hideFeedback();
@@ -250,7 +450,7 @@
       function startTimer() {
         clearInterval(state.quiz.timer);
         const mode = state.selectedMode;
-        TIMER_MAX = mode === 'blitz' ? 8 : mode === 'hardcore' ? 10 : 15;
+        TIMER_MAX = mode === 'blitz' ? 8 : mode === 'hardcore' ? 10 : mode === 'ranked' ? 12 : 15;
         state.quiz.timeLeft = TIMER_MAX;
         updateTimerUI();
         state.quiz.timer = setInterval(() => {
@@ -283,23 +483,7 @@
         options.forEach(o => o.classList.add('disabled'));
         if (options[question.ans]) options[question.ans].classList.add('correct');
         q.streak = 0;
-        let aiCorrect = false;
-        let aiPts = 0;
-        if (state.selectedMode === 'ai') {
-          const aiProb = { easy: 0.8, medium: 0.65, hard: 0.5, legendary: 0.35 }[question.diff] || 0.6;
-          aiCorrect = Math.random() < aiProb;
-          if (aiCorrect) {
-            q.aiCorrect = (q.aiCorrect || 0) + 1;
-            const aiBase = { easy: 100, medium: 150, hard: 200, legendary: 300 }[question.diff] || 100;
-            aiPts = aiBase;
-            q.aiScore = (q.aiScore || 0) + aiPts;
-          }
-        }
         showFeedback(false, 0, 0);
-        if (state.selectedMode === 'ai') {
-          let aiMsg = aiCorrect ? `🤖 Bot Guardiola got it CORRECT (+${aiPts} PTS)` : `🤖 Bot Guardiola got it WRONG`;
-          document.getElementById('fb-sub').innerHTML = aiMsg;
-        }
         if (state.selectedMode === 'hardcore') {
           setTimeout(() => {
             hideFeedback();
@@ -330,6 +514,7 @@
         document.getElementById('r-best-streak').textContent = q.bestStreak;
         saveQuizResult(q.category, q.score, q.correct, q.questions.length, 0);
         saveQuizResult(state.selectedMode, q.score, q.correct, total, TIMER_MAX - state.quiz.timeLeft);
+        markCategoryCompleted(q.category);
         // animate arc
         setTimeout(() => {
           const arc = document.getElementById('results-arc');
@@ -351,6 +536,23 @@
         state.selectedMode = mode;
         showToast(`⚡ Mode: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`, 'info');
         if (mode === 'daily') { startQuiz('daily'); return; }
+        if (mode === 'multiplayer') {
+          if (!state.user) {
+            showToast('Please log in or sign up to enter the Realtime Arena.', 'warning');
+            openModal('login');
+            return;
+          }
+          showPage('battle');
+          return;
+        }
+        if (mode === 'ranked') {
+          if (!state.user) {
+            showToast('Please log in to play Ranked Mode. Your scores count towards the global leaderboard!', 'warning');
+            openModal('login');
+            state.selectedMode = 'solo';
+            return;
+          }
+        }
         document.querySelectorAll('.mode-card').forEach(c => c.style.borderColor = '');
       }
       function selectDiff(diff, el) {
@@ -403,10 +605,6 @@
       });
       function renderTransferClues() {
         const container = document.getElementById('tg-clues-container');
-        if (state.transfer.guesses.length > 0) {
-          container.style.display = 'none';
-          return;
-        }
         container.style.display = 'block';
         const player = TRANSFER_PLAYERS[state.transfer.playerIdx];
         const clueCategories = ['Nationality', 'Age', 'Position', 'League', 'Club', 'Value'];
@@ -539,128 +737,90 @@
         }
         return country;
       }
-      function renderStaticLeaderboard(container) {
-        // Render static fallback leaderboard when Firestore is not available
-        const data = LEADERBOARD_DATA;
-        if (!data || data.length === 0) {
-          container.innerHTML = "<div style='padding:2rem;text-align:center'>No scores yet.</div>";
-          return;
+
+      function getLeaderboardFlagByCountryId(countryId) {
+        const mapping = { 1: 'gb', 2: 'es', 3: 'de', 4: 'fr', 5: 'br', 6: 'ar', 7: 'it' };
+        const code = mapping[countryId];
+        if (code) {
+          return `<img src="https://flagcdn.com/${code}.svg" style="width:18px; height:12px; border-radius:2px; object-fit:cover; vertical-align:middle; margin-right:4px; box-shadow:0 1px 2px rgba(0,0,0,0.25);">`;
         }
-        let html = '';
-        data.forEach((p, i) => {
-          const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-          const rankLabel = i + 1;
-          let tierName = 'Bronze'; let tierColor = '#cd7f32';
-          if (p.score >= 10000) { tierName = 'Diamond'; tierColor = '#b9f2ff'; }
-          else if (p.score >= 5000) { tierName = 'Platinum'; tierColor = '#e5e4e2'; }
-          else if (p.score >= 2500) { tierName = 'Gold'; tierColor = 'var(--gold)'; }
-          else if (p.score >= 1000) { tierName = 'Silver'; tierColor = '#c0c0c0'; }
-          html += `
-          <div class="lb-row">
-            <div class="lb-rank ${rankClass}">${rankLabel}</div>
-            <div class="lb-avatar" style="background:var(--surface2)">${p.name ? p.name[0] : '?'}</div>
-            <div class="lb-info">
-              <div class="lb-name">${p.name || 'Guest'}
-                <span style="font-size:0.65rem;background:${tierColor};color:#000;padding:0.1rem 0.35rem;border-radius:4px;margin-left:0.5rem;font-weight:700">${tierName}</span>
-              </div>
-              <div class="lb-meta">${getLeaderboardFlagImg(p.country) || ''} &nbsp; ${p.correct || 0} correct</div>
-            </div>
-            <div class="lb-score">${(p.score || 0).toLocaleString()}</div>
-          </div>`;
-        });
-        container.innerHTML = html;
+        return '';
       }
-      function switchLbTab(el, tab) {
+      function renderStaticLeaderboard(container) {
+        switchLbTab(null, 'alltime');
+      }
+      async function switchLbTab(el, tab) {
         document.querySelectorAll('#lb-main-tabs .lb-tab').forEach(t => t.classList.remove('active'));
         if (el) el.classList.add('active');
         const container = document.getElementById('lb-main-list');
         if (!container) return;
-        if (!window.db) {
-          // Fallback to static leaderboard data when Firestore is not configured
-          renderStaticLeaderboard(container);
-          return;
-        }
-        let collectionName = 'leaderboard_alltime';
-        if (tab === 'weekly') collectionName = 'leaderboard_weekly';
-        else if (tab === 'monthly') collectionName = 'leaderboard_battle'; // Battle ELO
-        if (lbUnsubscribe) lbUnsubscribe();
-        container.innerHTML = "<div style='padding:2rem;text-align:center'>Loading live standings...</div>";
-        let query = db.collection(collectionName).orderBy('score', 'desc').limit(100);
-        if (tab === 'weekly') {
-          query = query.where('week', '==', getISOWeek());
-        }
-        lbUnsubscribe = query.onSnapshot(snapshot => {
-          if (snapshot.empty) {
-            container.innerHTML = "<div style='padding:2rem;text-align:center'>No scores recorded yet. Be the first!</div>";
+        
+        container.innerHTML = "<div style='padding:2rem;text-align:center'>Loading standings from database...</div>";
+        
+        try {
+          let endpoint = '/api/leaderboard/global';
+          if (tab === 'weekly') endpoint = '/api/leaderboard/weekly';
+          else if (tab === 'monthly') endpoint = '/api/leaderboard/monthly';
+          else if (tab === 'daily') endpoint = '/api/leaderboard/weekly'; // fallback daily to weekly
+          
+          const data = await apiRequest(endpoint);
+          
+          if (!data || data.length === 0) {
+            container.innerHTML = "<div style='padding:2rem;text-align:center'>No scores yet.</div>";
             return;
           }
+          
           let html = '';
-          let i = 0;
-          snapshot.forEach(doc => {
-            const p = doc.data();
+          data.forEach((p, i) => {
             const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-            const rankLabel = i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : i + 1;
-            const isCurrentUser = state.user && state.user.uid === doc.id;
-            const borderStyle = isCurrentUser ? 'border-left: 3px solid var(--accent);' : '';
-            let tierName = 'Bronze';
-            let tierColor = '#cd7f32';
-            if (p.score >= 25000) { tierName = 'World Class'; tierColor = 'var(--accent)'; }
-            else if (p.score >= 10000) { tierName = 'Diamond'; tierColor = 'var(--accent)'; }
-            else if (p.score >= 5000) { tierName = 'Platinum'; tierColor = '#e5e4e2'; }
-            else if (p.score >= 2500) { tierName = 'Gold'; tierColor = 'var(--gold)'; }
-            else if (p.score >= 1000) { tierName = 'Silver'; tierColor = '#c0c0c0'; }
+            const rankLabel = i + 1;
+            let tierName = 'Bronze'; let tierColor = '#cd7f32';
+            if (p.total_points >= 10000) { tierName = 'Diamond'; tierColor = '#b9f2ff'; }
+            else if (p.total_points >= 5000) { tierName = 'Platinum'; tierColor = '#e5e4e2'; }
+            else if (p.total_points >= 2500) { tierName = 'Gold'; tierColor = 'var(--gold)'; }
+            else if (p.total_points >= 1000) { tierName = 'Silver'; tierColor = '#c0c0c0'; }
+            
+            const scoreToDisplay = tab === 'weekly' ? p.weekly_points : (tab === 'monthly' ? p.monthly_points : p.total_points);
+            
             html += `
-                <div class="lb-row" style="${borderStyle}">
-                  <div class="lb-rank ${rankClass}">${rankLabel}</div>
-                  <div class="lb-avatar" style="background: var(--surface2)">
-                    ${p.avatar ? `<img src="${p.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : (p.name ? p.name[0] : '?')}
-                  </div>
-                  <div class="lb-info">
-                    <div class="lb-name">${p.name || 'Guest'} 
-                        <span style="font-size:0.65rem;background:${tierColor};color:#000;padding:0.1rem 0.35rem;border-radius:4px;margin-left:0.5rem;font-weight:700">${tierName}</span>
-                    </div>
-                  </div>
-                  <div class="lb-score">${(p.score || 0).toLocaleString()}</div>
-                </div>`;
-            i++;
+            <div class="lb-row">
+              <div class="lb-rank ${rankClass}">${rankLabel}</div>
+              <div class="lb-avatar" style="background:var(--surface2)">${p.username ? p.username[0].toUpperCase() : '?'}</div>
+              <div class="lb-info">
+                <div class="lb-name">${p.username || 'Guest'}
+                  <span style="font-size:0.65rem;background:${tierColor};color:#000;padding:0.1rem 0.35rem;border-radius:4px;margin-left:0.5rem;font-weight:700">${tierName}</span>
+                </div>
+                <div class="lb-meta">${getLeaderboardFlagByCountryId(p.country_id)} &nbsp; Rank: ${p.rank || rankLabel}</div>
+              </div>
+              <div class="lb-score">${(scoreToDisplay || 0).toLocaleString()}</div>
+            </div>`;
           });
           container.innerHTML = html;
-        }, err => {
-          console.error("Leaderboard error", err);
-          container.innerHTML = "<div style='padding:2rem;text-align:center'>Error loading standings.</div>";
-        });
+        } catch (err) {
+          console.error('Failed to load leaderboard from database:', err);
+          container.innerHTML = "<div style='padding:2rem;text-align:center;color:var(--text3)'>Error loading leaderboard data from database.</div>";
+        }
+      }
+      async function updateHomeLeaderboardPreview() {
+        const lbPreview = document.getElementById('lb-list');
+        if (!lbPreview) return;
+        try {
+          const data = await apiRequest('/api/leaderboard/global?limit=5');
+          let html = '';
+          data.slice(0, 5).forEach((p, i) => {
+            const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+            html += `<div class="lb-row"><div class="lb-rank ${rankClass}">${i + 1}</div><div class="lb-info"><div class="lb-name">${p.username || 'Guest'}</div></div><div class="lb-score">${(p.total_points || 0).toLocaleString()}</div></div>`;
+          });
+          lbPreview.innerHTML = html;
+        } catch (err) {
+          console.error('Failed to load home leaderboard preview:', err);
+        }
       }
       function renderLeaderboard(containerId, data) {
-        // Dynamic leaderboard overwrite
         if (containerId === 'lb-main-list') {
           switchLbTab(null, 'alltime');
         } else if (containerId === 'lb-list') {
-          // Home preview: query top 5 all-time
-          if (!window.db) return;
-          db.collection('leaderboard_alltime').orderBy('score', 'desc').limit(5).onSnapshot(snapshot => {
-            const el = document.getElementById(containerId);
-            if (!el) return;
-            if (snapshot.empty) {
-              el.innerHTML = "<div style='padding:1rem;text-align:center'>No scores yet.</div>";
-              return;
-            }
-            let html = '';
-            let i = 0;
-            snapshot.forEach(doc => {
-              const p = doc.data();
-              const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-              html += `
-                      <div class="lb-row">
-                        <div class="lb-rank ${rankClass}">${i + 1}</div>
-                        <div class="lb-info">
-                          <div class="lb-name">${p.name || 'Guest'}</div>
-                        </div>
-                        <div class="lb-score">${(p.score || 0).toLocaleString()}</div>
-                      </div>`;
-              i++;
-            });
-            el.innerHTML = html;
-          });
+          updateHomeLeaderboardPreview();
         }
       }
       function switchTab(el) {
@@ -1247,66 +1407,95 @@
           closeModal();
         }
       }
-      function mockRegister(e) {
+      async function mockRegister(e) {
         e.preventDefault();
         const username = document.getElementById('auth-username').value.trim();
         const email = document.getElementById('auth-email').value.trim();
         const password = document.getElementById('auth-password').value;
         if (!username || !email || !password) return;
-        const userObj = {
-          username: username,
-          email: email,
-          level: 1,
-          xp: 120,
-          gamesPlayed: 0,
-          correctAnswers: 0,
-          currentStreak: 0,
-          bestStreak: 0,
-          accuracy: 0,
-          totalQuestions: 0
-        };
-        localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
-        state.user = userObj;
-        closeModal();
-        updateAuthUI();
-        showToast(`Welcome, ${username}! Account created.`, 'success');
+        
+        try {
+          const registerRes = await fetch(`${API_BASE_URL}/api/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password })
+          });
+
+          if (!registerRes.ok) {
+            const err = await registerRes.json().catch(() => ({ detail: 'Registration failed' }));
+            throw new Error(err.detail || 'Registration failed');
+          }
+
+          localStorage.removeItem('footytrivia_user');
+          localStorage.removeItem('footytrivia_token');
+          state.user = null;
+          closeModal();
+          updateAuthUI();
+          showToast('Account created. Please verify your email before logging in.', 'success');
+        } catch (err) {
+          console.error(err);
+          showToast(err.message || 'Registration failed', 'error');
+        }
       }
-      function mockLogin(e) {
+
+      async function mockLogin(e) {
         e.preventDefault();
         const email = document.getElementById('auth-email').value.trim();
         const password = document.getElementById('auth-password').value;
-        const storedUser = localStorage.getItem('footytrivia_user');
-        if (storedUser) {
-          const userObj = JSON.parse(storedUser);
-          if (userObj.email.toLowerCase() === email.toLowerCase()) {
-            state.user = userObj;
-            closeModal();
-            updateAuthUI();
-            showToast(`Welcome back, ${userObj.username}!`, 'success');
-            return;
+        if (!email || !password) return;
+        
+        try {
+          const formData = new URLSearchParams();
+          formData.append('username', email);
+          formData.append('password', password);
+          
+          const tokenRes = await fetch(`${API_BASE_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData
+          });
+          
+          if (!tokenRes.ok) {
+            const err = await tokenRes.json().catch(() => ({ detail: 'Invalid email or password' }));
+            throw new Error(err.detail || 'Invalid email or password');
           }
+          
+          const tokenData = await tokenRes.json();
+          localStorage.setItem('footytrivia_token', tokenData.access_token);
+          
+          const profile = await apiRequest('/api/users/me');
+          let progress = {};
+          try { progress = await apiRequest('/api/users/me/progress'); } catch(e) {}
+          
+          const userObj = {
+            id: profile.user_id,
+            username: profile.display_name || email.split('@')[0],
+            email: email,
+            level: Math.floor((progress.total_points || 0) / 1000) + 1,
+            xp: (progress.total_points || 0) % 1000,
+            gamesPlayed: progress.total_quizzes_played || profile.total_quizzes_played || 0,
+            correctAnswers: progress.total_correct || 0,
+            currentStreak: progress.current_streak || 0,
+            bestStreak: progress.longest_streak || 0,
+            accuracy: progress.total_questions_answered > 0 ? Math.round((progress.total_correct / progress.total_questions_answered) * 100) : 0,
+            totalQuestions: progress.total_questions_answered || 0
+          };
+          
+          localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
+          state.user = userObj;
+          closeModal();
+          updateAuthUI();
+          showToast(`Welcome back, ${userObj.username}!`, 'success');
+        } catch (err) {
+          console.error(err);
+          showToast(err.message || 'Login failed', 'error');
         }
-        const tempUsername = email.split('@')[0];
-        const newUserObj = {
-          username: tempUsername,
-          email: email,
-          level: 1,
-          xp: 120,
-          gamesPlayed: 0,
-          correctAnswers: 0,
-          currentStreak: 0,
-          bestStreak: 0,
-          accuracy: 0,
-          totalQuestions: 0
-        };
-        localStorage.setItem('footytrivia_user', JSON.stringify(newUserObj));
-        state.user = newUserObj;
-        closeModal();
-        updateAuthUI();
-        showToast(`Welcome back, ${tempUsername}!`, 'success');
       }
+
       function logout() {
         state.user = null;
+        localStorage.removeItem('footytrivia_user');
+        localStorage.removeItem('footytrivia_token');
         updateAuthUI();
         showToast('Logged out successfully.', 'info');
       }
@@ -1468,7 +1657,181 @@
         }).join('');
       }
       // ────────────────────────── a•a•a•a•a•a• INIT a•a•a•a•a•a•a•
+      function updateDynamicCategoryCounts() {
+        document.querySelectorAll('.cat-card').forEach(card => {
+          const onclickAttr = card.getAttribute('onclick') || '';
+          let categoryId = null;
+          
+          if (onclickAttr.includes('toggleCategoryQuestions')) {
+            const match = onclickAttr.match(/toggleCategoryQuestions\(\s*'([^']+)'/);
+            if (match) categoryId = match[1];
+          } else if (onclickAttr.includes('showClub')) {
+            const match = onclickAttr.match(/showClub\(\s*'([^']+)'/);
+            if (match) categoryId = match[1];
+          }
+          
+          if (categoryId && QUESTIONS[categoryId]) {
+            const pool = QUESTIONS[categoryId];
+            const countEl = card.querySelector('.cat-count');
+            if (countEl) {
+              if (onclickAttr.includes('showClub')) {
+                countEl.textContent = `${pool.length} questions`;
+              } else {
+                countEl.textContent = `${pool.length} questions - All difficulties`;
+              }
+            }
+          }
+        });
+
+        const plTotal = (QUESTIONS['premier-league']?.length || 0) +
+                        (QUESTIONS['man-utd']?.length || 0) +
+                        (QUESTIONS['man-city']?.length || 0) +
+                        (QUESTIONS['chelsea']?.length || 0) +
+                        (QUESTIONS['arsenal']?.length || 0) +
+                        (QUESTIONS['liverpool']?.length || 0);
+        
+        const llTotal = (QUESTIONS['la-liga']?.length || 0) +
+                        (QUESTIONS['real-madrid']?.length || 0) +
+                        (QUESTIONS['barcelona']?.length || 0) +
+                        (QUESTIONS['atletico']?.length || 0);
+
+        const intlTotal = (QUESTIONS['ucl']?.length || 0) +
+                          (QUESTIONS['world-cup']?.length || 0) +
+                          (QUESTIONS['bundesliga']?.length || 0) +
+                          (QUESTIONS['serie-a']?.length || 0) +
+                          (QUESTIONS['ligue-1']?.length || 0);
+
+        const leagueCounts = document.querySelectorAll('.league-count');
+        if (leagueCounts.length >= 3) {
+          leagueCounts[0].textContent = `${plTotal} Questions Available`;
+          leagueCounts[1].textContent = `${llTotal} Questions Available`;
+          leagueCounts[2].textContent = `${intlTotal} Questions Available`;
+        }
+      }
+
+      async function updateDatabaseStats() {
+        try {
+          const stats = await apiRequest('/api/stats/overview');
+          
+          // Update hero stats
+          const playersEl = document.getElementById('hero-stat-players');
+          const questionsEl = document.getElementById('hero-stat-questions');
+          const categoriesEl = document.getElementById('hero-stat-categories');
+          const modesEl = document.getElementById('hero-stat-modes');
+          
+          if (playersEl) playersEl.textContent = stats.active_players >= 1000 ? `${(stats.active_players / 1000).toFixed(0)}K+` : stats.active_players;
+          if (questionsEl) questionsEl.textContent = `${stats.total_questions}+`;
+          if (categoriesEl) categoriesEl.textContent = stats.total_categories;
+          if (modesEl) modesEl.textContent = stats.total_game_modes;
+          
+          // Update league rankings counts on the leaderboard page
+          const plRank = document.getElementById('league-rank-pl');
+          const llRank = document.getElementById('league-rank-ll');
+          const uclRank = document.getElementById('league-rank-ucl');
+          const wcRank = document.getElementById('league-rank-wc');
+          
+          if (plRank && stats.league_players['premier-league']) plRank.textContent = `${stats.league_players['premier-league'].toLocaleString()} players`;
+          if (llRank && stats.league_players['la-liga']) llRank.textContent = `${stats.league_players['la-liga'].toLocaleString()} players`;
+          if (uclRank && stats.league_players['ucl']) uclRank.textContent = `${stats.league_players['ucl'].toLocaleString()} players`;
+          if (wcRank && stats.league_players['world-cup']) wcRank.textContent = `${stats.league_players['world-cup'].toLocaleString()} players`;
+          
+          // Update Top Countries list on the leaderboard page
+          const countriesList = document.getElementById('top-countries-list');
+          if (countriesList && stats.top_countries) {
+            let html = '';
+            stats.top_countries.forEach((c, idx) => {
+              html += `
+                <div class="card" style="padding:1rem;display:flex;align-items:center;gap:1rem">
+                  <img src="https://flagcdn.com/${c.code.toLowerCase()}.svg" alt="${c.name}" style="width:24px; height:16px; border-radius:2px; object-fit:cover; box-shadow:0 1px 2px rgba(0,0,0,0.25);">
+                  <div style="flex:1">
+                    <div style="font-family:var(--font-ui);font-weight:700;font-size:.9rem">${c.name}</div>
+                    <div style="font-size:.75rem;color:var(--text3)">${c.active_count.toLocaleString()} active</div>
+                  </div>
+                  <div style="font-family:var(--font-display);font-size: 1rem;color:${idx === 0 ? 'var(--gold)' : 'var(--text3)'}">#${idx + 1}</div>
+                </div>
+              `;
+            });
+            countriesList.innerHTML = html;
+          }
+        } catch (err) {
+          console.error('Failed to load database stats:', err);
+        }
+      }
+
+      async function renderWCLeaderboard() {
+        const table = document.getElementById('wc-leaderboard-table');
+        if (!table) return;
+        
+        let tbody = table.querySelector('tbody');
+        if (!tbody) {
+          tbody = document.createElement('tbody');
+          table.appendChild(tbody);
+        }
+        
+        tbody.innerHTML = `
+          <tr><td colspan="5" style="text-align:center;padding:2rem">Loading rankings from database...</td></tr>
+        `;
+        
+        try {
+          const data = await apiRequest('/api/leaderboard/global?limit=10');
+          if (!data || data.length === 0) {
+            tbody.innerHTML = `
+              <tr><td colspan="5" style="text-align:center;padding:2rem">No rankings available yet.</td></tr>
+            `;
+            return;
+          }
+          
+          let html = '';
+          html += `<tr><th style="width:60px">Rank</th><th>Predictor</th><th>Accuracy</th><th>Points</th><th>Tier</th></tr>`;
+          
+          data.forEach((p, i) => {
+            const rankNum = i + 1;
+            const rankStyle = rankNum === 1 ? 'color:var(--gold);font-weight:800;font-size:1.2rem;' : (rankNum === 2 ? 'color:var(--text2);font-weight:800;font-size:1.2rem;' : (rankNum === 3 ? 'color:#b45309;font-weight:800;font-size:1.2rem;' : 'color:var(--text3);font-weight:800;font-size:1.1rem;'));
+            
+            let tierName = 'Bronze';
+            let tierClass = 'wc-tier-bronze';
+            if (p.total_points >= 10000) { tierName = 'Elite'; tierClass = 'wc-tier-elite'; }
+            else if (p.total_points >= 5000) { tierName = 'Elite'; tierClass = 'wc-tier-elite'; }
+            else if (p.total_points >= 2500) { tierName = 'Gold'; tierClass = 'wc-tier-gold'; }
+            else if (p.total_points >= 1000) { tierName = 'Silver'; tierClass = 'wc-tier-silver'; }
+            
+            const accuracy = p.accuracy || "0%";
+            
+            html += `
+              <tr>
+                <td><span style="${rankStyle}display:inline-block;width:30px;text-align:center">${rankNum}</span></td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:0.75rem">
+                    <div class="profile-avatar" style="width:32px;height:32px;font-size:0.8rem;background:var(--surface2);display:flex;justify-content:center;align-items:center;border-radius:50%;border:1px solid var(--border)">${p.username ? p.username[0].toUpperCase() : '?'}</div>
+                    <span style="font-weight:600">${p.username || 'Guest'}</span>
+                  </div>
+                </td>
+                <td>${accuracy}</td>
+                <td style="font-weight:700">${(p.total_points || 0).toLocaleString()}</td>
+                <td><span class="wc-tier-badge ${tierClass}">${tierName}</span></td>
+              </tr>
+            `;
+          });
+          tbody.innerHTML = html;
+        } catch (err) {
+          console.error('Failed to load World Cup prediction rankings:', err);
+          tbody.innerHTML = `
+            <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text3)">Error loading rankings from database.</td></tr>
+          `;
+        }
+      }
+
       document.addEventListener('DOMContentLoaded', () => {
+        // Clear la-liga from completed categories on load as requested
+        try {
+          const completed = JSON.parse(localStorage.getItem('footytrivia_completed_categories') || '[]');
+          const idx = completed.indexOf('la-liga');
+          if (idx > -1) {
+            completed.splice(idx, 1);
+            localStorage.setItem('footytrivia_completed_categories', JSON.stringify(completed));
+          }
+        } catch (e) {}
+
         // Load session
         const storedUser = localStorage.getItem('footytrivia_user');
         if (storedUser) {
@@ -1494,21 +1857,16 @@
             showPage(lastPage);
           }
         }
-        // Init home leaderboard preview with static data
-        const lbPreview = document.getElementById('lb-list');
-        if (lbPreview) {
-          let html = '';
-          LEADERBOARD_DATA.slice(0, 5).forEach((p, i) => {
-            const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-            html += `<div class="lb-row"><div class="lb-rank ${rankClass}">${i + 1}</div><div class="lb-info"><div class="lb-name">${p.name}</div></div><div class="lb-score">${(p.score || 0).toLocaleString()}</div></div>`;
-          });
-          lbPreview.innerHTML = html;
-        }
+        // Load database stats and real leaderboard preview
+        updateDatabaseStats();
+        updateHomeLeaderboardPreview();
+        
         // Init leaderboard with static data on load
         const lbContainer = document.getElementById('lb-main-list');
         if (lbContainer) renderStaticLeaderboard(lbContainer);
         renderCategories('home-cats');
         renderCategories('play-cats');
+        updateDynamicCategoryCounts();
         newTransferGame();
         setInterval(updateCountdown, 1000);
         updateCountdown();
@@ -2138,10 +2496,8 @@
       function applyFilters() {
         const nationSelect = document.getElementById('wc-modal-filter-nation');
         const clubSelect = document.getElementById('wc-modal-filter-club');
-        const sortSelect = document.getElementById('wc-modal-sort');
         if (nationSelect) currentModalFilterNation = nationSelect.value;
         if (clubSelect) currentModalFilterClub = clubSelect.value;
-        if (sortSelect) currentModalSortBy = sortSelect.value;
         renderSelectorGrid();
       }
       function setupModalFilters() {
@@ -2190,33 +2546,7 @@
               clubs.map(c => `<option value="${c}" ${currentModalFilterClub === c ? 'selected' : ''}>${c}</option>`).join('');
           }
         }
-        const sortSelect = document.getElementById('wc-modal-sort');
-        if (sortSelect) {
-          let options = [];
-          if (currentModalType === 'team') {
-            options = [
-              { val: 'RANKING', label: 'FIFA Ranking' },
-              { val: 'ALPHABETICAL', label: 'Alphabetical' },
-              { val: 'CONFEDERATION', label: 'Confederation' }
-            ];
-          } else {
-            options = [
-              { val: 'POPULARITY', label: 'Popularity' },
-              { val: 'MARKET_VALUE', label: 'Market Value' },
-              { val: 'FORM', label: 'Current Form' },
-              { val: 'ALPHABETICAL', label: 'Alphabetical' }
-            ];
-            if (currentModalAwardKey === 'golden-boot' || currentModalAwardKey === 'golden-ball' || currentModalAwardKey === 'best-young') {
-              options.unshift({ val: 'GOALS', label: 'Goals Scored' });
-            }
-            if (currentModalAwardKey === 'golden-glove') {
-              options.unshift({ val: 'CLEAN_SHEETS', label: 'Clean Sheets' });
-              options.unshift({ val: 'SAVES', label: 'Saves Made' });
-            }
-          }
-          
-          sortSelect.innerHTML = options.map(o => `<option value="${o.val}" ${currentModalSortBy === o.val ? 'selected' : ''}>${o.label}</option>`).join('');
-        }
+        // Sort dropdown removed – default sort applied automatically in renderSelectorGrid
       }
       function renderSelectorGrid() {
         const grid = document.getElementById('wc-modal-grid');
@@ -2245,24 +2575,11 @@
           if (currentModalFilterClub !== 'ALL') {
             list = list.filter(p => p.club === currentModalFilterClub);
           }
+          // Default sort: popularity first, form as tiebreaker
           list.sort((a, b) => {
-            if (currentModalSortBy === 'GOALS') {
-              return (b.goals || 0) - (a.goals || 0);
-            } else if (currentModalSortBy === 'MARKET_VALUE') {
-              return b.marketValue - a.marketValue;
-            } else if (currentModalSortBy === 'FORM') {
-              return b.form - a.form;
-            } else if (currentModalSortBy === 'CLEAN_SHEETS') {
-              return (b.cleanSheets || 0) - (a.cleanSheets || 0);
-            } else if (currentModalSortBy === 'SAVES') {
-              return (b.saves || 0) - (a.saves || 0);
-            } else if (currentModalSortBy === 'AGE') {
-              return a.age - b.age;
-            } else if (currentModalSortBy === 'ALPHABETICAL') {
-              return a.name.localeCompare(b.name);
-            } else {
-              return b.popularity - a.popularity;
-            }
+            const popDiff = (b.popularity || 0) - (a.popularity || 0);
+            if (popDiff !== 0) return popDiff;
+            return (b.form || 0) - (a.form || 0);
           });
           if (list.length === 0) {
             emptyState.style.display = 'block';
@@ -2358,15 +2675,8 @@
           if (currentModalFilterNation !== 'ALL') {
             list = list.filter(t => t.name === currentModalFilterNation);
           }
-          list.sort((a, b) => {
-            if (currentModalSortBy === 'RANKING') {
-              return a.ranking - b.ranking;
-            } else if (currentModalSortBy === 'CONFEDERATION') {
-              return a.confederation.localeCompare(b.confederation);
-            } else {
-              return a.name.localeCompare(b.name);
-            }
-          });
+          // Default sort: FIFA Ranking
+          list.sort((a, b) => a.ranking - b.ranking);
           if (list.length === 0) {
             emptyState.style.display = 'block';
             return;
@@ -4633,5 +4943,637 @@
           }
         } else if (tabId === 'analytics') {
           initAnalyticsTab();
+        } else if (tabId === 'leaderboard') {
+          renderWCLeaderboard();
         }
       }
+
+      // ──────────────────────────  BATTLE SYSTEM REALTIME MATCHMAKING ──────────────────────────
+      let ablyClient = null;
+      let battleChannel = null;
+      let battleRoom = null; // { room_code, role, host_id, guest_id }
+      let battleState = {
+        host: null,
+        guest: null,
+        score: 0,
+        questionNo: 1,
+        totalQuestions: 10,
+        roundActive: false,
+        answerDeadline: null,
+        timerInterval: null,
+        hasAnswered: false,
+        startTime: null,
+        hostAnswerScore: 0,
+        guestAnswerScore: 0
+      };
+
+      async function createRoom() {
+        try {
+          if (!state.user) {
+            showToast('Please log in first to create a battle room', 'warning');
+            openModal('login');
+            return;
+          }
+          
+          const res = await apiRequest('/api/battle/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              difficulty: state.selectedDiff || 'easy',
+              category: 'general',
+              total_questions: 10
+            })
+          });
+          
+          battleRoom = {
+            room_code: res.room_code,
+            room_id: res.room_id,
+            role: 'host',
+            host_id: state.user.id,
+            guest_id: null
+          };
+          
+          setupLobbyUI();
+          connectAbly(res.room_code);
+        } catch (err) {
+          console.error('Failed to create room:', err);
+          showToast(err.message || 'Failed to create battle room', 'error');
+        }
+      }
+
+      async function joinRoom(code) {
+        if (!code || code.length !== 6) {
+          showToast('Please enter a valid 6-character room code', 'warning');
+          return;
+        }
+        
+        try {
+          if (!state.user) {
+            showToast('Please log in first to join a battle room', 'warning');
+            openModal('login');
+            return;
+          }
+          
+          const res = await apiRequest(`/api/battle/join/${code}`, {
+            method: 'POST'
+          });
+          
+          battleRoom = {
+            room_code: res.room_code,
+            room_id: res.room_id,
+            role: res.role,
+            host_id: res.host_id,
+            guest_id: res.guest_id
+          };
+          
+          setupLobbyUI();
+          connectAbly(res.room_code);
+        } catch (err) {
+          console.error('Failed to join room:', err);
+          showToast(err.message || 'Failed to join battle room', 'error');
+        }
+      }
+
+      function setupLobbyUI() {
+        document.getElementById('battle-lobby-start').classList.add('hidden');
+        document.getElementById('battle-room-ui').classList.remove('hidden');
+        document.getElementById('battle-question-ui').classList.add('hidden');
+        document.getElementById('battle-reveal-ui').classList.add('hidden');
+        document.getElementById('battle-finished-ui').classList.add('hidden');
+        
+        document.getElementById('battle-code-display').textContent = battleRoom.room_code;
+        
+        const shareLink = `${window.location.origin}${window.location.pathname}?code=${battleRoom.room_code}`;
+        const shareLinkEl = document.getElementById('battle-share-link');
+        shareLinkEl.textContent = shareLink;
+        shareLinkEl.href = shareLink;
+        
+        const readyBtn = document.getElementById('btn-ready-toggle');
+        readyBtn.textContent = 'Ready';
+        readyBtn.className = 'btn btn-ghost';
+        
+        document.getElementById('btn-start-battle').classList.add('hidden');
+      }
+
+      async function getBattleState(code) {
+        try {
+          const res = await apiRequest(`/api/battle/room/${code}/state`, {
+            method: 'GET'
+          });
+          if (res.status === 'in_progress') {
+            showToast('⚽ Reconnecting to active battle...', 'info');
+            initBattleQuiz(res);
+          } else {
+            battleState.host = res.host;
+            battleState.guest = res.guest;
+            renderLobbyPlayers();
+            updateStartButtonVisibility();
+          }
+        } catch (err) {
+          console.error('Failed to get battle state:', err);
+        }
+      }
+
+      async function connectAbly(code) {
+        if (battleChannel) {
+          try {
+            battleChannel.unsubscribe();
+            battleChannel.presence.leave();
+          } catch (e) {}
+          battleChannel = null;
+        }
+        
+        if (!ablyClient) {
+          const token = localStorage.getItem('footytrivia_token');
+          const ablyOptions = window.ENV.ABLY_API_KEY
+            ? { key: window.ENV.ABLY_API_KEY, clientId: String(state.user.id) }
+            : {
+                authUrl: `${API_BASE_URL}/api/battle/token`,
+                authHeaders: {
+                  'Authorization': `Bearer ${token}`
+                }
+              };
+          ablyClient = new Ably.Realtime(ablyOptions);
+        }
+        
+        battleChannel = ablyClient.channels.get(`room:${code}`);
+        
+        battleChannel.subscribe((msg) => {
+          handleBattleEvent(msg.data);
+        });
+        
+        battleChannel.presence.subscribe('leave', (member) => {
+          handleBattleEvent({
+            event: 'OPPONENT_LEFT',
+            user_id: member.clientId,
+            username: member.data ? member.data.username : 'Opponent'
+          });
+        });
+        
+        battleChannel.presence.enter({ username: state.user.username });
+        
+        await getBattleState(code);
+      }
+
+      function handleBattleEvent(data) {
+        console.log('Battle Event:', data);
+        switch (data.event) {
+          case 'LOBBY_STATE':
+            battleState.host = data.host;
+            battleState.guest = data.guest;
+            renderLobbyPlayers();
+            updateStartButtonVisibility();
+            break;
+            
+          case 'PLAYER_JOINED':
+            showToast(`👤 ${data.username} joined the room!`, 'info');
+            break;
+            
+          case 'PLAYER_READY':
+            if (battleState.host && battleState.host.user_id === data.user_id) {
+              battleState.host.ready = data.ready;
+            } else if (battleState.guest && battleState.guest.user_id === data.user_id) {
+              battleState.guest.ready = data.ready;
+            }
+            renderLobbyPlayers();
+            updateStartButtonVisibility();
+            
+            if (data.user_id === state.user.id) {
+              const readyBtn = document.getElementById('btn-ready-toggle');
+              if (data.ready) {
+                readyBtn.textContent = 'Ready!';
+                readyBtn.className = 'btn btn-success';
+              } else {
+                readyBtn.textContent = 'Ready';
+                readyBtn.className = 'btn btn-ghost';
+              }
+            }
+            break;
+            
+          case 'GAME_START':
+            showToast('⚽ The Battle Begins!', 'success');
+            initBattleQuiz(data);
+            break;
+            
+          case 'OPPONENT_ANSWERED':
+            showToast('⚡ Opponent has answered!', 'info');
+            renderLiveStandings(true);
+            break;
+            
+          case 'ROUND_RESULT':
+            showRoundReveal(data);
+            break;
+            
+          case 'NEXT_QUESTION':
+            showNextQuestion(data);
+            break;
+            
+          case 'GAME_OVER':
+            showBattleGameOver(data);
+            break;
+            
+          case 'OPPONENT_LEFT':
+            showToast(`⚠️ ${data.username} disconnected!`, 'warning');
+            break;
+        }
+      }
+
+      function renderLobbyPlayers() {
+        const container = document.getElementById('battle-players-list');
+        if (!container) return;
+        
+        let html = '';
+        
+        if (battleState.host) {
+          const isReady = battleState.host.ready;
+          html += `
+            <div class="lobby-player-card">
+              <div class="player-ready-dot ${isReady ? 'ready' : ''}"></div>
+              <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">👑</div>
+              <div style="font-family: var(--font-ui); font-weight: 700; font-size: 0.85rem;">${battleState.host.username}</div>
+              <div style="font-size: 0.7rem; color: var(--text3); margin-top: 0.25rem;">Host (${isReady ? 'Ready' : 'Not Ready'})</div>
+            </div>
+          `;
+        }
+        
+        if (battleState.guest && battleState.guest.user_id) {
+          const isReady = battleState.guest.ready;
+          html += `
+            <div class="lobby-player-card">
+              <div class="player-ready-dot ${isReady ? 'ready' : ''}"></div>
+              <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">👤</div>
+              <div style="font-family: var(--font-ui); font-weight: 700; font-size: 0.85rem;">${battleState.guest.username}</div>
+              <div style="font-size: 0.7rem; color: var(--text3); margin-top: 0.25rem;">Guest (${isReady ? 'Ready' : 'Not Ready'})</div>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="lobby-player-card" style="opacity: 0.5; border-style: dashed;">
+              <div style="font-size: 1.8rem; margin-bottom: 0.5rem; color: var(--text3);">⏳</div>
+              <div style="font-family: var(--font-ui); font-weight: 600; font-size: 0.85rem; color: var(--text3);">Waiting...</div>
+              <div style="font-size: 0.7rem; color: var(--text3); margin-top: 0.25rem;">For opponent</div>
+            </div>
+          `;
+        }
+        
+        container.innerHTML = html;
+      }
+
+      function updateStartButtonVisibility() {
+        const startBtn = document.getElementById('btn-start-battle');
+        if (!startBtn) return;
+        
+        if (battleRoom.role === 'host') {
+          if (battleState.guest && battleState.guest.user_id) {
+            startBtn.classList.remove('hidden');
+            
+            const hostReady = battleState.host && battleState.host.ready;
+            const guestReady = battleState.guest && battleState.guest.ready;
+            if (hostReady && guestReady) {
+              startBtn.removeAttribute('disabled');
+              startBtn.style.opacity = '1';
+            } else {
+              startBtn.setAttribute('disabled', 'true');
+              startBtn.style.opacity = '0.5';
+            }
+          } else {
+            startBtn.classList.add('hidden');
+          }
+        } else {
+          startBtn.classList.add('hidden');
+        }
+      }
+
+      async function toggleReady() {
+        try {
+          await apiRequest(`/api/battle/room/${battleRoom.room_code}/ready`, {
+            method: 'POST'
+          });
+        } catch (err) {
+          showToast(err.message || 'Failed to toggle ready status', 'error');
+        }
+      }
+
+      async function startBattle() {
+        try {
+          await apiRequest(`/api/battle/room/${battleRoom.room_code}/start`, {
+            method: 'POST'
+          });
+        } catch (err) {
+          showToast(err.message || 'Failed to start battle', 'error');
+        }
+      }
+
+      function initBattleQuiz(data) {
+        document.getElementById('battle-room-ui').classList.add('hidden');
+        document.getElementById('battle-question-ui').classList.remove('hidden');
+        document.getElementById('battle-reveal-ui').classList.add('hidden');
+        document.getElementById('battle-finished-ui').classList.add('hidden');
+        
+        battleState.score = 0;
+        battleState.questionNo = data.question_no || 1;
+        battleState.totalQuestions = data.total_questions || 10;
+        battleState.hostAnswerScore = 0;
+        battleState.guestAnswerScore = 0;
+        
+        showNextQuestion(data);
+      }
+
+      function startBattleTimer(serverTime, answerDeadline) {
+        if (battleState.timerInterval) {
+          clearInterval(battleState.timerInterval);
+        }
+        
+        const localStartTime = Date.now();
+        const deadlineDelta = answerDeadline - serverTime;
+        const actualLocalDeadline = localStartTime + deadlineDelta;
+        
+        const timerCircle = document.getElementById('battle-timer-circle');
+        const timerText = document.getElementById('battle-timer-text');
+        
+        battleState.timerInterval = setInterval(() => {
+          const timeLeftMs = actualLocalDeadline - Date.now();
+          const secondsLeft = Math.max(0, Math.ceil(timeLeftMs / 1000));
+          
+          if (timerText) {
+            timerText.textContent = secondsLeft;
+          }
+          
+          if (timerCircle) {
+            const percentage = Math.max(0, timeLeftMs / deadlineDelta);
+            const offset = 176 - (176 * percentage);
+            timerCircle.style.strokeDashoffset = offset;
+            
+            if (secondsLeft <= 5) {
+              timerCircle.className = 'timer-ring-circle danger';
+            } else if (secondsLeft <= 10) {
+              timerCircle.className = 'timer-ring-circle warning';
+            } else {
+              timerCircle.className = 'timer-ring-circle';
+            }
+          }
+          
+          if (timeLeftMs <= 0) {
+            clearInterval(battleState.timerInterval);
+            if (!battleState.hasAnswered) {
+              submitBattleAnswer(null, -1);
+            }
+          }
+        }, 100);
+      }
+
+      async function submitBattleAnswer(option, btnIdx) {
+        if (battleState.hasAnswered) return;
+        battleState.hasAnswered = true;
+        
+        const buttons = document.querySelectorAll('#battle-options .option');
+        buttons.forEach((btn, idx) => {
+          btn.classList.add('disabled');
+          if (idx === btnIdx) {
+            btn.classList.add('selected');
+          }
+        });
+        
+        const timeTakenMs = Date.now() - battleState.startTime;
+        
+        try {
+          await apiRequest(`/api/battle/room/${battleRoom.room_code}/answer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              option: option,
+              time_taken_ms: timeTakenMs
+            })
+          });
+        } catch (err) {
+          showToast(err.message || 'Failed to submit answer', 'error');
+        }
+      }
+
+      function renderLiveStandings(opponentAnswered = false) {
+        const container = document.getElementById('battle-live-scores');
+        if (!container) return;
+        
+        let hostLock = false;
+        let guestLock = false;
+        
+        if (battleRoom.role === 'host') {
+          hostLock = battleState.hasAnswered;
+          guestLock = opponentAnswered;
+        } else {
+          hostLock = opponentAnswered;
+          guestLock = battleState.hasAnswered;
+        }
+        
+        let html = '';
+        if (battleState.host) {
+          html += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--surface2); border-radius: 4px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span>👑</span>
+                <span style="font-family: var(--font-ui); font-weight: 700;">${battleState.host.username}</span>
+                ${hostLock ? '<span style="font-size: 0.75rem; background: var(--green)20; color: var(--green); padding: 2px 6px; border-radius: 3px; font-weight: 600;">LOCKED IN</span>' : '<span style="font-size: 0.75rem; background: var(--orange)20; color: var(--orange); padding: 2px 6px; border-radius: 3px; font-weight: 600;">THINKING...</span>'}
+              </div>
+              <div style="font-family: var(--font-display); font-weight: 700; color: var(--accent);">${battleRoom.role === 'host' ? battleState.score : (battleState.hostAnswerScore || 0)} PTS</div>
+            </div>
+          `;
+        }
+        
+        if (battleState.guest && battleState.guest.user_id) {
+          html += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--surface2); border-radius: 4px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span>👤</span>
+                <span style="font-family: var(--font-ui); font-weight: 700;">${battleState.guest.username}</span>
+                ${guestLock ? '<span style="font-size: 0.75rem; background: var(--green)20; color: var(--green); padding: 2px 6px; border-radius: 3px; font-weight: 600;">LOCKED IN</span>' : '<span style="font-size: 0.75rem; background: var(--orange)20; color: var(--orange); padding: 2px 6px; border-radius: 3px; font-weight: 600;">THINKING...</span>'}
+              </div>
+              <div style="font-family: var(--font-display); font-weight: 700; color: var(--accent);">${battleRoom.role === 'guest' ? battleState.score : (battleState.guestAnswerScore || 0)} PTS</div>
+            </div>
+          `;
+        }
+        
+        container.innerHTML = html;
+      }
+
+      function showRoundReveal(data) {
+        if (battleState.timerInterval) {
+          clearInterval(battleState.timerInterval);
+        }
+        
+        battleState.hostAnswerScore = data.host_score;
+        battleState.guestAnswerScore = data.guest_score;
+        if (battleRoom.role === 'host') {
+          battleState.score = data.host_score;
+        } else {
+          battleState.score = data.guest_score;
+        }
+        
+        document.getElementById('battle-question-ui').classList.add('hidden');
+        document.getElementById('battle-reveal-ui').classList.remove('hidden');
+        
+        const revealContainer = document.getElementById('battle-reveal-players');
+        revealContainer.innerHTML = '';
+        
+        const hostAns = data.host_answer;
+        const guestAns = data.guest_answer;
+        
+        let hostHtml = `
+          <div style="background: var(--surface2); border: 1px solid ${hostAns.is_correct ? 'var(--green)' : 'var(--border)'}; border-radius: var(--r); padding: 1rem; text-align: left; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <div>
+              <div style="font-family: var(--font-ui); font-weight: 700; font-size: 0.95rem;">👑 ${battleState.host.username}</div>
+              <div style="font-size: 0.8rem; color: var(--text2); margin-top: 0.25rem;">
+                Option: <strong style="color: ${hostAns.is_correct ? 'var(--green)' : 'var(--red)'};">${hostAns.option || 'TIMEOUT'}</strong>
+                (${hostAns.is_correct ? 'Correct' : 'Incorrect'})
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text3); margin-top: 0.15rem;">Time: ${(hostAns.time_taken_ms / 1000).toFixed(2)}s</div>
+            </div>
+            <div style="font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; color: var(--accent);">${data.host_score} PTS</div>
+          </div>
+        `;
+        
+        let guestHtml = '';
+        if (battleState.guest && battleState.guest.user_id) {
+          guestHtml = `
+            <div style="background: var(--surface2); border: 1px solid ${guestAns.is_correct ? 'var(--green)' : 'var(--border)'}; border-radius: var(--r); padding: 1rem; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-family: var(--font-ui); font-weight: 700; font-size: 0.95rem;">👤 ${battleState.guest.username}</div>
+                <div style="font-size: 0.8rem; color: var(--text2); margin-top: 0.25rem;">
+                  Option: <strong style="color: ${guestAns.is_correct ? 'var(--green)' : 'var(--red)'};">${guestAns.option || 'TIMEOUT'}</strong>
+                  (${guestAns.is_correct ? 'Correct' : 'Incorrect'})
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text3); margin-top: 0.15rem;">Time: ${(guestAns.time_taken_ms / 1000).toFixed(2)}s</div>
+              </div>
+              <div style="font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; color: var(--accent);">${data.guest_score} PTS</div>
+            </div>
+          `;
+        }
+        
+        revealContainer.innerHTML = hostHtml + guestHtml;
+        
+        let timeLeft = data.next_question_delay_sec || 5;
+        const countdownEl = document.getElementById('battle-reveal-countdown');
+        countdownEl.textContent = `Next question in ${timeLeft}s...`;
+        
+        const countdownInterval = setInterval(() => {
+          timeLeft--;
+          if (timeLeft <= 0) {
+            clearInterval(countdownInterval);
+          } else {
+            countdownEl.textContent = `Next question in ${timeLeft}s...`;
+          }
+        }, 1000);
+      }
+
+      function showNextQuestion(data) {
+        if (battleState.timerInterval) {
+          clearInterval(battleState.timerInterval);
+        }
+        
+        battleState.hasAnswered = false;
+        battleState.startTime = Date.now();
+        battleState.questionNo = data.question_no;
+        
+        document.getElementById('battle-reveal-ui').classList.add('hidden');
+        document.getElementById('battle-question-ui').classList.remove('hidden');
+        
+        document.getElementById('battle-q-count').textContent = `QUESTION ${data.question_no}/${battleState.totalQuestions}`;
+        document.getElementById('battle-q-score').textContent = `${battleState.score} PTS`;
+        document.getElementById('battle-q-text').textContent = data.question.question_text;
+        
+        const grid = document.getElementById('battle-options');
+        const options = [
+          { key: 'A', text: data.question.option_a },
+          { key: 'B', text: data.question.option_b },
+          { key: 'C', text: data.question.option_c },
+          { key: 'D', text: data.question.option_d }
+        ];
+        
+        grid.innerHTML = options.map((opt, i) => `
+          <button class="option" onclick="submitBattleAnswer('${opt.key}', ${i})">
+            <span class="option-letter">${opt.key}</span>
+            ${opt.text}
+          </button>
+        `).join('');
+        
+        startBattleTimer(data.server_time, data.answer_deadline);
+        renderLiveStandings(false);
+      }
+
+      function showBattleGameOver(data) {
+        if (battleState.timerInterval) {
+          clearInterval(battleState.timerInterval);
+        }
+        
+        document.getElementById('battle-question-ui').classList.add('hidden');
+        document.getElementById('battle-reveal-ui').classList.add('hidden');
+        document.getElementById('battle-finished-ui').classList.remove('hidden');
+        
+        const finalContainer = document.getElementById('battle-final-scores');
+        
+        const isWinner = data.winner_id === state.user.id;
+        const isTie = data.winner_id === null;
+        
+        let headerHtml = '';
+        if (isTie) {
+          headerHtml = `<h3 style="font-family: var(--font-display); font-size: 1.5rem; color: var(--orange); margin-bottom: 1.5rem;">🤝 It's a Tie!</h3>`;
+        } else if (isWinner) {
+          headerHtml = `<h3 style="font-family: var(--font-display); font-size: 1.5rem; color: var(--green); margin-bottom: 1.5rem;">🎉 You Won!</h3>`;
+        } else {
+          headerHtml = `<h3 style="font-family: var(--font-display); font-size: 1.5rem; color: var(--red); margin-bottom: 1.5rem;">💀 You Lost!</h3>`;
+        }
+        
+        const scoresHtml = `
+          ${headerHtml}
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-family: var(--font-ui); font-weight: 700; font-size: 1.1rem;">👑 ${data.host_username}</span>
+              <span style="font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; color: var(--accent);">${data.host_score} PTS</span>
+            </div>
+            <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-family: var(--font-ui); font-weight: 700; font-size: 1.1rem;">👤 ${data.guest_username}</span>
+              <span style="font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; color: var(--accent);">${data.guest_score} PTS</span>
+            </div>
+          </div>
+          <div style="margin-top: 1.5rem; color: var(--text3); font-size: 0.85rem;">
+            ${isTie ? 'Tiebreaker checked total answer times. Good game!' : (isWinner ? 'Victory points (+50 XP bonus) awarded to your profile!' : 'XP (+10 participation XP) awarded to your profile.')}
+          </div>
+        `;
+        
+        finalContainer.innerHTML = scoresHtml;
+        
+        if (battleChannel) {
+          try {
+            battleChannel.unsubscribe();
+            battleChannel.presence.leave();
+          } catch (e) {}
+          battleChannel = null;
+        }
+      }
+
+      function exitBattle() {
+        if (battleChannel) {
+          try {
+            battleChannel.unsubscribe();
+            battleChannel.presence.leave();
+          } catch (e) {}
+          battleChannel = null;
+        }
+        const url = new URL(window.location);
+        url.searchParams.delete('code');
+        window.history.replaceState({}, document.title, url.toString());
+        
+        document.getElementById('battle-lobby-start').classList.remove('hidden');
+        document.getElementById('battle-room-ui').classList.add('hidden');
+        document.getElementById('battle-question-ui').classList.add('hidden');
+        document.getElementById('battle-reveal-ui').classList.add('hidden');
+        document.getElementById('battle-finished-ui').classList.add('hidden');
+        
+        showPage('play');
+      }
+
+      window.createRoom = createRoom;
+      window.joinRoom = joinRoom;
+      window.toggleReady = toggleReady;
+      window.startBattle = startBattle;
+      window.exitBattle = exitBattle;
+      window.submitBattleAnswer = submitBattleAnswer;
