@@ -1,5 +1,8 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+
+_BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
     DATABASE_URL: str = Field(default="postgresql+asyncpg://postgres:postgres@localhost:5432/footytrivia")
@@ -25,8 +28,21 @@ class Settings(BaseSettings):
     # Ably Settings
     ABLY_API_KEY: str = Field(default="")
 
+    # Email / auth links
+    FRONTEND_URL: str = Field(default="http://localhost:9999")
+    RESEND_API_KEY: str = Field(default="")
+    SMTP_HOST: str = Field(default="")
+    SMTP_PORT: int = Field(default=587)
+    SMTP_USER: str = Field(default="")
+    SMTP_PASSWORD: str = Field(default="")
+    SMTP_FROM: str = Field(default="")
+    SMTP_USE_TLS: bool = Field(default=True)
+    SMTP_USE_SSL: bool = Field(default=False)
+    EMAIL_VERIFY_EXPIRE_HOURS: int = Field(default=24)
+    PASSWORD_RESET_EXPIRE_HOURS: int = Field(default=1)
+
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_BACKEND_DIR / ".env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )

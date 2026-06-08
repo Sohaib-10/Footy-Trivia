@@ -1343,6 +1343,12 @@
         showToast(`Favorite World Cup team set to ${name}!`, 'success');
       }
       // ──────────────────────────  AUTHENTICATION & MODALS ──────────────────────────
+      function authErrorMessage(detail, fallback) {
+        if (!detail) return fallback;
+        if (typeof detail === 'string') return detail;
+        if (Array.isArray(detail)) return detail.map(d => d.msg || String(d)).join('. ');
+        return fallback;
+      }
       function openModal(type) {
         const overlay = document.getElementById('modal-overlay');
         const content = document.getElementById('modal-content');
@@ -1360,10 +1366,62 @@
               <label class="form-label">PASSWORD</label>
               <input type="password" id="auth-password" class="form-input" required placeholder="••••••••">
             </div>
+            <div style="text-align:right;margin-top:0.35rem">
+              <a onclick="openModal('forgot')" style="font-size:0.8rem;cursor:pointer">Forgot password?</a>
+            </div>
             <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center">Log In</button>
           </form>
+          <div class="modal-footer" style="display:flex;flex-direction:column;gap:0.35rem">
+            <span>Don't have an account? <a onclick="openModal('signup')">Sign Up</a></span>
+            <a onclick="openModal('resend-verify')" style="font-size:0.8rem">Resend verification email</a>
+          </div>
+        `;
+        } else if (type === 'forgot') {
+          content.innerHTML = `
+          <h2 class="modal-title">Forgot Password</h2>
+          <div class="modal-sub">Enter your email and we'll send you a reset link.</div>
+          <form onsubmit="mockForgotPassword(event)">
+            <div class="form-group">
+              <label class="form-label">EMAIL ADDRESS</label>
+              <input type="email" id="auth-email" class="form-input" required placeholder="you@example.com">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center">Send Reset Link</button>
+          </form>
           <div class="modal-footer">
-            Don't have an account? <a onclick="openModal('signup')">Sign Up</a>
+            <a onclick="openModal('login')">Back to Log In</a>
+          </div>
+        `;
+        } else if (type === 'reset') {
+          content.innerHTML = `
+          <h2 class="modal-title">Reset Password</h2>
+          <div class="modal-sub">Choose a new password for your account.</div>
+          <form onsubmit="mockResetPassword(event)">
+            <input type="hidden" id="auth-reset-token" value="">
+            <div class="form-group">
+              <label class="form-label">NEW PASSWORD</label>
+              <input type="password" id="auth-new-password" class="form-input" required minlength="8" placeholder="At least 8 characters">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center">Update Password</button>
+          </form>
+          <div class="modal-footer">
+            <a onclick="openModal('login')">Back to Log In</a>
+          </div>
+        `;
+          const tokenInput = document.getElementById('auth-reset-token');
+          if (tokenInput && state.pendingResetToken) tokenInput.value = state.pendingResetToken;
+        } else if (type === 'resend-verify') {
+          content.innerHTML = `
+          <h2 class="modal-title">Verify Email</h2>
+          <div class="modal-sub">Resend the verification link to your inbox.</div>
+          <form onsubmit="mockResendVerification(event)">
+            <div class="form-group">
+              <label class="form-label">EMAIL ADDRESS</label>
+              <input type="email" id="auth-email" class="form-input" required placeholder="you@example.com">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center">Resend Email</button>
+          </form>
+          <div class="modal-footer">
+            <a onclick="openModal('login')">Back to Log In</a>
           </div>
         `;
         } else {
@@ -1381,7 +1439,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">PASSWORD</label>
-              <input type="password" id="auth-password" class="form-input" required placeholder="••••••••">
+              <input type="password" id="auth-password" class="form-input" required minlength="8" placeholder="At least 8 characters">
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center">Sign Up</button>
           </form>
@@ -1423,7 +1481,7 @@
 
           if (!registerRes.ok) {
             const err = await registerRes.json().catch(() => ({ detail: 'Registration failed' }));
-            throw new Error(err.detail || 'Registration failed');
+            throw new Error(authErrorMessage(err.detail, 'Registration failed'));
           }
 
           localStorage.removeItem('footytrivia_user');
@@ -1431,7 +1489,7 @@
           state.user = null;
           closeModal();
           updateAuthUI();
-          showToast('Account created. Please verify your email before logging in.', 'success');
+          showToast('Account created! Check your email to verify your account before logging in.', 'success');
         } catch (err) {
           console.error(err);
           showToast(err.message || 'Registration failed', 'error');
@@ -1457,7 +1515,7 @@
           
           if (!tokenRes.ok) {
             const err = await tokenRes.json().catch(() => ({ detail: 'Invalid email or password' }));
-            throw new Error(err.detail || 'Invalid email or password');
+            throw new Error(authErrorMessage(err.detail, 'Invalid email or password'));
           }
           
           const tokenData = await tokenRes.json();
@@ -1489,6 +1547,108 @@
         } catch (err) {
           console.error(err);
           showToast(err.message || 'Login failed', 'error');
+        }
+      }
+
+      async function mockForgotPassword(e) {
+        e.preventDefault();
+        const email = document.getElementById('auth-email').value.trim();
+        if (!email) return;
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            if (res.status === 404) {
+              throw new Error('Password reset is unavailable. Restart the backend server, then try again.');
+            }
+            throw new Error(authErrorMessage(data.detail, 'Could not send reset email'));
+          }
+          closeModal();
+          showToast(data.detail || 'If that email is registered, a reset link has been sent.', 'success');
+        } catch (err) {
+          if (err.message === 'Failed to fetch') {
+            showToast('Cannot reach the API server. Make sure the backend is running on ' + API_BASE_URL, 'error');
+          } else {
+            showToast(err.message || 'Could not send reset email', 'error');
+          }
+        }
+      }
+
+      async function mockResetPassword(e) {
+        e.preventDefault();
+        const token = document.getElementById('auth-reset-token').value;
+        const new_password = document.getElementById('auth-new-password').value;
+        if (!token || !new_password) return;
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, new_password })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(authErrorMessage(data.detail, 'Password reset failed'));
+          state.pendingResetToken = null;
+          closeModal();
+          showToast(data.detail || 'Password updated. You can log in now.', 'success');
+          openModal('login');
+        } catch (err) {
+          showToast(err.message || 'Password reset failed', 'error');
+        }
+      }
+
+      async function mockResendVerification(e) {
+        e.preventDefault();
+        const email = document.getElementById('auth-email').value.trim();
+        if (!email) return;
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/auth/resend-verification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(authErrorMessage(data.detail, 'Could not resend verification email'));
+          closeModal();
+          showToast(data.detail || 'Verification email sent if the account exists.', 'success');
+        } catch (err) {
+          showToast(err.message || 'Could not resend verification email', 'error');
+        }
+      }
+
+      async function handleAuthUrlParams(urlParams) {
+        const verifyToken = urlParams.get('verify_token');
+        const resetToken = urlParams.get('reset_token');
+        const cleanUrl = () => {
+          const url = new URL(window.location);
+          url.searchParams.delete('verify_token');
+          url.searchParams.delete('reset_token');
+          window.history.replaceState({}, document.title, url.toString());
+        };
+        if (verifyToken) {
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/auth/verify-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: verifyToken })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(authErrorMessage(data.detail, 'Verification failed'));
+            showToast(data.detail || 'Email verified! You can log in now.', 'success');
+            openModal('login');
+          } catch (err) {
+            showToast(err.message || 'Verification failed', 'error');
+          } finally {
+            cleanUrl();
+          }
+        }
+        if (resetToken) {
+          state.pendingResetToken = resetToken;
+          openModal('reset');
+          cleanUrl();
         }
       }
 
@@ -1845,6 +2005,7 @@
         updateAuthUI();
         // Auto-join battle lobby if code is in URL
         const urlParams = new URLSearchParams(window.location.search);
+        handleAuthUrlParams(urlParams);
         const battleCode = urlParams.get('code');
         if (battleCode) {
           showPage('battle');
@@ -5571,6 +5732,10 @@
         showPage('play');
       }
 
+      window.openModal = openModal;
+      window.mockForgotPassword = mockForgotPassword;
+      window.mockResetPassword = mockResetPassword;
+      window.mockResendVerification = mockResendVerification;
       window.createRoom = createRoom;
       window.joinRoom = joinRoom;
       window.toggleReady = toggleReady;

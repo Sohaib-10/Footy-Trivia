@@ -104,6 +104,19 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class EmailTokenRequest(BaseModel):
+    token: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8)
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
 class PublicProfileRead(BaseModel):
     username: str
     profile: Optional[ProfileRead]

@@ -3,7 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 const server = http.createServer((req, res) => {
-  let reqUrl = req.url === '/' ? '/index.html' : req.url;
+  const reqPath = new URL(req.url, 'http://localhost').pathname;
+  const reqUrl = reqPath === '/' ? '/index.html' : reqPath;
   const filePath = path.join(__dirname, decodeURIComponent(reqUrl));
   
   fs.readFile(filePath, (err, data) => {

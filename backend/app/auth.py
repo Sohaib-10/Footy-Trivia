@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 from fastapi import Depends, HTTPException, status
@@ -98,3 +98,21 @@ async def get_current_admin(current_user: User = Depends(get_current_user)) -> U
             detail="The user does not have enough privileges"
         )
     return current_user
+
+
+def create_action_token(user_id: str, action_type: str, expires_hours: int) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(hours=expires_hours)
+    payload = {"sub": str(user_id), "type": action_type, "exp": expire}
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def decode_action_token(token: str, expected_type: str) -> dict:
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
+    if payload.get("type") != expected_type:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
+    if not payload.get("sub"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
+    return payload
