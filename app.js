@@ -42,6 +42,12 @@
       };
       // ──────────────────────────  a• a• a• a• a• a•  NAVIGATION a• a• a• a• a• a• a• 
       function showPage(page) {
+        if (page === 'profile' && !state.user) {
+          showToast('Sign up to create your profile and track your stats!', 'info');
+          openModal('signup');
+          closeMenu();
+          return;
+        }
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         const el = document.getElementById('page-' + page);
         if (el) { 
@@ -750,55 +756,131 @@
         }
         return '';
       }
-      function renderStaticLeaderboard(container) {
-        switchLbTab(null, 'alltime');
+      // DB stores 3-letter country codes (ENG, ESP, BRA...), but flagcdn needs
+      // 2-letter ISO codes. Map the common football nations; UK home nations use
+      // flagcdn subdivision codes (gb-eng, gb-sct, gb-wls).
+      const FLAGCDN_CODE_MAP = {
+        eng: 'gb-eng', sco: 'gb-sct', wal: 'gb-wls', nir: 'gb-nir',
+        gbr: 'gb', uk: 'gb',
+        esp: 'es', bra: 'br', deu: 'de', ger: 'de', ita: 'it', fra: 'fr',
+        arg: 'ar', prt: 'pt', por: 'pt', nld: 'nl', ned: 'nl', bel: 'be',
+        usa: 'us', mex: 'mx', can: 'ca', ury: 'uy', uru: 'uy', col: 'co',
+        chl: 'cl', chi: 'cl', per: 'pe', ecu: 'ec', par: 'py', pry: 'py',
+        ven: 've', bol: 'bo', crc: 'cr', cri: 'cr',
+        jpn: 'jp', kor: 'kr', aus: 'au', sau: 'sa', irn: 'ir', irq: 'iq',
+        qat: 'qa', uae: 'ae', mar: 'ma', sen: 'sn', nga: 'ng', gha: 'gh',
+        egy: 'eg', cmr: 'cm', civ: 'ci', tun: 'tn', alg: 'dz', dza: 'dz',
+        rsa: 'za', zaf: 'za', cro: 'hr', hrv: 'hr', srb: 'rs', sui: 'ch',
+        che: 'ch', swe: 'se', nor: 'no', den: 'dk', dnk: 'dk', pol: 'pl',
+        ukr: 'ua', tur: 'tr', gre: 'gr', grc: 'gr', aut: 'at', cze: 'cz',
+        rou: 'ro', rus: 'ru', hun: 'hu', irl: 'ie'
+      };
+
+      function toFlagcdnCode(code) {
+        if (!code) return null;
+        const c = String(code).toLowerCase();
+        if (FLAGCDN_CODE_MAP[c]) return FLAGCDN_CODE_MAP[c];
+        if (c.length === 2) return c; // already a valid ISO-2 code
+        return null;
       }
-      async function switchLbTab(el, tab) {
-        document.querySelectorAll('#lb-main-tabs .lb-tab').forEach(t => t.classList.remove('active'));
-        if (el) el.classList.add('active');
-        const container = document.getElementById('lb-main-list');
-        if (!container) return;
-        
-        container.innerHTML = "<div style='padding:2rem;text-align:center'>Loading standings from database...</div>";
-        
-        try {
-          let endpoint = '/api/leaderboard/global';
-          if (tab === 'weekly') endpoint = '/api/leaderboard/weekly';
-          else if (tab === 'monthly') endpoint = '/api/leaderboard/monthly';
-          else if (tab === 'daily') endpoint = '/api/leaderboard/weekly'; // fallback daily to weekly
-          
-          const data = await apiRequest(endpoint);
-          
-          if (!data || data.length === 0) {
-            container.innerHTML = "<div style='padding:2rem;text-align:center'>No scores yet.</div>";
-            return;
-          }
-          
-          let html = '';
-          data.forEach((p, i) => {
-            const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-            const rankLabel = i + 1;
-            let tierName = 'Bronze'; let tierColor = '#cd7f32';
-            if (p.total_points >= 10000) { tierName = 'Diamond'; tierColor = '#b9f2ff'; }
-            else if (p.total_points >= 5000) { tierName = 'Platinum'; tierColor = '#e5e4e2'; }
-            else if (p.total_points >= 2500) { tierName = 'Gold'; tierColor = 'var(--gold)'; }
-            else if (p.total_points >= 1000) { tierName = 'Silver'; tierColor = '#c0c0c0'; }
-            
-            const scoreToDisplay = tab === 'weekly' ? p.weekly_points : (tab === 'monthly' ? p.monthly_points : p.total_points);
-            
-            html += `
-            <div class="lb-row">
+
+      // Returns flag <img> HTML with a graceful emoji fallback if it fails to load.
+      function countryFlagImg(code, name, sizeStyle) {
+        const fc = toFlagcdnCode(code);
+        const style = sizeStyle || 'width:24px; height:16px; border-radius:2px; object-fit:cover; box-shadow:0 1px 2px rgba(0,0,0,0.25);';
+        if (!fc) {
+          return `<span style="${style}display:inline-flex;align-items:center;justify-content:center;background:var(--surface2)">🏳️</span>`;
+        }
+        const safeName = (name || '').replace(/"/g, '&quot;');
+        return `<img src="https://flagcdn.com/${fc}.svg" alt="${safeName}" style="${style}" onerror="lbLogoFallback(this,'🏳️')">`;
+      }
+
+      // Replaces a broken/failed league logo with a stable emoji badge so it
+      // doesn't simply vanish after first paint (e.g. WC.png 404s, host flakiness).
+      function lbLogoFallback(img, emoji) {
+        if (!img || img.dataset.fallbackApplied) return;
+        img.dataset.fallbackApplied = '1';
+        const span = document.createElement('span');
+        span.className = 'lb-league-logo';
+        span.textContent = emoji || '⚽';
+        span.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;font-size:18px;line-height:1;';
+        img.replaceWith(span);
+      }
+
+      function renderStaticLeaderboard(container) {
+        // Default to the visually-active tab (Daily) so the highlight matches the data.
+        const dailyBtn = document.querySelector('#lb-main-tabs .lb-tab');
+        switchLbTab(dailyBtn || null, dailyBtn ? 'daily' : 'alltime');
+      }
+      // Map UI tab -> backend period query param.
+      const LB_TAB_TO_PERIOD = { daily: 'daily', weekly: 'weekly', monthly: 'monthly', alltime: 'all_time' };
+
+      function buildLbRowHtml(p, tab, isCurrentUser) {
+        const rankLabel = p.rank;
+        const rankClass = rankLabel === 1 ? 'gold' : rankLabel === 2 ? 'silver' : rankLabel === 3 ? 'bronze' : '';
+        let tierName = 'Bronze'; let tierColor = '#cd7f32';
+        if (p.total_points >= 10000) { tierName = 'Diamond'; tierColor = '#b9f2ff'; }
+        else if (p.total_points >= 5000) { tierName = 'Platinum'; tierColor = '#e5e4e2'; }
+        else if (p.total_points >= 2500) { tierName = 'Gold'; tierColor = 'var(--gold)'; }
+        else if (p.total_points >= 1000) { tierName = 'Silver'; tierColor = '#c0c0c0'; }
+
+        const scoreToDisplay = tab === 'monthly' ? p.monthly_points
+          : (tab === 'alltime' ? p.total_points : p.weekly_points);
+
+        const highlightStyle = isCurrentUser
+          ? 'background:rgba(212,175,55,0.12);border:1px solid var(--gold);border-radius:10px;'
+          : '';
+        const youBadge = isCurrentUser
+          ? '<span style="font-size:0.6rem;background:var(--gold);color:#000;padding:0.1rem 0.35rem;border-radius:4px;margin-left:0.4rem;font-weight:800;letter-spacing:0.03em">YOU</span>'
+          : '';
+
+        return `
+            <div class="lb-row" style="${highlightStyle}">
               <div class="lb-rank ${rankClass}">${rankLabel}</div>
               <div class="lb-avatar" style="background:var(--surface2)">${p.username ? p.username[0].toUpperCase() : '?'}</div>
               <div class="lb-info">
-                <div class="lb-name">${p.username || 'Guest'}
+                <div class="lb-name">${p.username || 'Guest'}${youBadge}
                   <span style="font-size:0.65rem;background:${tierColor};color:#000;padding:0.1rem 0.35rem;border-radius:4px;margin-left:0.5rem;font-weight:700">${tierName}</span>
                 </div>
-                <div class="lb-meta">${getLeaderboardFlagByCountryId(p.country_id)} &nbsp; Rank: ${p.rank || rankLabel}</div>
+                <div class="lb-meta">${getLeaderboardFlagByCountryId(p.country_id)} &nbsp; Rank: ${rankLabel}</div>
               </div>
               <div class="lb-score">${(scoreToDisplay || 0).toLocaleString()}</div>
             </div>`;
-          });
+      }
+
+      async function switchLbTab(el, tab) {
+        document.querySelectorAll('#lb-main-tabs .lb-tab').forEach(t => t.classList.remove('active'));
+        if (el) el.classList.add('active');
+        state.lbTab = tab;
+        const container = document.getElementById('lb-main-list');
+        if (!container) return;
+
+        container.innerHTML = "<div style='padding:2rem;text-align:center'>Loading standings from database...</div>";
+
+        try {
+          const period = LB_TAB_TO_PERIOD[tab] || 'all_time';
+          // Single call returns { entries: top 10, current_user: caller's real-rank entry }.
+          const data = await apiRequest(`/api/leaderboard/ranked?period=${encodeURIComponent(period)}`);
+          const entries = (data && data.entries) || [];
+          const currentUser = data && data.current_user;
+
+          if (entries.length === 0) {
+            container.innerHTML = "<div style='padding:2rem;text-align:center'>No scores yet.</div>";
+            return;
+          }
+
+          const meId = currentUser ? currentUser.user_id : null;
+          const userInTop10 = !!(meId && entries.some(p => p.user_id === meId));
+
+          let html = entries.map(p => buildLbRowHtml(p, tab, meId && p.user_id === meId)).join('');
+
+          // If the caller is outside the top 10, pin their row below a separator.
+          if (currentUser && !userInTop10) {
+            html += `
+            <div class="lb-separator" style="text-align:center;color:var(--text3);font-size:1.25rem;letter-spacing:0.4em;padding:0.5rem 0;user-select:none">· · ·</div>`;
+            html += buildLbRowHtml(currentUser, tab, true);
+          }
+
           container.innerHTML = html;
         } catch (err) {
           console.error('Failed to load leaderboard from database:', err);
@@ -1906,7 +1988,7 @@
             stats.top_countries.forEach((c, idx) => {
               html += `
                 <div class="card" style="padding:1rem;display:flex;align-items:center;gap:1rem">
-                  <img src="https://flagcdn.com/${c.code.toLowerCase()}.svg" alt="${c.name}" style="width:24px; height:16px; border-radius:2px; object-fit:cover; box-shadow:0 1px 2px rgba(0,0,0,0.25);">
+                  ${countryFlagImg(c.code, c.name)}
                   <div style="flex:1">
                     <div style="font-family:var(--font-ui);font-weight:700;font-size:.9rem">${c.name}</div>
                     <div style="font-size:.75rem;color:var(--text3)">${c.active_count.toLocaleString()} active</div>
@@ -2116,6 +2198,36 @@
         return localStorage.getItem(GROUP_RANKINGS_SUBMITTED_KEY) === 'true';
       }
 
+      // ── Manual 3rd-place qualifier selection ──
+      const MANUAL_THIRD_PLACE_KEY = 'wc_manual_third_place_v1';
+      let manualThirdPlace = (() => {
+        try {
+          const saved = JSON.parse(localStorage.getItem(MANUAL_THIRD_PLACE_KEY));
+          if (saved && Array.isArray(saved.groups)) return { confirmed: !!saved.confirmed, groups: saved.groups };
+        } catch (e) {}
+        return { confirmed: false, groups: [] };
+      })();
+      // Working selection while the user is choosing (before confirming).
+      let thirdPlaceDraft = [];
+
+      function saveManualThirdPlace() {
+        localStorage.setItem(MANUAL_THIRD_PLACE_KEY, JSON.stringify(manualThirdPlace));
+      }
+
+      // Returns the 8 confirmed group keys for the bracket, or null to fall back to auto top-8.
+      function getConfirmedManualThirdPlace() {
+        return (manualThirdPlace.confirmed && manualThirdPlace.groups.length === 8)
+          ? manualThirdPlace.groups
+          : null;
+      }
+
+      // The knockout bracket only shows teams once the user has fully predicted in
+      // the Prediction Center: group rankings submitted AND the 8 third-place
+      // qualifiers confirmed. Until then the bracket stays empty.
+      function arePredictionsComplete() {
+        return areGroupRankingsSubmitted() && !!getConfirmedManualThirdPlace();
+      }
+
       // Deterministic simulator for group stage stats based on team name and group key
       function getSimulatedGroupStats(teamName, rankIndex, groupKey) {
         const baseSeed = getSeed(teamName) + groupKey.charCodeAt(0);
@@ -2229,6 +2341,7 @@
 
       function renderBestThirdPlacedTable() {
         const thirds = getBestThirdPlacedTeams();
+        const manualQual = getConfirmedManualThirdPlace();
 
         // 1. Predictions Tab Table
         const tbodyPred = document.getElementById('best-third-place-table-body');
@@ -2236,7 +2349,7 @@
           tbodyPred.innerHTML = '';
           thirds.forEach((item, idx) => {
             const rank = idx + 1;
-            const isQualified = rank <= 8;
+            const isQualified = manualQual ? manualQual.includes(item.groupKey) : rank <= 8;
             const statusText = isQualified ? 'Qualified' : 'Eliminated';
             const statusStyle = isQualified 
               ? 'background:rgba(16,185,129,0.15); color:#10b981; font-weight:700; border-radius:4px; padding:0.2rem 0.5rem; font-size:0.75rem; display:inline-block;'
@@ -2264,7 +2377,7 @@
           tbodyDash.innerHTML = '';
           thirds.forEach((item, idx) => {
             const rank = idx + 1;
-            const isQualified = rank <= 8;
+            const isQualified = manualQual ? manualQual.includes(item.groupKey) : rank <= 8;
             const statusText = isQualified ? 'Qualified for Round of 32' : 'Eliminated';
             const statusStyle = isQualified 
               ? 'background:rgba(16,185,129,0.15); color:#10b981; font-weight:700; border-radius:4px; padding:0.25rem 0.75rem; font-size:0.75rem; display:inline-block; border: 1px solid rgba(16,185,129,0.3);'
@@ -2293,6 +2406,12 @@
         updateGroupStandingsStats();
         localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
         localStorage.removeItem(GROUP_RANKINGS_SUBMITTED_KEY);
+        // Standings changed → the 3rd-place teams may differ, so invalidate the
+        // confirmed selection and hide the panel until rankings are re-submitted.
+        manualThirdPlace.confirmed = false;
+        saveManualThirdPlace();
+        const panel = document.getElementById('third-place-selection-panel');
+        if (panel) panel.style.display = 'none';
         renderGroupPredictions();
         renderGroupStandings();
         renderBestThirdPlacedTable();
@@ -2306,6 +2425,10 @@
       updateGroupStandingsStats();
       renderGroupStandings();
       renderBestThirdPlacedTable();
+      // Restore the 3rd-place selection panel if rankings were already submitted.
+      if (areGroupRankingsSubmitted()) {
+        openThirdPlaceSelection();
+      }
 
       // Render functions for Group Standings
       function renderGroupStandings() {
@@ -2488,7 +2611,131 @@
           window.bracketPredictor.syncRound32Matchups();
           window.bracketPredictor.renderBracket();
         }
-        showToast('Group predictions saved! Bonus points calculated when official standings are confirmed.', 'success');
+        // Reveal the interactive 3rd-place qualifier selection panel.
+        openThirdPlaceSelection();
+        showToast('Group rankings saved! Now choose the 8 third-place teams that advance.', 'success');
+        const panel = document.getElementById('third-place-selection-panel');
+        if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Reset all World Cup predictions: group standings, third-place picks and the
+      // knockout bracket — returning everything to its default, unpredicted state.
+      function resetPredictions() {
+        if (!confirm('Reset all your World Cup predictions? This clears your group rankings, third-place picks and the entire knockout bracket.')) return;
+
+        // Restore group standings to their default order.
+        groupPredictions = JSON.parse(JSON.stringify(WC_GROUPS));
+        localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
+        localStorage.removeItem(GROUP_RANKINGS_SUBMITTED_KEY);
+
+        // Clear the third-place qualifier selection.
+        manualThirdPlace = { confirmed: false, groups: [] };
+        saveManualThirdPlace();
+        thirdPlaceDraft = [];
+        const panel = document.getElementById('third-place-selection-panel');
+        if (panel) panel.style.display = 'none';
+
+        // Clear the knockout bracket (overrides + picked winners) and empty its slots.
+        if (window.bracketPredictor) {
+          clearBracketPredictions();
+          window.bracketPredictor.syncRound32Matchups();
+          window.bracketPredictor.renderBracket();
+        }
+
+        // Re-render the prediction center.
+        updateGroupStandingsStats();
+        renderGroupPredictions();
+        renderGroupStandings();
+        renderBestThirdPlacedTable();
+        updatePredictorProfile();
+        showToast('All predictions have been reset.', 'success');
+      }
+
+      // ── Interactive 3rd-place qualifier selection ──
+      function openThirdPlaceSelection() {
+        const panel = document.getElementById('third-place-selection-panel');
+        if (!panel) return;
+        panel.style.display = '';
+        // Seed the draft from a previously confirmed selection, else the auto top-8.
+        const valid = getBestThirdPlacedTeams().map(t => t.groupKey);
+        if (manualThirdPlace.groups.length === 8 && manualThirdPlace.groups.every(g => valid.includes(g))) {
+          thirdPlaceDraft = manualThirdPlace.groups.slice();
+        } else {
+          thirdPlaceDraft = valid.slice(0, 8);
+        }
+        renderThirdPlaceSelection();
+      }
+
+      function renderThirdPlaceSelection() {
+        const grid = document.getElementById('third-place-grid');
+        if (!grid) return;
+        const thirds = getBestThirdPlacedTeams();
+        grid.innerHTML = '';
+        thirds.forEach(item => {
+          const selected = thirdPlaceDraft.includes(item.groupKey);
+          const card = document.createElement('div');
+          card.className = 'tp-team-card' + (selected ? ' selected' : '');
+          card.setAttribute('role', 'button');
+          card.setAttribute('aria-pressed', selected ? 'true' : 'false');
+          card.onclick = () => toggleThirdPlaceTeam(item.groupKey);
+          card.innerHTML = `
+            ${getFlagImg(item.name)}
+            <div style="display:flex;flex-direction:column;min-width:0;">
+              <span class="tp-name">${item.name}</span>
+              <span class="tp-group">Group ${item.groupKey}</span>
+            </div>
+            <span class="tp-check">${selected ? '✓' : ''}</span>
+          `;
+          grid.appendChild(card);
+        });
+        updateThirdPlaceCounter();
+      }
+
+      function toggleThirdPlaceTeam(groupKey) {
+        const idx = thirdPlaceDraft.indexOf(groupKey);
+        const warning = document.getElementById('third-place-warning');
+        if (idx > -1) {
+          thirdPlaceDraft.splice(idx, 1);
+          if (warning) warning.style.display = 'none';
+        } else {
+          if (thirdPlaceDraft.length >= 8) {
+            if (warning) {
+              warning.style.display = '';
+              clearTimeout(warning._hideTimer);
+              warning._hideTimer = setTimeout(() => { warning.style.display = 'none'; }, 2500);
+            }
+            return;
+          }
+          thirdPlaceDraft.push(groupKey);
+        }
+        renderThirdPlaceSelection();
+      }
+
+      function updateThirdPlaceCounter() {
+        const counter = document.getElementById('third-place-counter');
+        const btn = document.getElementById('confirm-third-place-btn');
+        const count = thirdPlaceDraft.length;
+        if (counter) {
+          counter.textContent = `${count} / 8 selected`;
+          counter.classList.toggle('complete', count === 8);
+        }
+        if (btn) btn.disabled = count !== 8;
+      }
+
+      function confirmThirdPlaceQualifiers() {
+        if (thirdPlaceDraft.length !== 8) {
+          showToast('Select exactly 8 third-place teams to continue.', 'error');
+          return;
+        }
+        manualThirdPlace = { confirmed: true, groups: thirdPlaceDraft.slice() };
+        saveManualThirdPlace();
+        renderBestThirdPlacedTable();
+        if (window.bracketPredictor) {
+          window.bracketPredictor.syncRound32Matchups();
+          window.bracketPredictor.renderBracket();
+        }
+        updatePredictorProfile();
+        showToast('3rd place qualifiers confirmed! All 32 teams are set for the knockout bracket.', 'success');
       }
       // Render upcoming match predictions
       function renderMatchPredictions() {
@@ -3111,6 +3358,9 @@
         }
 
         getQualifiedThirdPlaceGroups() {
+          // Use the user's confirmed manual selection when available, else auto top-8.
+          const manual = getConfirmedManualThirdPlace();
+          if (manual) return manual.slice().sort().join('');
           return getBestThirdPlacedTeams().slice(0, 8).map(item => item.groupKey).sort().join('');
         }
 
@@ -3253,7 +3503,9 @@
         // ── SYNC R32 slot labels from group predictions ──
         syncRound32Matchups(forceDesignated = true) {
           this._savedDesignations = {};
-          const isSubmitted = areGroupRankingsSubmitted();
+          // Only populate the bracket once predictions are complete (group rankings
+          // submitted + 8 third-place qualifiers confirmed). Otherwise keep it empty.
+          const isSubmitted = arePredictionsComplete();
           
           for (let i = 0; i < 16; i++) {
             const homeCode = this.getSlotDesignation(i, 'home');
@@ -3370,8 +3622,8 @@
 
         // ── SELECT TEAM FOR SLOT (R32 dropdown) ──
         selectTeamForSlot(matchId, side, team) {
-          if (matchId < 16 && !areGroupRankingsSubmitted()) {
-            showToast('Submit your group ranking predictions in the Prediction Center before choosing knockout teams.', 'error');
+          if (matchId < 16 && !arePredictionsComplete()) {
+            showToast('Complete your predictions in the Prediction Center (group rankings + confirm the 8 third-place qualifiers) to unlock the knockout bracket.', 'error');
             return;
           }
           const eligible = this.getEligibleTeamsForSlot(matchId, side);
@@ -3390,8 +3642,8 @@
 
         // ── DROPDOWN ──
         toggleDropdown(slotEl, matchId, side) {
-          if (matchId < 16 && !areGroupRankingsSubmitted()) {
-            showToast('Submit your group ranking predictions in the Prediction Center before choosing knockout teams.', 'error');
+          if (matchId < 16 && !arePredictionsComplete()) {
+            showToast('Complete your predictions in the Prediction Center (group rankings + confirm the 8 third-place qualifiers) to unlock the knockout bracket.', 'error');
             return;
           }
           this.closeAllDropdowns();
@@ -3618,10 +3870,10 @@
           slot.className = 'bp-slot';
           slot.dataset.matchId = matchId;
           slot.dataset.side = side;
-          const r32Locked = matchId < 16 && !areGroupRankingsSubmitted();
+          const r32Locked = matchId < 16 && !arePredictionsComplete();
           if (r32Locked) {
             slot.classList.add('locked');
-            slot.title = 'Submit group ranking predictions in the Prediction Center to unlock team selection.';
+            slot.title = 'Complete your predictions (group rankings + confirm the 8 third-place qualifiers) to unlock the knockout bracket.';
           }
 
           if (team) {
@@ -5250,7 +5502,7 @@
         
         if (!ablyClient) {
           const token = localStorage.getItem('footytrivia_token');
-          const ablyOptions = window.ENV.ABLY_API_KEY
+          const ablyOptions = (window.ENV && window.ENV.ABLY_API_KEY)
             ? { key: window.ENV.ABLY_API_KEY, clientId: String(state.user.id) }
             : {
                 authUrl: `${API_BASE_URL}/api/battle/token`,

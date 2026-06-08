@@ -35,7 +35,7 @@
   <nav id="main-nav">
 
     <a class="nav-logo" href="#" onclick="showPage('home')">
-      <img src="logo_clean.png" alt="Footy-Trivia Logo" class="nav-logo-img">
+      <img src="logo_hd.png" alt="Footy-Trivia Logo" class="nav-logo-img">
     </a>
 
     <div class="nav-links">
@@ -125,6 +125,9 @@
       </div>
 
       <div class="hero-content">
+        <div class="hero-logo">
+          <img src="logo_hd.png" alt="Footy-Trivia" class="hero-logo-img">
+        </div>
         <div class="hero-badge"
           style="border: 1px solid var(--border2); color: var(--text2); font-size: 0.85rem; padding: 0.35rem 0.9rem; border-radius: 20px; background: var(--surface2); font-weight: 500; font-family: var(--font-ui);">
           The ultimate football trivia arena</div>
@@ -1286,77 +1289,7 @@
 
         </div>
 
-        <div class="grid-2">
-
-          <div>
-
-            <h3
-              style="font-family:var(--font-ui);font-weight:700;font-size:1rem;letter-spacing:1px;text-transform:none;color:var(--text2);margin-bottom:1rem">
-
-              League Rankings</h3>
-
-            <div style="display:grid;gap:.5rem">
-
-              <div class="card" style="padding:1rem;display:flex;align-items:center;gap:1rem;cursor:pointer"
-                onclick="showToast('Premier League board loading...','info')">
-
-                <img class="lb-league-logo" src="https://crests.football-data.org/PL.png" alt="PL">
-
-                <div style="flex:1">
-
-                  <div style="font-family:var(--font-ui);font-weight:700;font-size:.9rem">Premier League</div>
-
-                  <div style="font-size:.75rem;color:var(--text3)" id="league-rank-pl">8,231 players</div>
-
-                </div><span style="color:var(--accent);font-size:.8rem">View all &rarr;</span>
-
-              </div>
-
-              <div class="card" style="padding:1rem;display:flex;align-items:center;gap:1rem;cursor:pointer">
-
-                <img class="lb-league-logo" src="https://crests.football-data.org/PD.png" alt="La Liga">
-
-                <div style="flex:1">
-
-                  <div style="font-family:var(--font-ui);font-weight:700;font-size:.9rem">La Liga</div>
-
-                  <div style="font-size:.75rem;color:var(--text3)" id="league-rank-ll">5,182 players</div>
-
-                </div><span style="color:var(--accent);font-size:.8rem">View all &rarr;</span>
-
-              </div>
-
-              <div class="card" style="padding:1rem;display:flex;align-items:center;gap:1rem;cursor:pointer">
-
-                <img class="lb-league-logo" src="https://crests.football-data.org/CL.png" alt="UCL">
-
-                <div style="flex:1">
-
-                  <div style="font-family:var(--font-ui);font-weight:700;font-size:.9rem">Champions League</div>
-
-                  <div style="font-size:.75rem;color:var(--text3)" id="league-rank-ucl">9,402 players</div>
-
-                </div><span style="color:var(--accent);font-size:.8rem">View all &rarr;</span>
-
-              </div>
-
-              <div class="card" style="padding:1rem;display:flex;align-items:center;gap:1rem;cursor:pointer">
-
-                <img class="lb-league-logo" src="https://crests.football-data.org/WC.png" alt="WC">
-
-                <div style="flex:1">
-
-                  <div style="font-family:var(--font-ui);font-weight:700;font-size:.9rem">World Cup</div>
-
-                  <div style="font-size:.75rem;color:var(--text3)" id="league-rank-wc">11,020 players</div>
-
-                </div><span style="color:var(--accent);font-size:.8rem">View all &rarr;</span>
-
-              </div>
-
-            </div>
-
-          </div>
+        <div>
 
           <div>
 
@@ -1663,31 +1596,6 @@
             <!-- Dynamically populated with all 12 groups (A-L) -->
           </div>
 
-          <!-- Best Third-Place Teams Section -->
-          <div class="wc-card" style="margin-top: 2rem; grid-column: 1 / -1; background: var(--surface2); border: 1px solid var(--border);">
-            <div class="wc-card-title" style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-              <span>🥉</span> Best Third-Place Teams
-            </div>
-            <p style="color:var(--text2);font-size:0.85rem;margin-bottom:1.5rem">
-              Ranked 3rd-placed teams across all 12 groups. Under official FIFA tournament rules, the top 8 advance to the Round of 32.
-            </p>
-            <div style="overflow-x:auto;">
-              <table class="wc-table" style="width:100%;">
-                <thead>
-                  <tr>
-                    <th style="width: 80px; text-align: center;">Rank</th>
-                    <th style="text-align: left;">Team</th>
-                    <th style="text-align: center; width: 100px;">Group</th>
-                    <th style="width: 200px; text-align: center;">Qualification Status</th>
-                  </tr>
-                </thead>
-                <tbody id="dashboard-best-third-place-table-body">
-                  <!-- Automatically generated and ranked -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
           <!-- Knockout Stage Predictions Shortcut -->
           <div class="wc-card" style="margin-top: 2rem; grid-column: 1 / -1; background: linear-gradient(to right, var(--surface2), rgba(212,175,55,0.05)); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <div>
@@ -1740,8 +1648,32 @@
                 <!-- 12 interactive group cards will be rendered dynamically -->
               </div>
 
-              <div style="text-align:center;margin-top:2rem">
+              <div style="text-align:center;margin-top:2rem;display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap">
                 <button class="btn btn-primary" onclick="submitGroupPredictions()">Submit Group Rankings Prediction</button>
+                <button class="btn btn-ghost" onclick="resetPredictions()">Reset Predictions</button>
+              </div>
+            </div>
+
+            <!-- Interactive 3rd Place Qualifier Selection (shown after submitting group rankings) -->
+            <div class="wc-card" id="third-place-selection-panel" style="grid-column: 1 / -1; margin-top: 1.5rem; display:none;">
+              <div class="wc-card-title" style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span>🥉</span> Select 8 Third-Place Qualifiers
+                <span id="third-place-counter" class="tp-counter">0 / 8 selected</span>
+              </div>
+              <p style="color:var(--text2);font-size:0.85rem;margin-bottom:1rem">
+                Pick exactly <strong>8</strong> of the 12 third-placed teams to advance to the Round of 32.
+                The 8 you choose join the 12 group winners and 12 runners-up in the knockout bracket.
+              </p>
+              <div id="third-place-warning" class="tp-warning" style="display:none;">
+                Only 8 teams can advance. Deselect one first.
+              </div>
+              <div id="third-place-grid" class="wc-grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.85rem;">
+                <!-- 12 selectable third-place team cards rendered dynamically -->
+              </div>
+              <div style="text-align:center;margin-top:1.5rem">
+                <button class="btn btn-primary" id="confirm-third-place-btn" onclick="confirmThirdPlaceQualifiers()" disabled>
+                  Confirm 3rd Place Qualifiers
+                </button>
               </div>
             </div>
 
@@ -2284,7 +2216,7 @@
     <footer>
 
       <div style="display:flex; align-items:center; justify-content:center; margin-bottom:0.75rem">
-        <img src="logo_clean.png" alt="Footy-Trivia Logo" class="footer-logo-img">
+        <img src="logo_hd.png" alt="Footy-Trivia Logo" class="footer-logo-img">
       </div>
 
       <div class="footer-sub">The Ultimate Football Trivia Arena — Test Your Knowledge. Prove Your Passion.</div>
