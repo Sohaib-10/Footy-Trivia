@@ -23,6 +23,33 @@ def _from_address() -> str:
     return "onboarding@resend.dev"
 
 
+async def _send_via_brevo(to: str, subject: str, body: str) -> None:
+    sender_email = settings.BREVO_SENDER or settings.SMTP_USER
+    if not sender_email:
+        raise EmailDeliveryError("BREVO_SENDER (a verified Brevo sender email) is not set.")
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": settings.BREVO_API_KEY,
+                "Content-Type": "application/json",
+                "accept": "application/json",
+            },
+            json={
+                "sender": {"email": sender_email, "name": "Footy-Trivia"},
+                "to": [{"email": to}],
+                "subject": subject,
+                "textContent": body,
+            },
+        )
+    if response.status_code >= 400:
+        try:
+            detail = response.json().get("message", response.text)
+        except Exception:
+            detail = response.text
+        raise EmailDeliveryError(f"Brevo error ({response.status_code}): {detail}")
+
+
 async def _send_via_resend(to: str, subject: str, body: str) -> None:
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
@@ -83,6 +110,12 @@ def _send_via_smtp_sync(to: str, subject: str, body: str) -> None:
 
 
 async def send_email(to: str, subject: str, body: str) -> bool:
+    # Prefer HTTP APIs (work on hosts that block outbound SMTP, e.g. Render).
+    if settings.BREVO_API_KEY:
+        await _send_via_brevo(to, subject, body)
+        logger.info("Email sent via Brevo to %s", to)
+        return True
+
     if settings.RESEND_API_KEY:
         await _send_via_resend(to, subject, body)
         logger.info("Email sent via Resend to %s", to)
@@ -94,7 +127,7 @@ async def send_email(to: str, subject: str, body: str) -> bool:
         return True
 
     raise EmailDeliveryError(
-        "Email is not configured. Set RESEND_API_KEY or SMTP_HOST, SMTP_USER, and SMTP_PASSWORD in backend/.env"
+        "Email is not configured. Set BREVO_API_KEY (+ BREVO_SENDER), RESEND_API_KEY, or SMTP_* in backend/.env"
     )
 
 

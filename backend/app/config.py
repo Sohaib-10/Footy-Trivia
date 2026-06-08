@@ -30,6 +30,8 @@ class Settings(BaseSettings):
 
     # Email / auth links
     FRONTEND_URL: str = Field(default="http://localhost:9999")
+    BREVO_API_KEY: str = Field(default="")
+    BREVO_SENDER: str = Field(default="")
     RESEND_API_KEY: str = Field(default="")
     SMTP_HOST: str = Field(default="")
     SMTP_PORT: int = Field(default=587)
