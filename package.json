@@ -1,0 +1,19 @@
+{
+  "name": "footy-trivia",
+  "version": "1.0.0",
+  "description": "The ultimate football trivia arena",
+  "main": "app.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "football",
+    "trivia",
+    "quiz"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/speed-insights": "^2.0.0"
+  }
+}
