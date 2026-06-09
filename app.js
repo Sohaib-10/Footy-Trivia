@@ -7271,7 +7271,10 @@
       }
 
       window.openModal = openModal;
+      window.closeModal = closeModal;
       window.togglePasswordVisibility = togglePasswordVisibility;
+      window.mockLogin = mockLogin;
+      window.mockRegister = mockRegister;
       window.mockForgotPassword = mockForgotPassword;
       window.mockResetPassword = mockResetPassword;
       window.mockResendVerification = mockResendVerification;
