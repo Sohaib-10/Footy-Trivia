@@ -554,22 +554,14 @@
       }
 
       const LEADERBOARD_DATA = [
-        { name: 'FutbolKing99', score: 9820, correct: 142, streak: 15, country: '🇧🇷', level: 42 },
-
-        { name: 'TacticsGuru', score: 8750, correct: 128, streak: 11, country: '🇬🇧', level: 38 },
-
-        { name: 'MessiFan10', score: 7920, correct: 115, streak: 8, country: '🇦🇷', level: 34 },
-
-        { name: 'BallerIQ', score: 7340, correct: 109, streak: 7, country: '🇩🇪', level: 31 },
-
-        { name: 'GoalMachine', score: 6800, correct: 98, streak: 6, country: '🇫🇷', level: 28 },
-
-        { name: 'CRSevenFan', score: 6210, correct: 89, streak: 5, country: '🇵🇹', level: 25 },
-
-        { name: 'TifoVerde', score: 5670, correct: 81, streak: 4, country: '🇮🇹', level: 22 },
-
-        { name: 'ElClasico', score: 5100, correct: 74, streak: 3, country: '🇪🇸', level: 20 },
-
+        { name: 'Sohaib10', score: 2000, correct: 0, streak: 0, country: '🇵🇰', level: 20 },
+        { name: 'deploytest51984', score: 85, correct: 0, streak: 0, country: '🌍', level: 5 },
+        { name: 'FutbolKing99', score: 45, correct: 0, streak: 0, country: '🇧🇷', level: 4 },
+        { name: 'TacticsGuru', score: 40, correct: 0, streak: 0, country: '🇬🇧', level: 4 },
+        { name: 'MessiFan10', score: 35, correct: 0, streak: 0, country: '🇦🇷', level: 3 },
+        { name: 'BallerIQ', score: 35, correct: 0, streak: 0, country: '🇩🇪', level: 3 },
+        { name: 'GoalMachine', score: 30, correct: 0, streak: 0, country: '🇫🇷', level: 3 },
+        { name: 'CRSevenFan', score: 30, correct: 0, streak: 0, country: '🇵🇹', level: 3 },
       ];
 
 

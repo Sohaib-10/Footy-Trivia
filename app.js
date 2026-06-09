@@ -139,6 +139,9 @@
             toggleCategoryQuestions(currentCat, explorerId);
           }
         }
+        if (page === 'leaderboard') {
+          switchLbTab(null, state.lbTab || 'alltime');
+        }
         if (page === 'worldcup') {
           refreshWorldCupViews();
           const pendingTab = window._pendingWcTab;
@@ -903,6 +906,39 @@
         return (typeof window !== 'undefined' && window.LEADERBOARD_DATA) || [];
       }
 
+      function readLbCache(period) {
+        try {
+          const raw = localStorage.getItem('ft_lb_cache_' + period);
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.entries)) return parsed;
+        } catch (e) {}
+        return null;
+      }
+
+      function saveLbCache(period, entries, currentUser) {
+        try {
+          localStorage.setItem('ft_lb_cache_' + period, JSON.stringify({
+            savedAt: Date.now(),
+            entries,
+            current_user: currentUser || null,
+          }));
+        } catch (e) {}
+      }
+
+      function paintLbRows(container, entries, tab, currentUser) {
+        if (!container || !entries || !entries.length) return false;
+        const meId = currentUser ? currentUser.user_id : null;
+        const userInTop10 = !!(meId && entries.some(p => p.user_id === meId));
+        let html = entries.map(p => buildLbRowHtml(p, tab, meId && p.user_id === meId)).join('');
+        if (currentUser && !userInTop10) {
+          html += `<div class="lb-separator" style="text-align:center;color:var(--text3);font-size:1.25rem;letter-spacing:0.4em;padding:0.5rem 0;user-select:none">· · ·</div>`;
+          html += buildLbRowHtml(currentUser, tab, true);
+        }
+        container.innerHTML = html;
+        return true;
+      }
+
       function renderLocalLbRows(container, limit = 10) {
         if (!container) return;
         const rows = getStaticLeaderboard().slice(0, limit);
@@ -961,11 +997,15 @@
         const container = document.getElementById('lb-main-list');
         if (!container) return;
 
-        renderLocalLbRows(container, 10);
+        const period = LB_TAB_TO_PERIOD[tab] || 'all_time';
+        const cached = readLbCache(period);
+        if (cached && cached.entries.length) {
+          paintLbRows(container, cached.entries, tab, cached.current_user);
+        } else {
+          renderLocalLbRows(container, 10);
+        }
 
         try {
-          const period = LB_TAB_TO_PERIOD[tab] || 'all_time';
-          // Single call returns { entries: top 10, current_user: caller's real-rank entry }.
           const data = await apiRequestWithRetry(`/api/leaderboard/ranked?period=${encodeURIComponent(period)}`);
           const entries = (data && data.entries) || [];
           const currentUser = data && data.current_user;
@@ -975,38 +1015,40 @@
             return;
           }
 
-          const meId = currentUser ? currentUser.user_id : null;
-          const userInTop10 = !!(meId && entries.some(p => p.user_id === meId));
-
-          let html = entries.map(p => buildLbRowHtml(p, tab, meId && p.user_id === meId)).join('');
-
-          // If the caller is outside the top 10, pin their row below a separator.
-          if (currentUser && !userInTop10) {
-            html += `
-            <div class="lb-separator" style="text-align:center;color:var(--text3);font-size:1.25rem;letter-spacing:0.4em;padding:0.5rem 0;user-select:none">· · ·</div>`;
-            html += buildLbRowHtml(currentUser, tab, true);
-          }
-
-          container.innerHTML = html;
+          saveLbCache(period, entries, currentUser);
+          paintLbRows(container, entries, tab, currentUser);
         } catch (err) {
           console.error('Failed to load leaderboard from database:', err);
-          if (!getStaticLeaderboard().length) {
-            container.innerHTML = `<div style='padding:2rem;text-align:center;color:var(--text3)'>${err.message || 'Error loading leaderboard data from database.'}</div>`;
-          }
+          if (cached && cached.entries.length) return;
+          container.innerHTML = `<div style='padding:2rem;text-align:center;color:var(--text3)'>
+            ${err.message || 'Could not load live rankings.'}
+            <br><button class="btn btn-ghost" style="margin-top:1rem" onclick="switchLbTab(null, state.lbTab || 'alltime')">Retry</button>
+          </div>`;
         }
       }
       async function updateHomeLeaderboardPreview() {
         const lbPreview = document.getElementById('lb-list');
         if (!lbPreview) return;
-        renderLocalLbRows(lbPreview, 5);
+        const cached = readLbCache('all_time');
+        if (cached && cached.entries.length) {
+          let html = '';
+          cached.entries.slice(0, 5).forEach((p, i) => {
+            const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+            html += `<div class="lb-row"><div class="lb-rank ${rankClass}">${p.rank || i + 1}</div><div class="lb-info"><div class="lb-name">${p.username || 'Guest'}</div></div><div class="lb-score">${(p.total_points || 0).toLocaleString()}</div></div>`;
+          });
+          lbPreview.innerHTML = html;
+        } else {
+          renderLocalLbRows(lbPreview, 5);
+        }
         try {
           const data = await apiRequestWithRetry('/api/leaderboard/global?limit=5');
           let html = '';
           data.slice(0, 5).forEach((p, i) => {
             const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-            html += `<div class="lb-row"><div class="lb-rank ${rankClass}">${i + 1}</div><div class="lb-info"><div class="lb-name">${p.username || 'Guest'}</div></div><div class="lb-score">${(p.total_points || 0).toLocaleString()}</div></div>`;
+            html += `<div class="lb-row"><div class="lb-rank ${rankClass}">${p.rank || i + 1}</div><div class="lb-info"><div class="lb-name">${p.username || 'Guest'}</div></div><div class="lb-score">${(p.total_points || 0).toLocaleString()}</div></div>`;
           });
           lbPreview.innerHTML = html;
+          saveLbCache('all_time', data, null);
         } catch (err) {
           console.error('Failed to load home leaderboard preview:', err);
         }
