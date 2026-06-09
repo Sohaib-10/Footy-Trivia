@@ -1024,6 +1024,15 @@
         { id: 4, home: 'United States', away: 'Türkiye', date: 'Jun 13', time: '16:00', venue: 'SoFi Stadium, Los Angeles', group: 'Group D' }
       ];
 
+      if (typeof QUESTIONS_EXTRA !== 'undefined') {
+        for (const [cat, extra] of Object.entries(QUESTIONS_EXTRA)) {
+          if (QUESTIONS[cat]) QUESTIONS[cat] = QUESTIONS[cat].concat(extra);
+        }
+      }
+      CATEGORIES_DATA.forEach(c => {
+        if (QUESTIONS[c.id]) c.count = QUESTIONS[c.id].length + ' questions';
+      });
+
       window.QUESTIONS = QUESTIONS;
       window.LEADERBOARD_DATA = LEADERBOARD_DATA;
       window.CATEGORIES_DATA = CATEGORIES_DATA;

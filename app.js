@@ -1743,6 +1743,11 @@
         localStorage.removeItem('footytrivia_user');
         localStorage.removeItem('footytrivia_token');
         updateAuthUI();
+        const bracketTab = document.getElementById('wc-bracket');
+        if (bracketTab && bracketTab.style.display !== 'none') {
+          const dashboardBtn = document.querySelector('.wc-tab[onclick*="\'dashboard\'"]');
+          switchWCTab('dashboard', dashboardBtn);
+        }
         showToast('Logged out successfully.', 'info');
       }
       function updateAuthUI() {
@@ -1792,6 +1797,7 @@
             statsVals[2].textContent = `${user.accuracy || 0}%`;
             statsVals[3].textContent = user.bestStreak || 0;
           }
+          updatePredictionCenterAuthUI();
         } else {
           if (navAuthWrap) {
             navAuthWrap.innerHTML = `
@@ -1820,6 +1826,7 @@
             statsVals[2].textContent = '0%';
             statsVals[3].textContent = '0';
           }
+          updatePredictionCenterAuthUI();
         }
         // Update Favourite Club UI
         const favClubLabel = document.getElementById('profile-fav-club-label');
@@ -2228,6 +2235,16 @@
         return areGroupRankingsSubmitted() && !!getConfirmedManualThirdPlace();
       }
 
+      function getBracketUnlockMessage() {
+        if (!areGroupRankingsSubmitted()) {
+          return 'Submit your final group standings in the Prediction Center to unlock the knockout bracket.';
+        }
+        if (!getConfirmedManualThirdPlace()) {
+          return 'Confirm your 8 best third-place teams in the Prediction Center to unlock the knockout bracket.';
+        }
+        return '';
+      }
+
       // Deterministic simulator for group stage stats based on team name and group key
       function getSimulatedGroupStats(teamName, rankIndex, groupKey) {
         const baseSeed = getSeed(teamName) + groupKey.charCodeAt(0);
@@ -2489,6 +2506,7 @@
       function renderGroupPredictions() {
         const container = document.getElementById('group-predictions-grid');
         if (!container) return;
+        const isGuest = !state.user;
         container.innerHTML = '';
         Object.keys(groupPredictions).forEach(groupKey => {
           const group = groupPredictions[groupKey];
@@ -2504,14 +2522,16 @@
           group.teams.forEach((team, index) => {
             const item = document.createElement('div');
             item.className = 'wc-reorder-item';
-            item.draggable = true;
+            item.draggable = !isGuest;
             item.dataset.teamName = team.name;
             item.dataset.groupKey = groupKey;
             item.dataset.index = index;
-            item.addEventListener('dragstart', handleDragStart);
-            item.addEventListener('dragover', handleDragOver);
-            item.addEventListener('drop', handleDrop);
-            item.addEventListener('dragend', handleDragEnd);
+            if (!isGuest) {
+              item.addEventListener('dragstart', handleDragStart);
+              item.addEventListener('dragover', handleDragOver);
+              item.addEventListener('drop', handleDrop);
+              item.addEventListener('dragend', handleDragEnd);
+            }
             let rankClass = 'q-fourth';
             let rankLabel = '4th';
             if (index === 0) { rankClass = 'q-first'; rankLabel = '1st'; }
@@ -2524,8 +2544,8 @@
                 <span style="font-weight:600; font-size:0.9rem;">${team.name}</span>
               </div>
               <div class="wc-reorder-controls">
-                <button class="wc-reorder-btn" onclick="moveTeam('${groupKey}', ${index}, -1)" title="Move Up">▲</button>
-                <button class="wc-reorder-btn" onclick="moveTeam('${groupKey}', ${index}, 1)" title="Move Down">▼</button>
+                <button class="wc-reorder-btn" onclick="${isGuest ? 'requireLoginForPredictions()' : `moveTeam('${groupKey}', ${index}, -1)`}" title="Move Up">▲</button>
+                <button class="wc-reorder-btn" onclick="${isGuest ? 'requireLoginForPredictions()' : `moveTeam('${groupKey}', ${index}, 1)`}" title="Move Down">▼</button>
               </div>
             `;
             list.appendChild(item);
@@ -2536,6 +2556,10 @@
       }
       let dragSourceItem = null;
       function handleDragStart(e) {
+        if (!requireLoginForPredictions()) {
+          e.preventDefault();
+          return;
+        }
         dragSourceItem = this;
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/html', this.innerHTML);
@@ -2569,6 +2593,7 @@
       }
       function handleDrop(e) {
         e.stopPropagation();
+        if (!requireLoginForPredictions()) return false;
         if (dragSourceItem !== this && dragSourceItem.dataset.groupKey === this.dataset.groupKey) {
           if (hasBracketPredictions()) {
             const proceed = confirm("Changing group outcomes will reset your current manual bracket overrides and subsequent knockout predictions to align with the new standings. Do you want to proceed?");
@@ -2590,6 +2615,7 @@
         this.style.opacity = '1';
       }
       function moveTeam(groupKey, index, direction) {
+        if (!requireLoginForPredictions()) return;
         const teams = groupPredictions[groupKey].teams;
         const targetIdx = index + direction;
         if (targetIdx < 0 || targetIdx >= teams.length) return;
@@ -2604,9 +2630,13 @@
         onGroupStandingsChanged();
       }
       function submitGroupPredictions() {
+        if (!requireLoginForPredictions()) return;
         updateGroupStandingsStats();
         localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
         localStorage.setItem(GROUP_RANKINGS_SUBMITTED_KEY, 'true');
+        manualThirdPlace = { confirmed: false, groups: [] };
+        saveManualThirdPlace();
+        thirdPlaceDraft = [];
         if (window.bracketPredictor) {
           window.bracketPredictor.syncRound32Matchups();
           window.bracketPredictor.renderBracket();
@@ -2621,6 +2651,7 @@
       // Reset all World Cup predictions: group standings, third-place picks and the
       // knockout bracket — returning everything to its default, unpredicted state.
       function resetPredictions() {
+        if (!requireLoginForPredictions()) return;
         if (!confirm('Reset all your World Cup predictions? This clears your group rankings, third-place picks and the entire knockout bracket.')) return;
 
         // Restore group standings to their default order.
@@ -2692,6 +2723,7 @@
       }
 
       function toggleThirdPlaceTeam(groupKey) {
+        if (!requireLoginForPredictions()) return;
         const idx = thirdPlaceDraft.indexOf(groupKey);
         const warning = document.getElementById('third-place-warning');
         if (idx > -1) {
@@ -2719,10 +2751,11 @@
           counter.textContent = `${count} / 8 selected`;
           counter.classList.toggle('complete', count === 8);
         }
-        if (btn) btn.disabled = count !== 8;
+        if (btn) btn.disabled = count !== 8 || !state.user;
       }
 
       function confirmThirdPlaceQualifiers() {
+        if (!requireLoginForPredictions()) return;
         if (thirdPlaceDraft.length !== 8) {
           showToast('Select exactly 8 third-place teams to continue.', 'error');
           return;
@@ -2741,6 +2774,8 @@
       function renderMatchPredictions() {
         const container = document.getElementById('wc-predictions-fixtures');
         if (!container) return;
+        const isGuest = !state.user;
+        const inputAttrs = isGuest ? 'readonly onclick="requireLoginForPredictions()"' : '';
         container.innerHTML = '';
         WC_FIXTURES.forEach(fixture => {
           const card = document.createElement('div');
@@ -2764,11 +2799,11 @@
                 ${getFlagImg(fixture.home)}
                 <span style="font-weight:600; font-size:0.9rem;">${fixture.home}</span>
               </div>
-              <input type="number" id="pred-home-${fixture.id}" value="${pred.homeScore}" min="0" placeholder="-" style="width:42px; text-align:center; padding:0.3rem; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--text); font-weight:700;">
+              <input type="number" id="pred-home-${fixture.id}" value="${pred.homeScore}" min="0" placeholder="-" ${inputAttrs} style="width:42px; text-align:center; padding:0.3rem; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--text); font-weight:700;${isGuest ? 'cursor:pointer;' : ''}">
               
               <span style="margin:0 0.75rem; color:var(--text3); font-size:0.8rem;">vs</span>
               
-              <input type="number" id="pred-away-${fixture.id}" value="${pred.awayScore}" min="0" placeholder="-" style="width:42px; text-align:center; padding:0.3rem; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--text); font-weight:700;">
+              <input type="number" id="pred-away-${fixture.id}" value="${pred.awayScore}" min="0" placeholder="-" ${inputAttrs} style="width:42px; text-align:center; padding:0.3rem; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--text); font-weight:700;${isGuest ? 'cursor:pointer;' : ''}">
               <div style="display:flex; align-items:center; gap:0.5rem; flex:1; justify-content:flex-end;">
                 <span style="font-weight:600; font-size:0.9rem;">${fixture.away}</span>
                 ${getFlagImg(fixture.away)}
@@ -2783,13 +2818,14 @@
               <span id="pred-status-${fixture.id}" style="font-size:0.75rem; font-weight:700; color:${hasPredicted ? 'var(--success)' : 'var(--text3)'}">
                 ${hasPredicted ? `Predicted: ${pred.homeScore} - ${pred.awayScore}` : 'Not Predicted'}
               </span>
-              <button class="btn btn-ghost" style="padding:0.3rem 0.8rem; font-size:0.8rem;" onclick="saveMatchPrediction(${fixture.id})">Save Prediction</button>
+              <button class="btn btn-ghost" style="padding:0.3rem 0.8rem; font-size:0.8rem;" onclick="${isGuest ? 'requireLoginForPredictions()' : `saveMatchPrediction(${fixture.id})`}">${isGuest ? 'Log in to Predict' : 'Save Prediction'}</button>
             </div>
           `;
           container.appendChild(card);
         });
       }
       function saveMatchPrediction(fixtureId) {
+        if (!requireLoginForPredictions()) return;
         const homeVal = document.getElementById(`pred-home-${fixtureId}`).value;
         const awayVal = document.getElementById(`pred-away-${fixtureId}`).value;
         if (homeVal === '' || awayVal === '') {
@@ -3066,7 +3102,7 @@
                   <span>Form: ${p.form.toFixed(1)}</span>
                 </span>
               </div>
-              <button class="wc-card-select-btn" onclick="selectSelectorItemFromModal('${p.name.replace(/'/g, "\\'")}')">Select Player</button>
+              <button class="wc-card-select-btn" onclick="${state.user ? `selectSelectorItemFromModal('${p.name.replace(/'/g, "\\'")}')` : 'requireLoginForPredictions()'}">${state.user ? 'Select Player' : 'Log in to Select'}</button>
             `;
             grid.appendChild(card);
           });
@@ -3110,13 +3146,14 @@
               <div class="wc-card-team-recent" title="${t.recent}">
                 ${t.recent}
               </div>
-              <button class="wc-card-select-btn" style="width:100%; margin-top:auto;" onclick="selectSelectorItemFromModal('${t.name.replace(/'/g, "\\'")}')">Select Team</button>
+              <button class="wc-card-select-btn" style="width:100%; margin-top:auto;" onclick="${state.user ? `selectSelectorItemFromModal('${t.name.replace(/'/g, "\\'")}')` : 'requireLoginForPredictions()'}">${state.user ? 'Select Team' : 'Log in to Select'}</button>
             `;
             grid.appendChild(card);
           });
         }
       }
       function selectSelectorItemFromModal(name) {
+        if (!requireLoginForPredictions()) return;
         if (currentModalType === 'team') {
           awardPredictions[currentModalAwardKey] = name;
         } else {
@@ -3309,6 +3346,13 @@
           this.storageKey = 'wc_bracket_state_official_slots_v1';
         }
 
+        _requireBracketAuth() {
+          if (state.user) return true;
+          showToast('Please log in to use the Knockout Bracket Predictor.', 'warning');
+          openModal('login');
+          return false;
+        }
+
         // ── Slot designation for R32 matchups ──
         getSlotDesignation(matchId, side) {
           const mapping = {
@@ -3435,6 +3479,7 @@
           this.renderProgress();
           this.renderBracket();
           this.updateChampionDisplay();
+          this.updateDownloadButton();
 
           document.removeEventListener('click', this.boundCloseDropdowns);
           this.boundCloseDropdowns = (e) => {
@@ -3478,6 +3523,7 @@
         }
 
         loadSavedBracket() {
+          if (!arePredictionsComplete()) return;
           const saved = localStorage.getItem(this.storageKey);
           if (!saved) return;
           try {
@@ -3506,6 +3552,16 @@
           // Only populate the bracket once predictions are complete (group rankings
           // submitted + 8 third-place qualifiers confirmed). Otherwise keep it empty.
           const isSubmitted = arePredictionsComplete();
+
+          if (!isSubmitted) {
+            this.matches.forEach(m => {
+              m.home = null;
+              m.away = null;
+              m.winner = null;
+            });
+            this.saveBracket();
+            return;
+          }
           
           for (let i = 0; i < 16; i++) {
             const homeCode = this.getSlotDesignation(i, 'home');
@@ -3544,12 +3600,6 @@
                   this.clearDownstream(i);
                 }
               }
-            } else {
-              if (m.home || m.away) {
-                m.home = null;
-                m.away = null;
-                this.clearDownstream(i);
-              }
             }
           }
           this.saveBracket();
@@ -3570,13 +3620,18 @@
 
         // ── SELECT WINNER ──
         selectWinner(matchId, side) {
+          if (!this._requireBracketAuth()) return;
+          if (!arePredictionsComplete()) {
+            showToast(getBracketUnlockMessage(), 'warning');
+            return;
+          }
           const m = this.matches[matchId];
           if (!m.home || !m.away) return;
 
           // Toggle off if already picked
           if (m.winner === side) {
             this.clearDownstream(matchId);
-            this.renderBracket();
+            this.refreshBracketAfterChange(matchId);
             this.renderProgress();
             this.updateChampionDisplay();
             this.saveBracket();
@@ -3585,10 +3640,10 @@
 
           m.winner = side;
           const winnerTeam = m[side];
-          this.propagateWinner(matchId, winnerTeam, true);
-          this.renderBracket();
+          this.propagateWinner(matchId, winnerTeam, false);
+          this.refreshBracketAfterChange(matchId);
+          this.updateChampionDisplay(winnerTeam);
           this.renderProgress();
-          this.updateChampionDisplay();
           this.saveBracket();
         }
 
@@ -3622,6 +3677,7 @@
 
         // ── SELECT TEAM FOR SLOT (R32 dropdown) ──
         selectTeamForSlot(matchId, side, team) {
+          if (!this._requireBracketAuth()) return;
           if (matchId < 16 && !arePredictionsComplete()) {
             showToast('Complete your predictions in the Prediction Center (group rankings + confirm the 8 third-place qualifiers) to unlock the knockout bracket.', 'error');
             return;
@@ -3635,13 +3691,67 @@
           m[side] = team;
           this.clearDownstream(matchId);
           this.closeAllDropdowns();
-          this.renderBracket();
+          this.refreshBracketAfterChange(matchId);
           this.renderProgress();
           this.saveBracket();
         }
 
+        getBracketChainFrom(matchId) {
+          const ids = [];
+          const visited = new Set();
+          const walk = (id) => {
+            if (id == null || id > 30 || visited.has(id)) return;
+            visited.add(id);
+            ids.push(id);
+            const dest = this.getDestination(id);
+            if (dest) walk(dest.id);
+          };
+          walk(matchId);
+          return ids;
+        }
+
+        replaceSlotInMatch(matchId, side) {
+          const matchEl = document.getElementById(`bp-match-${matchId}`);
+          if (!matchEl) return false;
+          const oldSlot = matchEl.querySelector(`.bp-slot[data-side="${side}"]`);
+          if (!oldSlot) return false;
+          oldSlot.replaceWith(this.buildSlot(matchId, side));
+          return true;
+        }
+
+        refreshMatchElement(matchId) {
+          const matchEl = document.getElementById(`bp-match-${matchId}`);
+          if (!matchEl) return false;
+          const m = this.matches[matchId];
+          matchEl.classList.toggle('complete', !!m.winner);
+          return this.replaceSlotInMatch(matchId, 'home') && this.replaceSlotInMatch(matchId, 'away');
+        }
+
+        scheduleBracketAlign() {
+          if (this._alignFrame) cancelAnimationFrame(this._alignFrame);
+          this._alignFrame = requestAnimationFrame(() => {
+            this.alignMatchesAndDrawConnectors();
+            this._alignFrame = null;
+          });
+        }
+
+        refreshBracketAfterChange(matchId) {
+          const chain = this.getBracketChainFrom(matchId);
+          let needsFullRender = false;
+          chain.forEach(id => {
+            if (!this.refreshMatchElement(id)) needsFullRender = true;
+          });
+          if (needsFullRender) {
+            this.renderBracket();
+            return;
+          }
+          this.updateInteractiveState();
+          this.scheduleBracketAlign();
+        }
+
         // ── DROPDOWN ──
         toggleDropdown(slotEl, matchId, side) {
+          if (!this._requireBracketAuth()) return;
           if (matchId < 16 && !arePredictionsComplete()) {
             showToast('Complete your predictions in the Prediction Center (group rankings + confirm the 8 third-place qualifiers) to unlock the knockout bracket.', 'error');
             return;
@@ -3688,7 +3798,7 @@
               if (this._userOverrides) this._userOverrides.delete(`${matchId}-${side}`);
               this.clearDownstream(matchId);
               this.closeAllDropdowns();
-              this.renderBracket();
+              this.refreshBracketAfterChange(matchId);
               this.renderProgress();
               this.saveBracket();
             };
@@ -3808,11 +3918,9 @@
 
           this.updateInteractiveState();
           this.updateChampionDisplay();
+          this.updateBracketLockNotice();
 
-          // Wait a frame for DOM layout to complete, then align and draw connectors
-          setTimeout(() => {
-            this.alignMatchesAndDrawConnectors();
-          }, 0);
+          this.scheduleBracketAlign();
         }
 
         buildRoundCol(title, matchIds) {
@@ -3863,17 +3971,37 @@
           return col;
         }
 
+        updateBracketLockNotice() {
+          const notice = document.getElementById('bp-lock-notice');
+          if (!notice) return;
+          const locked = !arePredictionsComplete();
+          notice.style.display = locked ? '' : 'none';
+          if (locked) {
+            notice.textContent = getBracketUnlockMessage();
+          }
+        }
+
         buildSlot(matchId, side) {
+          const predictionsLocked = !arePredictionsComplete();
           const m = this.matches[matchId];
-          const team = m[side];
+          const team = predictionsLocked ? null : m[side];
           const slot = document.createElement('div');
           slot.className = 'bp-slot';
           slot.dataset.matchId = matchId;
           slot.dataset.side = side;
-          const r32Locked = matchId < 16 && !arePredictionsComplete();
-          if (r32Locked) {
-            slot.classList.add('locked');
-            slot.title = 'Complete your predictions (group rankings + confirm the 8 third-place qualifiers) to unlock the knockout bracket.';
+
+          if (predictionsLocked) {
+            slot.classList.add('locked', 'empty');
+            slot.title = getBracketUnlockMessage();
+            const placeholder = document.createElement('span');
+            placeholder.className = 'bp-slot-placeholder';
+            placeholder.textContent = 'TBD';
+            slot.appendChild(placeholder);
+            slot.onclick = (e) => {
+              e.stopPropagation();
+              showToast(getBracketUnlockMessage(), 'warning');
+            };
+            return slot;
           }
 
           if (team) {
@@ -4275,10 +4403,194 @@
             champName.textContent = 'SELECT YOUR CHAMPION';
             champName.style.color = 'var(--text3)';
           }
+          this.updateDownloadButton();
+        }
+
+        updateDownloadButton() {
+          const btn = document.getElementById('bp-download-pdf');
+          if (!btn) return;
+          btn.disabled = false;
+        }
+
+        _preparePdfCapture(root) {
+          if (!root) return;
+          root.querySelectorAll('img').forEach(img => { img.crossOrigin = 'anonymous'; });
+        }
+
+        _addPdfPageDecorations(pdf, pageW, pageH, margin, hasChampion, champion, dateStr) {
+          pdf.setFontSize(11);
+          pdf.setTextColor(40, 40, 40);
+          pdf.text('Footy-Trivia — World Cup 2026 Bracket Prediction', margin, margin + 4);
+          pdf.setFontSize(9);
+          pdf.setTextColor(100, 100, 100);
+          const subline = hasChampion
+            ? `Champion: ${champion.name}  |  ${dateStr}`
+            : dateStr;
+          pdf.text(subline, margin, margin + 9);
+
+          if (!hasChampion) {
+            pdf.setFontSize(9);
+            pdf.setTextColor(220, 60, 60);
+            pdf.text(
+              'No champion selected. Pick a winner in the Final match.',
+              pageW - margin,
+              pageH - margin,
+              { align: 'right' }
+            );
+          }
+        }
+
+        _addCenteredChampionToPdf(pdf, champCanvas, pageW, pageH, margin, bracketBottomY = null) {
+          const champMaxW = 70;
+          const champScale = champMaxW / champCanvas.width;
+          const champW = champMaxW;
+          const champH = champCanvas.height * champScale;
+          const champX = (pageW - champW) / 2;
+          let champY;
+          if (bracketBottomY !== null) {
+            const spaceBelow = pageH - margin - bracketBottomY;
+            champY = bracketBottomY + Math.max(4, (spaceBelow - champH) / 2);
+          } else {
+            champY = (pageH - champH) / 2;
+          }
+          pdf.addImage(
+            champCanvas.toDataURL('image/png'),
+            'PNG',
+            champX,
+            champY,
+            champW,
+            champH
+          );
+        }
+
+        async downloadPdf() {
+          if (!this._requireBracketAuth()) return;
+          if (typeof html2canvas === 'undefined' || typeof jspdf === 'undefined') {
+            showToast('PDF libraries failed to load. Please refresh the page.', 'error');
+            return;
+          }
+
+          const exportArea = document.getElementById('bp-export-area');
+          const wrapper = document.getElementById('bp-bracket-wrapper');
+          const champBox = document.getElementById('bp-champion-box');
+          if (!exportArea || !wrapper) return;
+
+          const hasChampion = !!this.matches[30].winner;
+          const champion = hasChampion ? this.matches[30][this.matches[30].winner] : null;
+          showToast('Generating PDF...', 'info');
+
+          const savedWrapperOverflow = wrapper.style.overflow;
+          const savedWrapperWidth = wrapper.style.width;
+          const savedExportOverflow = exportArea.style.overflow;
+
+          this.closeAllDropdowns();
+          exportArea.classList.add('bp-export-capturing');
+
+          this._preparePdfCapture(wrapper);
+          if (hasChampion && champBox) this._preparePdfCapture(champBox);
+
+          wrapper.style.overflow = 'visible';
+          wrapper.style.width = wrapper.scrollWidth + 'px';
+          exportArea.style.overflow = 'visible';
+
+          await new Promise(r => setTimeout(r, 50));
+          this.alignMatchesAndDrawConnectors();
+          await new Promise(r => setTimeout(r, 100));
+
+          try {
+            const bracketCanvas = await html2canvas(wrapper, {
+              width: wrapper.scrollWidth,
+              height: wrapper.scrollHeight,
+              scale: 2,
+              useCORS: true,
+              backgroundColor: getComputedStyle(document.body).backgroundColor,
+            });
+
+            let champCanvas = null;
+            if (hasChampion && champBox) {
+              champCanvas = await html2canvas(champBox, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: null,
+              });
+            }
+
+            const { jsPDF } = jspdf;
+            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const pageW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+            const margin = 8;
+            const headerH = 14;
+            const footerH = hasChampion ? 0 : 10;
+            const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+            this._addPdfPageDecorations(pdf, pageW, pageH, margin, hasChampion, champion, dateStr);
+
+            const imgW = pageW - margin * 2;
+            const champReserveH = hasChampion ? 42 : 0;
+            const imgAreaH = pageH - margin * 2 - headerH - footerH - champReserveH;
+            const scale = imgW / bracketCanvas.width;
+            const scaledH = bracketCanvas.height * scale;
+            let lastBracketBottomY = margin + headerH;
+
+            if (scaledH <= imgAreaH) {
+              const imgData = bracketCanvas.toDataURL('image/png');
+              const yOffset = margin + headerH + (imgAreaH - scaledH) / 2;
+              pdf.addImage(imgData, 'PNG', margin, yOffset, imgW, scaledH);
+              lastBracketBottomY = yOffset + scaledH;
+              if (hasChampion && champCanvas) {
+                this._addCenteredChampionToPdf(pdf, champCanvas, pageW, pageH, margin, lastBracketBottomY);
+              }
+            } else {
+              const sliceCanvasH = Math.floor(imgAreaH / scale);
+              let srcY = 0;
+              let pageNum = 0;
+              while (srcY < bracketCanvas.height) {
+                if (pageNum > 0) {
+                  pdf.addPage('a4', 'landscape');
+                  this._addPdfPageDecorations(pdf, pageW, pageH, margin, hasChampion, champion, dateStr);
+                }
+                const sliceH = Math.min(sliceCanvasH, bracketCanvas.height - srcY);
+                const sliceCanvas = document.createElement('canvas');
+                sliceCanvas.width = bracketCanvas.width;
+                sliceCanvas.height = sliceH;
+                const ctx = sliceCanvas.getContext('2d');
+                ctx.drawImage(bracketCanvas, 0, srcY, bracketCanvas.width, sliceH, 0, 0, bracketCanvas.width, sliceH);
+                const sliceData = sliceCanvas.toDataURL('image/png');
+                const sliceScaledH = sliceH * scale;
+                const yOffset = margin + headerH;
+                pdf.addImage(sliceData, 'PNG', margin, yOffset, imgW, sliceScaledH);
+                lastBracketBottomY = yOffset + sliceScaledH;
+                srcY += sliceH;
+                pageNum++;
+              }
+              if (hasChampion && champCanvas) {
+                pdf.addPage('a4', 'landscape');
+                this._addPdfPageDecorations(pdf, pageW, pageH, margin, hasChampion, champion, dateStr);
+                this._addCenteredChampionToPdf(pdf, champCanvas, pageW, pageH, margin);
+              }
+            }
+
+            const slug = hasChampion
+              ? champion.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+              : 'incomplete';
+            pdf.save(`footytrivia-bracket-2026-${slug}.pdf`);
+            showToast('Bracket PDF downloaded!', 'success');
+          } catch (err) {
+            console.error('PDF export failed:', err);
+            showToast('Failed to generate PDF. Please try again.', 'error');
+          } finally {
+            wrapper.style.overflow = savedWrapperOverflow;
+            wrapper.style.width = savedWrapperWidth;
+            exportArea.style.overflow = savedExportOverflow;
+            exportArea.classList.remove('bp-export-capturing');
+            this.alignMatchesAndDrawConnectors();
+          }
         }
 
         // ── RESET ──
         reset() {
+          if (!this._requireBracketAuth()) return;
           if (!confirm('Reset the entire knockout bracket?')) return;
           this.matches.forEach(m => { m.home = null; m.away = null; m.winner = null; });
           localStorage.removeItem(this.storageKey);
@@ -4292,6 +4604,7 @@
         }
 
         submit() {
+          if (!this._requireBracketAuth()) return;
           const incomplete = this.matches.find(m => !m.winner);
           if (incomplete) {
             showToast('Please complete all fixture predictions before submitting!', 'error');
@@ -4305,8 +4618,6 @@
       let filteredPlayers = [];
       let analyticsSortCol = 'rating';
       let analyticsSortAsc = false;
-      let analyticsCurrentPage = 1;
-      const analyticsPageSize = 15;
       let activeVisTab = 'scatter'; // 'scatter' or 'teams'
       let canvasMouseHandlerSet = false;
       let hoveredPlayer = null;
@@ -4477,7 +4788,7 @@
         populateTeamDropdown();
         
         document.getElementById('wc-analytics-search').value = '';
-        document.getElementById('wc-analytics-tournament').value = 'wc2026';
+        hideAnalyticsSearchSuggestions();
         document.getElementById('wc-analytics-group').value = 'all';
         document.getElementById('wc-analytics-team').value = 'all';
         document.getElementById('wc-analytics-position').value = 'all';
@@ -4518,12 +4829,66 @@
           return true;
         });
         
-        analyticsCurrentPage = 1;
         sortAnalyticsDataArray(analyticsSortCol, false);
         updateOverviewStats();
         updateAdvancedLeaderboards();
         drawAnalyticsChart();
-        renderAnalyticsTable();
+      }
+
+      function getShortPlayerName(name) {
+        const parts = name.trim().split(/\s+/);
+        return parts.length > 1 ? parts[parts.length - 1] : name;
+      }
+
+      function onAnalyticsSearchInput() {
+        updateAnalyticsSearchSuggestions();
+        filterAnalyticsData();
+      }
+
+      function updateAnalyticsSearchSuggestions() {
+        const input = document.getElementById('wc-analytics-search');
+        const list = document.getElementById('wc-analytics-search-suggestions');
+        if (!input || !list) return;
+
+        const q = input.value.trim().toLowerCase();
+        if (!q) {
+          list.innerHTML = '';
+          list.style.display = 'none';
+          return;
+        }
+
+        enrichPlayerStats();
+        const matches = window.WC_PLAYERS.filter(p =>
+          p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q)
+        ).slice(0, 8);
+
+        if (matches.length === 0) {
+          list.innerHTML = '<div class="wc-search-suggestion-empty">No players found</div>';
+        } else {
+          list.innerHTML = matches.map(p => `
+            <button type="button" class="wc-search-suggestion" onmousedown="selectAnalyticsPlayer('${p.name.replace(/'/g, "\\'")}')">
+              <span class="wc-search-suggestion-name">${p.name}</span>
+              <span class="wc-search-suggestion-team">${p.team}</span>
+            </button>
+          `).join('');
+        }
+        list.style.display = 'block';
+      }
+
+      function hideAnalyticsSearchSuggestions() {
+        setTimeout(() => {
+          const list = document.getElementById('wc-analytics-search-suggestions');
+          if (list) list.style.display = 'none';
+        }, 150);
+      }
+
+      function selectAnalyticsPlayer(name) {
+        const input = document.getElementById('wc-analytics-search');
+        if (input) input.value = name;
+        hideAnalyticsSearchSuggestions();
+        filterAnalyticsData();
+        hoveredPlayer = filteredPlayers.find(p => p.name === name) || null;
+        drawAnalyticsChart();
       }
 
       function sortAnalyticsDataArray(colName, toggle = true) {
@@ -4553,11 +4918,6 @@
             return analyticsSortAsc ? valA - valB : valB - valA;
           }
         });
-      }
-
-      function sortAnalyticsTable(colName) {
-        sortAnalyticsDataArray(colName, true);
-        renderAnalyticsTable();
       }
 
       function updateOverviewStats() {
@@ -4713,95 +5073,6 @@
             }
           });
         });
-      }
-
-      function renderAnalyticsTable() {
-        const tbody = document.getElementById('wc-analytics-table-body');
-        if (!tbody) return;
-        
-        const countLabel = document.getElementById('table-results-count');
-        if (countLabel) countLabel.textContent = `Showing ${filteredPlayers.length} players`;
-        
-        const totalItems = filteredPlayers.length;
-        const totalPages = Math.ceil(totalItems / analyticsPageSize) || 1;
-        
-        if (analyticsCurrentPage > totalPages) analyticsCurrentPage = totalPages;
-        if (analyticsCurrentPage < 1) analyticsCurrentPage = 1;
-        
-        const paginationInfo = document.getElementById('pagination-info');
-        if (paginationInfo) paginationInfo.textContent = `Showing page ${analyticsCurrentPage} of ${totalPages}`;
-        
-        const prevBtn = document.getElementById('btn-pagination-prev');
-        const nextBtn = document.getElementById('btn-pagination-next');
-        if (prevBtn) prevBtn.disabled = (analyticsCurrentPage === 1);
-        if (nextBtn) nextBtn.disabled = (analyticsCurrentPage === totalPages);
-        
-        const start = (analyticsCurrentPage - 1) * analyticsPageSize;
-        const pageItems = filteredPlayers.slice(start, start + analyticsPageSize);
-        
-        tbody.innerHTML = '';
-        
-        if (pageItems.length === 0) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="17" style="text-align:center;color:var(--text3);padding:2rem;">No players found matching current filters.</td>
-            </tr>
-          `;
-          return;
-        }
-        
-        pageItems.forEach((p, idx) => {
-          const rank = start + idx + 1;
-          const flag = getLeaderboardFlagImg(p.team);
-          
-          const tr = document.createElement('tr');
-          tr.className = 'wc-table-row';
-          tr.style.cursor = 'pointer';
-          tr.onclick = () => openPlayerProfileModal(p.name);
-          
-          tr.innerHTML = `
-            <td style="text-align:center;color:var(--text3);font-size:0.8rem;">${rank}</td>
-            <td>
-              <div style="display:flex;align-items:center;gap:0.4rem;font-weight:600;">
-                ${flag} <span>${p.name}</span>
-              </div>
-            </td>
-            <td style="font-size:0.8rem;color:var(--text2);">${p.team}</td>
-            <td style="font-size:0.8rem;"><span class="wc-badge badge-${p.pos.toLowerCase()}">${p.pos}</span></td>
-            <td style="text-align:center;font-weight:700;color:var(--gold);">${p.rating.toFixed(1)}</td>
-            <td style="text-align:center;">${p.appearances}</td>
-            <td style="text-align:center;color:var(--text2);font-size:0.8rem;">${p.minutesPlayed}</td>
-            <td style="text-align:center;font-weight:700;color:var(--gold);">${p.goals}</td>
-            <td style="text-align:center;font-weight:700;color:var(--gold);">${p.assists}</td>
-            <td style="text-align:center;font-size:0.8rem;color:var(--text2);">${p.shots} (${p.shotsOnTarget})</td>
-            <td style="text-align:center;">${p.keyPasses}</td>
-            <td style="text-align:center;color:var(--text2);">${p.passAccuracy}%</td>
-            <td style="text-align:center;">${p.successfulDribbles}</td>
-            <td style="text-align:center;">${p.tackles}</td>
-            <td style="text-align:center;color:var(--green);font-weight:600;">${p.cleanSheets}</td>
-            <td style="text-align:center;color:var(--accent);">${p.saves}</td>
-            <td style="text-align:center;">
-              <span style="color:#facc15;">${p.yellowCards}🟨</span>
-              ${p.redCards > 0 ? '<span style="color:#ef4444;margin-left:4px;">1🟥</span>' : ''}
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-
-      function prevAnalyticsPage() {
-        if (analyticsCurrentPage > 1) {
-          analyticsCurrentPage--;
-          renderAnalyticsTable();
-        }
-      }
-
-      function nextAnalyticsPage() {
-        const totalPages = Math.ceil(filteredPlayers.length / analyticsPageSize) || 1;
-        if (analyticsCurrentPage < totalPages) {
-          analyticsCurrentPage++;
-          renderAnalyticsTable();
-        }
       }
 
       function openPlayerProfileModal(playerName) {
@@ -5006,9 +5277,11 @@
         const padYRange = maxY - minY;
         
         const marginLeft = 55;
-        const marginRight = 25;
+        const marginRight = 15;
         const marginTop = 20;
         const marginBottom = 40;
+        const searchQuery = (document.getElementById('wc-analytics-search')?.value || '').trim().toLowerCase();
+        const useFullNames = searchQuery.length > 0 && filteredPlayers.length <= 12;
         
         const plotW = w - marginLeft - marginRight;
         const plotH = h - marginTop - marginBottom;
@@ -5094,6 +5367,22 @@
             ctx.strokeStyle = color + '44';
             ctx.lineWidth = 3;
             ctx.stroke();
+          }
+
+          {
+            const label = isHovered || useFullNames ? p.name : getShortPlayerName(p.name);
+            const labelX = px + (isHovered ? 10 : 7);
+            const labelY = py + (isHovered ? 4 : 3);
+            ctx.font = isHovered ? 'bold 10px var(--font-ui), sans-serif' : '9px var(--font-ui), sans-serif';
+            const textW = ctx.measureText(label).width;
+
+            ctx.fillStyle = 'rgba(15, 16, 19, 0.75)';
+            ctx.fillRect(labelX - 2, labelY - 9, textW + 4, 12);
+
+            ctx.fillStyle = isHovered ? '#ffffff' : 'rgba(229, 231, 235, 0.9)';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, labelX, labelY - 3);
           }
         });
       }
@@ -5321,18 +5610,63 @@
       window.updateScatterPlot = updateScatterPlot;
       window.onGroupFilterChange = onGroupFilterChange;
       window.filterAnalyticsData = filterAnalyticsData;
-      window.sortAnalyticsTable = sortAnalyticsTable;
-      window.prevAnalyticsPage = prevAnalyticsPage;
-      window.nextAnalyticsPage = nextAnalyticsPage;
+      window.onAnalyticsSearchInput = onAnalyticsSearchInput;
+      window.hideAnalyticsSearchSuggestions = hideAnalyticsSearchSuggestions;
+      window.selectAnalyticsPlayer = selectAnalyticsPlayer;
       window.openPlayerProfileModal = openPlayerProfileModal;
       window.closePlayerProfileModal = closePlayerProfileModal;
       window.initAnalyticsTab = initAnalyticsTab;
       window.switchWCTab = switchWCTab;
+      window.requireLoginForPredictions = requireLoginForPredictions;
+
+      function requireLoginForBracket() {
+        if (state.user) return true;
+        showToast('Please log in to use the Knockout Bracket Predictor.', 'warning');
+        openModal('login');
+        return false;
+      }
+
+      function requireLoginForPredictions() {
+        if (state.user) return true;
+        showToast('Please log in or sign up to make predictions.', 'warning');
+        openModal('login');
+        return false;
+      }
+
+      function updatePredictionCenterAuthUI() {
+        const predictionsTab = document.getElementById('wc-predictions');
+        const notice = document.getElementById('wc-predictions-guest-notice');
+        const isGuest = !state.user;
+        if (predictionsTab) {
+          predictionsTab.classList.toggle('wc-predictions-guest', isGuest);
+        }
+        if (notice) {
+          notice.style.display = isGuest ? '' : 'none';
+        }
+        if (predictionsTab && predictionsTab.style.display !== 'none') {
+          renderGroupPredictions();
+          renderMatchPredictions();
+          updateAwardsDisplay();
+          const thirdPanel = document.getElementById('third-place-selection-panel');
+          if (thirdPanel && thirdPanel.style.display !== 'none') {
+            renderThirdPlaceSelection();
+          }
+        }
+        const selectorModal = document.getElementById('wc-selector-modal');
+        if (selectorModal && selectorModal.style.display === 'flex') {
+          renderSelectorGrid();
+        }
+      }
 
       const bracketPredictor = new BracketPredictor();
       window.bracketPredictor = bracketPredictor;
       let bracketInitialized = false;
       function switchWCTab(tabId, btnElement) {
+        if (tabId === 'bracket' && !requireLoginForBracket()) {
+          const dashboardBtn = document.querySelector('.wc-tab[onclick*="\'dashboard\'"]');
+          switchWCTab('dashboard', dashboardBtn);
+          return;
+        }
         document.querySelectorAll('.wc-tab-content').forEach(el => el.style.display = 'none');
         document.querySelectorAll('.wc-tab').forEach(el => el.classList.remove('active'));
         const target = document.getElementById('wc-' + tabId);
@@ -5348,6 +5682,7 @@
           updateAwardsDisplay();
           updatePredictorProfile();
           renderBestThirdPlacedTable();
+          updatePredictionCenterAuthUI();
         } else if (tabId === 'bracket') {
           if (!bracketInitialized) {
             bracketPredictor.init();

@@ -3299,7 +3299,7 @@
     .wc-tier-gold { background: linear-gradient(45deg, var(--gold), #f59e0b); color: #000; }
 
 /* ── BRACKET PREDICTION — SYMMETRIC TEMPLATE ── */
-    .bp-bracket-wrapper { display: flex; align-items: stretch; overflow-x: auto; overflow-y: visible; padding: 1rem 0 2rem; scrollbar-width: thin; scrollbar-color: var(--border) transparent; gap: 3.5rem; position: relative; width: 100%; max-width: 100%; margin: 0; justify-content: flex-start; }
+    .bp-bracket-wrapper { display: flex; align-items: stretch; overflow-x: auto; overflow-y: visible; padding: 1rem 0 2rem; scrollbar-width: thin; scrollbar-color: var(--border) transparent; scrollbar-gutter: stable; gap: 3.5rem; position: relative; width: 100%; max-width: 100%; margin: 0; justify-content: flex-start; min-height: 1900px; contain: layout style; }
     .bp-bracket-half { display: flex; flex: 0 0 auto; gap: 3.5rem; }
     .bp-bracket-half.right { flex-direction: row; }
     .bp-bracket-center { display: flex; flex-direction: column; align-items: stretch; min-width: 200px; flex-shrink: 0; position: relative; gap: 1rem; }
@@ -3338,7 +3338,7 @@
       background: var(--surface);
       border: 2px dashed var(--border);
       border-radius: var(--r-lg);
-      transition: all 0.4s ease;
+      transition: border-color 0.4s ease, background 0.4s ease, box-shadow 0.4s ease;
       z-index: 10;
       width: 200px;
       height: 200px;
@@ -3353,6 +3353,25 @@
     .bp-champion-label { font-family: var(--font-display); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text2); margin: 0; line-height: 1.3; }
     .bp-champion-flag { font-size: 2.2rem; line-height: 1; }
     .bp-champion-name { font-family: var(--font-display); font-size: 1.05rem; font-weight: 800; color: var(--gold); text-transform: uppercase; line-height: 1.2; }
+    .bp-lock-notice {
+      margin-bottom: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: var(--r);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      background: rgba(245, 158, 11, 0.08);
+      color: var(--text2);
+      font-size: 0.88rem;
+      line-height: 1.45;
+      text-align: center;
+    }
+    .bp-champion-row {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    #bp-export-area { width: 100%; }
+    .bp-export-capturing .bp-slot-edit { display: none !important; }
     .bp-progress { display: none !important; }
     .bp-progress-step { font-size: 0.7rem; padding: 0.3rem 0.6rem; border-radius: 20px; background: var(--surface2); color: var(--text3); font-weight: 600; border: 1px solid var(--border); transition: all var(--transition); }
     .bp-progress-step.done { background: var(--success); color: #fff; border-color: var(--success); }
@@ -3369,6 +3388,25 @@
     /* Removed @media max-width 1100px bp-round stacking */
 
     /* ── DYNAMIC GROUP RANKINGS & STANDINGS ── */
+    .wc-predictions-guest-notice {
+      margin-bottom: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: var(--r);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      background: rgba(59, 130, 246, 0.08);
+      color: var(--text2);
+      font-size: 0.88rem;
+      line-height: 1.45;
+      text-align: center;
+    }
+    .wc-predictions-guest-notice a {
+      color: var(--gold);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .wc-predictions-guest-notice a:hover { text-decoration: underline; }
+    #wc-predictions.wc-predictions-guest .wc-reorder-item { cursor: default; }
+    #wc-predictions.wc-predictions-guest .wc-reorder-item:active { cursor: default; background: var(--surface2); }
     .wc-reorder-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
     .wc-reorder-item { display: flex; align-items: center; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r); padding: 0.6rem 0.75rem; gap: 0.75rem; cursor: grab; user-select: none; transition: all var(--transition); }
     .wc-reorder-item:active { cursor: grabbing; background: var(--surface-hover); }
@@ -3972,6 +4010,82 @@
     .wc-table-row { transition: background 0.15s; }
     .wc-table-row:hover { background: var(--surface2) !important; }
     #wc-analytics-chart { cursor: crosshair; }
+
+    .wc-analytics-search-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 320px;
+    }
+    .wc-analytics-search-wrap input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+      color: var(--text);
+      font-size: 0.85rem;
+      outline: none;
+      font-family: var(--font-ui);
+    }
+    .wc-analytics-search-wrap input:focus {
+      border-color: var(--gold);
+    }
+    .wc-analytics-search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text3);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+    .wc-analytics-suggestions {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      z-index: 50;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .wc-search-suggestion {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-family: var(--font-ui);
+      font-size: 0.82rem;
+      text-align: left;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border2);
+    }
+    .wc-search-suggestion:last-child { border-bottom: none; }
+    .wc-search-suggestion:hover,
+    .wc-search-suggestion:focus {
+      background: var(--surface2);
+      outline: none;
+    }
+    .wc-search-suggestion-name { font-weight: 600; }
+    .wc-search-suggestion-team {
+      font-size: 0.72rem;
+      color: var(--text3);
+      white-space: nowrap;
+    }
+    .wc-search-suggestion-empty {
+      padding: 0.75rem;
+      color: var(--text3);
+      font-size: 0.8rem;
+      text-align: center;
+    }
     
     @media (max-width: 900px) {
       .wc-analytics-grid-vis {

@@ -19,3 +19,6 @@ services:
         sync: false
       - key: BREVO_SENDER
         sync: false
+      # Ably realtime (required for multiplayer Battle rooms).
+      - key: ABLY_API_KEY
+        sync: false
