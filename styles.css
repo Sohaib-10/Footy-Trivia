@@ -2572,6 +2572,38 @@
       border-color: var(--border-hover);
     }
 
+    .password-field-wrap {
+      position: relative;
+    }
+
+    .password-field-wrap .form-input {
+      padding-right: 2.75rem;
+    }
+
+    .password-toggle-btn {
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      line-height: 1;
+      opacity: 0.65;
+      padding: 0.25rem;
+      color: var(--text2);
+      transition: opacity var(--transition);
+    }
+
+    .password-toggle-btn:hover {
+      opacity: 1;
+    }
+
+    .toast.auth-wait-toast {
+      border-left: 2px solid var(--gold);
+    }
+
     .form-divider {
       display: flex;
       align-items: center;

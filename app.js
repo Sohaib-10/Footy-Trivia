@@ -935,6 +935,8 @@
         showToast('Sound ON', 'info');
       }
       // ────────────────────────── a•a•a•a•a•a• TOAST a•a•a•a•a•a•a•
+      let authWaitToast = null;
+
       function showToast(msg, type = 'info') {
         const container = document.getElementById('toast-container');
         if (!container) return;
@@ -949,6 +951,65 @@
           toast.style.transition = 'all .3s';
           setTimeout(() => toast.remove(), 300);
         }, 3000);
+      }
+
+      function showPleaseWait(msg = 'Please wait…') {
+        hidePleaseWait();
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        authWaitToast = document.createElement('div');
+        authWaitToast.className = 'toast info auth-wait-toast';
+        authWaitToast.innerHTML = `<span>⏳</span> <span>${msg}</span>`;
+        container.appendChild(authWaitToast);
+      }
+
+      function hidePleaseWait() {
+        if (authWaitToast) {
+          authWaitToast.remove();
+          authWaitToast = null;
+        }
+      }
+
+      function authPasswordField(id, placeholder, extraAttrs = '') {
+        return `
+            <div class="password-field-wrap">
+              <input type="password" id="${id}" class="form-input" required placeholder="${placeholder}" ${extraAttrs}>
+              <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('${id}', this)" aria-label="Show password" title="Show password">👁</button>
+            </div>`;
+      }
+
+      function togglePasswordVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (!input || !btn) return;
+        const revealing = input.type === 'password';
+        input.type = revealing ? 'text' : 'password';
+        btn.textContent = revealing ? '🙈' : '👁';
+        const label = revealing ? 'Hide password' : 'Show password';
+        btn.setAttribute('aria-label', label);
+        btn.title = label;
+      }
+
+      function setupAuthModal() {
+        const form = document.querySelector('#modal-content form');
+        if (!form) return;
+        const passwordInput = form.querySelector('#auth-password, #auth-new-password');
+        if (passwordInput) {
+          passwordInput.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') {
+              ev.preventDefault();
+              if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+              } else {
+                form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+              }
+            }
+          });
+        }
+      }
+
+      function setAuthSubmitting(form, isSubmitting) {
+        const btn = form && form.querySelector('button[type="submit"]');
+        if (btn) btn.disabled = isSubmitting;
       }
       // ──────────────────────────  a• a• a• a• a• a•  COUNTDOWN TIMER a• a• a• a• a• a• a• 
       function updateCountdown() {
@@ -1525,7 +1586,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">PASSWORD</label>
-              <input type="password" id="auth-password" class="form-input" required placeholder="••••••••">
+              ${authPasswordField('auth-password', '••••••••')}
             </div>
             <div style="text-align:right;margin-top:0.35rem">
               <a onclick="openModal('forgot')" style="font-size:0.8rem;cursor:pointer">Forgot password?</a>
@@ -1560,7 +1621,7 @@
             <input type="hidden" id="auth-reset-token" value="">
             <div class="form-group">
               <label class="form-label">NEW PASSWORD</label>
-              <input type="password" id="auth-new-password" class="form-input" required minlength="8" placeholder="At least 8 characters">
+              ${authPasswordField('auth-new-password', 'At least 8 characters', 'minlength="8"')}
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center">Update Password</button>
           </form>
@@ -1600,7 +1661,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">PASSWORD</label>
-              <input type="password" id="auth-password" class="form-input" required minlength="8" placeholder="At least 8 characters">
+              ${authPasswordField('auth-password', 'At least 8 characters', 'minlength="8"')}
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center">Sign Up</button>
           </form>
@@ -1609,9 +1670,11 @@
           </div>
         `;
         }
+        setupAuthModal();
         overlay.classList.add('show');
       }
       function closeModal() {
+        hidePleaseWait();
         const overlay = document.getElementById('modal-overlay');
         if (overlay) {
           overlay.classList.remove('show');
@@ -1632,7 +1695,9 @@
         const email = document.getElementById('auth-email').value.trim();
         const password = document.getElementById('auth-password').value;
         if (!username || !email || !password) return;
-        
+
+        showPleaseWait();
+        setAuthSubmitting(e.target, true);
         try {
           const registerRes = await fetch(`${API_BASE_URL}/api/auth/register`, {
             method: 'POST',
@@ -1651,6 +1716,9 @@
         } catch (err) {
           console.error(err);
           showToast(err.message || 'Registration failed', 'error');
+        } finally {
+          hidePleaseWait();
+          setAuthSubmitting(e.target, false);
         }
       }
 
@@ -1659,7 +1727,9 @@
         const email = document.getElementById('auth-email').value.trim();
         const password = document.getElementById('auth-password').value;
         if (!email || !password) return;
-        
+
+        showPleaseWait();
+        setAuthSubmitting(e.target, true);
         try {
           const userObj = await completeLogin(email, password);
           closeModal();
@@ -1667,6 +1737,9 @@
         } catch (err) {
           console.error(err);
           showToast(err.message || 'Login failed', 'error');
+        } finally {
+          hidePleaseWait();
+          setAuthSubmitting(e.target, false);
         }
       }
 
@@ -6420,6 +6493,7 @@
       }
 
       window.openModal = openModal;
+      window.togglePasswordVisibility = togglePasswordVisibility;
       window.mockForgotPassword = mockForgotPassword;
       window.mockResetPassword = mockResetPassword;
       window.mockResendVerification = mockResendVerification;
