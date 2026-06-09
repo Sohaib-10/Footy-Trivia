@@ -1710,7 +1710,15 @@
         </div>
 
         <!-- MATCHDAY TAB -->
-        <div id="wc-matchday" class="wc-tab-content" style="display:none">
+        <div id="wc-matchday" class="wc-tab-content wc-matchday-locked" style="display:none">
+          <div class="wc-matchday-overlay" id="wc-matchday-overlay">
+            <div class="wc-matchday-overlay-card">
+              <div class="wc-matchday-overlay-icon">🏟️</div>
+              <div class="wc-matchday-overlay-title">No live match ongoing</div>
+              <div class="wc-matchday-overlay-sub">Check back during matchdays to track live scores and stats.</div>
+            </div>
+          </div>
+          <div class="wc-matchday-content">
           <div class="wc-grid">
             <div class="wc-card" style="grid-column: 1 / -1;">
               <div class="wc-card-title">
@@ -1784,6 +1792,7 @@
               <!-- Last updated / status indicator -->
               <div id="live-match-status-text" style="font-size:0.72rem;color:var(--text3);text-align:center;margin-top:1rem;display:none"></div>
             </div>
+          </div>
           </div>
         </div>
 
