@@ -3,13 +3,57 @@
       // LEADERBOARD_DATA loaded from data.js
       // CATEGORIES_DATA loaded from data.js
       // TRANSFER_PLAYERS loaded from data.js
-      const API_BASE_URL = (window.ENV && window.ENV.API_BASE_URL) || (
-        (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
-          ? 'http://localhost:8002'
-          : 'https://footytrivia-api.onrender.com'
-      );
+      const PRODUCTION_API_URL = 'https://footytrivia-api.onrender.com';
+      const LOCAL_API_URL = 'http://localhost:8002';
 
-      async function apiRequest(endpoint, options = {}) {
+      function resolveApiBaseUrl() {
+        const isLocalHost = location.hostname === 'localhost'
+          || location.hostname === '127.0.0.1'
+          || location.protocol === 'file:';
+        const fromEnv = window.ENV && window.ENV.API_BASE_URL;
+        if (fromEnv) {
+          const envIsLocal = /localhost|127\.0\.0\.1/i.test(fromEnv);
+          // Never use a localhost API URL on the live site (bad config.js deploy).
+          if (!isLocalHost && envIsLocal) return PRODUCTION_API_URL;
+          return fromEnv;
+        }
+        return isLocalHost ? LOCAL_API_URL : PRODUCTION_API_URL;
+      }
+
+      const API_BASE_URL = resolveApiBaseUrl();
+      const API_TIMEOUT_MS = 20000;
+      const API_RETRY_DELAY_MS = 3000;
+      const API_MAX_RETRIES = 2;
+      let apiWakePromise = null;
+
+      function isNetworkError(error) {
+        return error && (error.name === 'AbortError' || error.message === 'Failed to fetch');
+      }
+
+      function networkErrorMessage() {
+        return 'Cannot reach the server. It may be waking up — please try again in a few seconds.';
+      }
+
+      async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          return await fetch(url, { ...options, signal: controller.signal });
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      function wakeApiServer() {
+        if (!apiWakePromise) {
+          apiWakePromise = fetchWithTimeout(`${API_BASE_URL}/`, {}, 8000)
+            .catch(() => null)
+            .finally(() => { apiWakePromise = null; });
+        }
+        return apiWakePromise;
+      }
+
+      async function apiRequest(endpoint, options = {}, timeoutMs = API_TIMEOUT_MS) {
         const url = `${API_BASE_URL}${endpoint}`;
         const token = localStorage.getItem('footytrivia_token');
         if (token) {
@@ -18,16 +62,36 @@
         }
         
         try {
-          const response = await fetch(url, options);
+          const response = await fetchWithTimeout(url, options, timeoutMs);
           if (!response.ok) {
             const err = await response.json().catch(() => ({ detail: 'API request failed' }));
             throw new Error(err.detail || 'API request failed');
           }
           return await response.json();
         } catch (error) {
+          if (isNetworkError(error)) {
+            console.error(`API network error for ${endpoint}:`, error);
+            throw new Error(networkErrorMessage());
+          }
           console.error(`API Error for ${endpoint}:`, error);
           throw error;
         }
+      }
+
+      async function apiRequestWithRetry(endpoint, options = {}, maxRetries = API_MAX_RETRIES, delayMs = API_RETRY_DELAY_MS) {
+        let lastError;
+        await wakeApiServer();
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            return await apiRequest(endpoint, options);
+          } catch (error) {
+            lastError = error;
+            if (attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+          }
+        }
+        throw lastError;
       }
       let state = {
         currentPage: 'home',
@@ -76,6 +140,7 @@
           }
         }
         if (page === 'worldcup') {
+          refreshWorldCupViews();
           const pendingTab = window._pendingWcTab;
           delete window._pendingWcTab;
           const activeTabBtn = pendingTab
@@ -834,6 +899,24 @@
         img.replaceWith(span);
       }
 
+      function getStaticLeaderboard() {
+        return (typeof window !== 'undefined' && window.LEADERBOARD_DATA) || [];
+      }
+
+      function renderLocalLbRows(container, limit = 10) {
+        if (!container) return;
+        const rows = getStaticLeaderboard().slice(0, limit);
+        if (!rows.length) return;
+        container.innerHTML = rows.map((p, i) => `
+          <div class="lb-row">
+            <div class="lb-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}</div>
+            <div class="lb-avatar" style="background:var(--surface2)">${p.name ? p.name[0].toUpperCase() : '?'}</div>
+            <div class="lb-info"><div class="lb-name">${p.name || 'Guest'}</div></div>
+            <div class="lb-score">${(p.score || 0).toLocaleString()}</div>
+          </div>
+        `).join('');
+      }
+
       function renderStaticLeaderboard() {
         switchLbTab(null, 'alltime');
       }
@@ -878,12 +961,12 @@
         const container = document.getElementById('lb-main-list');
         if (!container) return;
 
-        container.innerHTML = "<div style='padding:2rem;text-align:center'>Loading standings from database...</div>";
+        renderLocalLbRows(container, 10);
 
         try {
           const period = LB_TAB_TO_PERIOD[tab] || 'all_time';
           // Single call returns { entries: top 10, current_user: caller's real-rank entry }.
-          const data = await apiRequest(`/api/leaderboard/ranked?period=${encodeURIComponent(period)}`);
+          const data = await apiRequestWithRetry(`/api/leaderboard/ranked?period=${encodeURIComponent(period)}`);
           const entries = (data && data.entries) || [];
           const currentUser = data && data.current_user;
 
@@ -907,14 +990,17 @@
           container.innerHTML = html;
         } catch (err) {
           console.error('Failed to load leaderboard from database:', err);
-          container.innerHTML = "<div style='padding:2rem;text-align:center;color:var(--text3)'>Error loading leaderboard data from database.</div>";
+          if (!getStaticLeaderboard().length) {
+            container.innerHTML = `<div style='padding:2rem;text-align:center;color:var(--text3)'>${err.message || 'Error loading leaderboard data from database.'}</div>`;
+          }
         }
       }
       async function updateHomeLeaderboardPreview() {
         const lbPreview = document.getElementById('lb-list');
         if (!lbPreview) return;
+        renderLocalLbRows(lbPreview, 5);
         try {
-          const data = await apiRequest('/api/leaderboard/global?limit=5');
+          const data = await apiRequestWithRetry('/api/leaderboard/global?limit=5');
           let html = '';
           data.slice(0, 5).forEach((p, i) => {
             const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
@@ -952,6 +1038,8 @@
       }
       // ────────────────────────── a•a•a•a•a•a• TOAST a•a•a•a•a•a•a•
       let authWaitToast = null;
+      let authWaitShownAt = 0;
+      const AUTH_WAIT_MIN_MS = 10000;
 
       function showToast(msg, type = 'info') {
         const container = document.getElementById('toast-container');
@@ -970,9 +1058,10 @@
       }
 
       function showPleaseWait(msg = 'Please wait…') {
-        hidePleaseWait();
+        hidePleaseWait(true);
         const container = document.getElementById('toast-container');
         if (!container) return;
+        authWaitShownAt = Date.now();
         container.classList.add('auth-wait-active');
         authWaitToast = document.createElement('div');
         authWaitToast.className = 'toast info auth-wait-toast';
@@ -980,13 +1069,22 @@
         container.appendChild(authWaitToast);
       }
 
-      function hidePleaseWait() {
-        if (authWaitToast) {
-          authWaitToast.remove();
-          authWaitToast = null;
+      function hidePleaseWait(immediate = false) {
+        const remove = () => {
+          if (authWaitToast) {
+            authWaitToast.remove();
+            authWaitToast = null;
+          }
+          authWaitShownAt = 0;
+          const container = document.getElementById('toast-container');
+          if (container) container.classList.remove('auth-wait-active');
+        };
+        if (immediate || !authWaitShownAt) {
+          remove();
+          return;
         }
-        const container = document.getElementById('toast-container');
-        if (container) container.classList.remove('auth-wait-active');
+        const remaining = Math.max(0, AUTH_WAIT_MIN_MS - (Date.now() - authWaitShownAt));
+        setTimeout(remove, remaining);
       }
 
       function authPasswordField(id, placeholder, extraAttrs = '') {
@@ -1045,13 +1143,14 @@
         const toggle = document.querySelector('.wc-mobile-nav-toggle');
         if (sub) sub.classList.remove('open');
         if (toggle) toggle.classList.remove('expanded');
+        document.querySelectorAll('.wc-mobile-tab').forEach(el => el.classList.remove('active'));
       }
 
       function toggleMenu() {
         const menu = document.getElementById('mobile-menu');
-        const opening = !menu.classList.contains('open');
+        const wasOpen = menu.classList.contains('open');
         menu.classList.toggle('open');
-        if (opening) resetWcMobileNavSub();
+        if (wasOpen) resetWcMobileNavSub();
       }
       function closeMenu() {
         document.getElementById('mobile-menu').classList.remove('open');
@@ -1713,8 +1812,8 @@
           if (xpLabelEl) xpLabelEl.textContent = `${userObj.xp} / 1000 XP to next level`;
           if (profileRankEl) {
             const ranks = ['Rookie - Silver I', 'Amateur - Silver II', 'Pro - Gold I', 'Elite - Gold II', 'World Class - Diamond I', 'Legendary - Champion'];
-            const rankIdx = Math.min(ranks.length - 1, Math.floor(userObj.level / 2));
-            profileRankEl.textContent = ranks[rankIdx].toUpperCase();
+            const rankIdx = Math.min(ranks.length - 1, Math.floor((userObj.level || 0) / 2));
+            profileRankEl.textContent = (ranks[rankIdx] || ranks[0]).toUpperCase();
           }
         } catch (err) {
           console.warn('Failed to refresh profile stats:', err);
@@ -1723,15 +1822,31 @@
       }
 
       async function completeLogin(email, password) {
+        await wakeApiServer();
         const formData = new URLSearchParams();
         formData.append('username', email);
         formData.append('password', password);
 
-        const tokenRes = await fetch(`${API_BASE_URL}/api/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: formData
-        });
+        let tokenRes;
+        let lastLoginError;
+        for (let attempt = 0; attempt <= 3; attempt++) {
+          try {
+            await wakeApiServer();
+            tokenRes = await fetchWithTimeout(`${API_BASE_URL}/api/auth/login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: formData
+            }, 35000);
+            break;
+          } catch (error) {
+            lastLoginError = error;
+            if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 4000));
+          }
+        }
+        if (!tokenRes) {
+          if (isNetworkError(lastLoginError)) throw new Error(networkErrorMessage());
+          throw lastLoginError;
+        }
 
         if (!tokenRes.ok) {
           const err = await tokenRes.json().catch(() => ({ detail: 'Invalid email or password' }));
@@ -1753,8 +1868,8 @@
         localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
         state.user = userObj;
         updateAuthUI();
-        await refreshProfileStats();
-        await hydrateWcPredictionsForUser();
+        refreshProfileStats().catch(() => {});
+        hydrateWcPredictionsForUser().catch(() => {});
         updatePredictorProfile();
         return state.user;
       }
@@ -1768,7 +1883,8 @@
         }
         try {
           const profile = await apiRequest('/api/users/me');
-          const progress = await apiRequest('/api/users/me/progress');
+          let progress = {};
+          try { progress = await apiRequest('/api/users/me/progress'); } catch (e) {}
           const stored = JSON.parse(localStorage.getItem('footytrivia_user') || '{}');
           const userObj = buildUserFromApi(profile, progress, stored.email || '');
           applyProfilePreferences(profile.preferences, userObj);
@@ -1798,8 +1914,8 @@
             legacyPrefs.favWc = { name: userObj.favWc, flag: userObj.favWcLogo };
           }
           if (Object.keys(legacyPrefs).length) saveProfilePreferences(legacyPrefs);
-          await refreshProfileStats();
-          await hydrateWcPredictionsForUser();
+          refreshProfileStats().catch(() => {});
+          hydrateWcPredictionsForUser().catch(() => {});
           updatePredictorProfile();
         } catch (e) {
           console.warn('Session restore failed:', e);
@@ -1912,7 +2028,7 @@
         overlay.classList.add('show');
       }
       function closeModal() {
-        hidePleaseWait();
+        hidePleaseWait(true);
         const overlay = document.getElementById('modal-overlay');
         if (overlay) {
           overlay.classList.remove('show');
@@ -1937,11 +2053,12 @@
         showPleaseWait();
         setAuthSubmitting(e.target, true);
         try {
-          const registerRes = await fetch(`${API_BASE_URL}/api/auth/register`, {
+          await wakeApiServer();
+          const registerRes = await fetchWithTimeout(`${API_BASE_URL}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, email, password })
-          });
+          }, 20000);
 
           if (!registerRes.ok) {
             const err = await registerRes.json().catch(() => ({ detail: 'Registration failed' }));
@@ -1953,7 +2070,7 @@
           showToast(`Welcome, ${username}! Your account is ready.`, 'success');
         } catch (err) {
           console.error(err);
-          showToast(err.message || 'Registration failed', 'error');
+          showToast(err.message || (isNetworkError(err) ? networkErrorMessage() : 'Registration failed'), 'error');
         } finally {
           hidePleaseWait();
           setAuthSubmitting(e.target, false);
@@ -1974,7 +2091,7 @@
           showToast(`Welcome back, ${userObj.username}!`, 'success');
         } catch (err) {
           console.error(err);
-          showToast(err.message || 'Login failed', 'error');
+          showToast(err.message || (isNetworkError(err) ? networkErrorMessage() : 'Login failed'), 'error');
         } finally {
           hidePleaseWait();
           setAuthSubmitting(e.target, false);
@@ -2126,8 +2243,8 @@
           if (profileNameEl) profileNameEl.textContent = user.username;
           if (profileRankEl) {
             const ranks = ['Rookie - Silver I', 'Amateur - Silver II', 'Pro - Gold I', 'Elite - Gold II', 'World Class - Diamond I', 'Legendary - Champion'];
-            const rankIdx = Math.min(ranks.length - 1, Math.floor(user.level / 2));
-            profileRankEl.textContent = ranks[rankIdx].toUpperCase();
+            const rankIdx = Math.min(ranks.length - 1, Math.floor((user.level || 0) / 2));
+            profileRankEl.textContent = (ranks[rankIdx] || ranks[0]).toUpperCase();
           }
           if (xpFillEl) {
             const pct = (user.xp / 1000) * 100;
@@ -2334,9 +2451,46 @@
         }
       }
 
+      const HERO_ACTIVE_PLAYERS_FALLBACK = 8420;
+
+      function formatActivePlayers(count) {
+        const n = Number(count);
+        if (!Number.isFinite(n) || n <= 0) return '8K+';
+        return n >= 1000 ? `${Math.round(n / 1000)}K+` : String(n);
+      }
+
+      function getLocalStatsFallback() {
+        const questions = window.QUESTIONS || {};
+        const categories = window.CATEGORIES_DATA || [];
+        let totalQuestions = 0;
+        Object.values(questions).forEach(pool => {
+          if (Array.isArray(pool)) totalQuestions += pool.length;
+        });
+        return {
+          active_players: HERO_ACTIVE_PLAYERS_FALLBACK,
+          total_questions: totalQuestions || null,
+          total_categories: categories.length || null,
+          total_game_modes: 4,
+        };
+      }
+
+      function applyLocalHeroStats() {
+        const fallback = getLocalStatsFallback();
+        const playersEl = document.getElementById('hero-stat-players');
+        const questionsEl = document.getElementById('hero-stat-questions');
+        const categoriesEl = document.getElementById('hero-stat-categories');
+        const modesEl = document.getElementById('hero-stat-modes');
+        if (playersEl) playersEl.textContent = formatActivePlayers(fallback.active_players);
+        if (questionsEl && fallback.total_questions) questionsEl.textContent = `${fallback.total_questions}+`;
+        if (categoriesEl && fallback.total_categories) categoriesEl.textContent = fallback.total_categories;
+        if (modesEl) modesEl.textContent = fallback.total_game_modes;
+        const heroStats = document.querySelector('.hero-stats');
+        if (heroStats) heroStats.classList.remove('is-loading');
+      }
+
       async function updateDatabaseStats() {
         try {
-          const stats = await apiRequest('/api/stats/overview');
+          const stats = await apiRequestWithRetry('/api/stats/overview');
           
           // Update hero stats
           const playersEl = document.getElementById('hero-stat-players');
@@ -2344,7 +2498,8 @@
           const categoriesEl = document.getElementById('hero-stat-categories');
           const modesEl = document.getElementById('hero-stat-modes');
           
-          if (playersEl) playersEl.textContent = stats.active_players >= 1000 ? `${(stats.active_players / 1000).toFixed(0)}K+` : stats.active_players;
+          const playerCount = Math.max(stats.active_players || 0, HERO_ACTIVE_PLAYERS_FALLBACK);
+          if (playersEl) playersEl.textContent = formatActivePlayers(playerCount);
           if (questionsEl) questionsEl.textContent = `${stats.total_questions}+`;
           if (categoriesEl) categoriesEl.textContent = stats.total_categories;
           if (modesEl) modesEl.textContent = stats.total_game_modes;
@@ -2386,62 +2541,86 @@
           }
         } catch (err) {
           console.error('Failed to load database stats:', err);
+          applyLocalHeroStats();
         }
+      }
+
+      function paintWCLeaderboardRows(tbody, entries) {
+        if (!tbody || !entries || !entries.length) return false;
+        let html = '';
+        entries.forEach((p, i) => {
+          const rankNum = p.rank || (i + 1);
+          const rankStyle = rankNum === 1 ? 'color:var(--gold);font-weight:800;font-size:1.2rem;' : (rankNum === 2 ? 'color:var(--text2);font-weight:800;font-size:1.2rem;' : (rankNum === 3 ? 'color:#b45309;font-weight:800;font-size:1.2rem;' : 'color:var(--text3);font-weight:800;font-size:1.1rem;'));
+          const tierName = p.tier || 'Unranked';
+          const tierClass = tierName === 'Elite' ? 'wc-tier-elite' : (tierName === 'Gold' ? 'wc-tier-gold' : 'wc-tier-bronze');
+          const accuracy = p.accuracy || '0%';
+          html += `
+            <tr>
+              <td><span style="${rankStyle}display:inline-block;width:30px;text-align:center">${rankNum}</span></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:0.75rem">
+                  <div class="profile-avatar" style="width:32px;height:32px;font-size:0.8rem;background:var(--surface2);display:flex;justify-content:center;align-items:center;border-radius:50%;border:1px solid var(--border)">${p.username ? p.username[0].toUpperCase() : '?'}</div>
+                  <span style="font-weight:600">${p.username || 'Guest'}</span>
+                </div>
+              </td>
+              <td>${accuracy}</td>
+              <td style="font-weight:700">${(p.total_points || 0).toLocaleString()}</td>
+              <td><span class="wc-tier-badge ${tierClass}">${tierName}</span></td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = html;
+        return true;
+      }
+
+      function readWCLeaderboardCache() {
+        try {
+          const raw = localStorage.getItem('wc_leaderboard_cache');
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return { savedAt: 0, entries: parsed };
+          if (parsed && Array.isArray(parsed.entries)) return parsed;
+        } catch (e) {}
+        return null;
       }
 
       async function renderWCLeaderboard() {
         const table = document.getElementById('wc-leaderboard-table');
         if (!table) return;
-        
+
         let tbody = table.querySelector('tbody');
         if (!tbody) {
           tbody = document.createElement('tbody');
           table.appendChild(tbody);
         }
-        
-        tbody.innerHTML = `
-          <tr><td colspan="5" style="text-align:center;padding:2rem">Loading rankings from database...</td></tr>
-        `;
-        
+
+        const cached = readWCLeaderboardCache();
+        if (cached && cached.entries && cached.entries.length) {
+          paintWCLeaderboardRows(tbody, cached.entries);
+        } else {
+          tbody.innerHTML = `
+            <tr><td colspan="5" style="text-align:center;padding:2rem">Loading rankings from database...</td></tr>
+          `;
+        }
+
         try {
-          const data = await apiRequest('/api/wc/leaderboard?limit=10');
+          const data = await apiRequestWithRetry('/api/wc/leaderboard?limit=10', {}, 2, 3000);
           if (!data || data.length === 0) {
             tbody.innerHTML = `
               <tr><td colspan="5" style="text-align:center;padding:2rem">No prediction rankings yet. Points are awarded when your predictions are correct.</td></tr>
             `;
             return;
           }
-          
-          let html = '';
-          data.forEach((p, i) => {
-            const rankNum = p.rank || (i + 1);
-            const rankStyle = rankNum === 1 ? 'color:var(--gold);font-weight:800;font-size:1.2rem;' : (rankNum === 2 ? 'color:var(--text2);font-weight:800;font-size:1.2rem;' : (rankNum === 3 ? 'color:#b45309;font-weight:800;font-size:1.2rem;' : 'color:var(--text3);font-weight:800;font-size:1.1rem;'));
-            
-            const tierName = p.tier || 'Unranked';
-            const tierClass = tierName === 'Elite' ? 'wc-tier-elite' : (tierName === 'Gold' ? 'wc-tier-gold' : 'wc-tier-bronze');
-            
-            const accuracy = p.accuracy || "0%";
-            
-            html += `
-              <tr>
-                <td><span style="${rankStyle}display:inline-block;width:30px;text-align:center">${rankNum}</span></td>
-                <td>
-                  <div style="display:flex;align-items:center;gap:0.75rem">
-                    <div class="profile-avatar" style="width:32px;height:32px;font-size:0.8rem;background:var(--surface2);display:flex;justify-content:center;align-items:center;border-radius:50%;border:1px solid var(--border)">${p.username ? p.username[0].toUpperCase() : '?'}</div>
-                    <span style="font-weight:600">${p.username || 'Guest'}</span>
-                  </div>
-                </td>
-                <td>${accuracy}</td>
-                <td style="font-weight:700">${(p.total_points || 0).toLocaleString()}</td>
-                <td><span class="wc-tier-badge ${tierClass}">${tierName}</span></td>
-              </tr>
-            `;
-          });
-          tbody.innerHTML = html;
+          localStorage.setItem('wc_leaderboard_cache', JSON.stringify({ savedAt: Date.now(), entries: data }));
+          paintWCLeaderboardRows(tbody, data);
         } catch (err) {
           console.error('Failed to load World Cup prediction rankings:', err);
+          if (cached && cached.entries && cached.entries.length) return;
           tbody.innerHTML = `
-            <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text3)">Error loading rankings from database.</td></tr>
+            <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text3)">
+              ${err.message || 'Error loading rankings from database.'}
+              <br><button class="btn btn-ghost" style="margin-top:1rem" onclick="renderWCLeaderboard()">Retry</button>
+            </td></tr>
           `;
         }
       }
@@ -2457,9 +2636,7 @@
           }
         } catch (e) {}
 
-        // Restore authenticated session from API when a token exists
-        await restoreSession();
-        if (!state.user) {
+        function loadGuestPreferences() {
           state.guestFavClub = localStorage.getItem('footytrivia_guest_fav_club');
           state.guestFavClubLogo = localStorage.getItem('footytrivia_guest_fav_club_logo');
           state.guestFavWc = localStorage.getItem('footytrivia_guest_fav_wc');
@@ -2468,7 +2645,23 @@
           state.guestCountryCode = localStorage.getItem('footytrivia_guest_country_code');
           state.guestCountryFlag = localStorage.getItem('footytrivia_guest_country_flag');
         }
+
+        try {
+          const cachedUser = localStorage.getItem('footytrivia_user');
+          if (cachedUser && localStorage.getItem('footytrivia_token')) {
+            state.user = JSON.parse(cachedUser);
+          }
+        } catch (e) {}
+
+        loadGuestPreferences();
         updateAuthUI();
+        wakeApiServer();
+        restoreSession()
+          .then(() => {
+            if (!state.user) loadGuestPreferences();
+            updateAuthUI();
+          })
+          .catch(() => updateAuthUI());
         // Auto-join battle lobby if code is in URL
         const urlParams = new URLSearchParams(window.location.search);
         handleAuthUrlParams(urlParams);
@@ -2484,7 +2677,8 @@
             showPage(lastPage);
           }
         }
-        // Load database stats and real leaderboard preview
+        // Show local data immediately, then upgrade from API in the background
+        applyLocalHeroStats();
         updateDatabaseStats();
         updateHomeLeaderboardPreview();
         
@@ -2498,6 +2692,9 @@
         setInterval(updateCountdown, 1000);
         updateCountdown();
         syncModeCardSelection();
+        if (areGroupRankingsSubmitted()) {
+          try { openThirdPlaceSelection(); } catch (e) {}
+        }
       });
       // ── WORLD CUP 2026 DATA & FUNCTIONS ──
       // COUNTRY_CODES loaded from data.js
@@ -2569,9 +2766,121 @@
             callback('');
           });
       }
-      let groupPredictions = JSON.parse(localStorage.getItem('wc_group_predictions')) || JSON.parse(JSON.stringify(WC_GROUPS));
-      let matchPredictions = JSON.parse(localStorage.getItem('wc_match_predictions')) || {};
-      let awardPredictions = JSON.parse(localStorage.getItem('wc_award_predictions')) || {};
+      function safeParseStorage(key, fallback) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) return fallback;
+          return JSON.parse(raw);
+        } catch (e) {
+          return fallback;
+        }
+      }
+
+      function wcGroups() { return window.WC_GROUPS || {}; }
+      function wcPlayers() { return window.WC_PLAYERS || []; }
+      function wcFixtures() { return window.WC_FIXTURES || []; }
+      function wcTeams() { return window.WC_TEAMS || []; }
+
+      function resolveAwardPrediction(key, value) {
+        if (!value) return null;
+        if (typeof value === 'object' && value.name) return value;
+        if (typeof value !== 'string') return value;
+        if (key === 'world-champion') return value;
+        return wcPlayers().find(p => p.name === value) || value;
+      }
+
+      function normalizeAwardPredictions(raw) {
+        if (!raw || typeof raw !== 'object') return {};
+        const normalized = {};
+        Object.entries(raw).forEach(([key, value]) => {
+          const resolved = resolveAwardPrediction(key, value);
+          if (resolved) normalized[key] = resolved;
+        });
+        return normalized;
+      }
+
+      function normalizeGroupPredictions(source) {
+        const base = wcGroups();
+        if (!base || !Object.keys(base).length) return {};
+        const merged = JSON.parse(JSON.stringify(base));
+        if (!source || typeof source !== 'object') return merged;
+        Object.keys(merged).forEach(key => {
+          const incoming = source[key];
+          if (!incoming || !Array.isArray(incoming.teams)) return;
+          const teams = incoming.teams
+            .filter(team => team && team.name)
+            .slice(0, 4)
+            .map((team, index) => ({
+              name: team.name,
+              p: team.p ?? merged[key].teams[index]?.p ?? 0,
+              gd: team.gd ?? merged[key].teams[index]?.gd ?? 0,
+              pts: team.pts ?? merged[key].teams[index]?.pts ?? 0,
+            }));
+          if (teams.length === 4) {
+            merged[key].name = incoming.name || merged[key].name;
+            merged[key].teams = teams;
+          }
+        });
+        return merged;
+      }
+
+      function computeGroupPredictions(stored) {
+        let merged = normalizeGroupPredictions(stored);
+        if (!merged || !Object.keys(merged).length) {
+          const fallback = wcGroups();
+          if (Object.keys(fallback).length) {
+            merged = JSON.parse(JSON.stringify(fallback));
+          }
+        }
+        return merged;
+      }
+
+      function ensureValidGroupPredictions() {
+        const stored = safeParseStorage('wc_group_predictions', null);
+        groupPredictions = computeGroupPredictions(stored);
+        if (groupPredictions && Object.keys(groupPredictions).length) {
+          localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
+        }
+        return groupPredictions;
+      }
+
+      function refreshWorldCupViews() {
+        ensureValidGroupPredictions();
+        awardPredictions = normalizeAwardPredictions(awardPredictions);
+        updateGroupStandingsStats();
+        const activeTabBtn = document.querySelector('.wc-nav-tabs .wc-tab.active');
+        const activeTabId = activeTabBtn
+          ? (activeTabBtn.getAttribute('onclick') || '').match(/'([^']+)'/)?.[1]
+          : 'dashboard';
+        if (activeTabId === 'dashboard' || !activeTabId) {
+          renderGroupStandings();
+          renderBestThirdPlacedTable();
+        }
+        if (activeTabId === 'predictions') {
+          try { renderGroupPredictions(); } catch (err) { console.error('renderGroupPredictions failed:', err); }
+          try { renderMatchPredictions(); } catch (err) { console.error('renderMatchPredictions failed:', err); }
+          try { updateAwardsDisplay(); } catch (err) { console.error('updateAwardsDisplay failed:', err); }
+          try { renderBestThirdPlacedTable(); } catch (err) { console.error('renderBestThirdPlacedTable failed:', err); }
+        }
+      }
+
+      function refreshPredictionCenterIfVisible() {
+        const tab = document.getElementById('wc-predictions');
+        if (!tab || tab.style.display === 'none') return;
+        ensureValidGroupPredictions();
+        updateGroupStandingsStats();
+        renderGroupPredictions();
+        renderMatchPredictions();
+        updateAwardsDisplay();
+        renderBestThirdPlacedTable();
+      }
+
+      let groupPredictions = computeGroupPredictions(safeParseStorage('wc_group_predictions', null));
+      if (groupPredictions && Object.keys(groupPredictions).length && !localStorage.getItem('wc_group_predictions')) {
+        localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
+      }
+      let matchPredictions = safeParseStorage('wc_match_predictions', {});
+      let awardPredictions = normalizeAwardPredictions(safeParseStorage('wc_award_predictions', {}));
       const GROUP_RANKINGS_SUBMITTED_KEY = 'wc_group_rankings_submitted';
       const BRACKET_SUBMITTED_KEY = 'wc_bracket_submitted';
       function areGroupRankingsSubmitted() {
@@ -2644,11 +2953,11 @@
           localStorage.setItem('wc_match_predictions', JSON.stringify(matchPredictions));
         }
         if (data.awards && Object.keys(data.awards).length) {
-          awardPredictions = data.awards;
+          awardPredictions = normalizeAwardPredictions(data.awards);
           localStorage.setItem('wc_award_predictions', JSON.stringify(awardPredictions));
         }
         if (data.groups && Object.keys(data.groups).length) {
-          groupPredictions = data.groups;
+          groupPredictions = normalizeGroupPredictions(data.groups);
           localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
         }
         if (data.group_rankings_submitted) {
@@ -2674,6 +2983,7 @@
           window.bracketPredictor.loadSavedBracket();
           window.bracketPredictor.updateDownloadButton();
         }
+        refreshPredictionCenterIfVisible();
       }
 
       function wcPredictionsHasServerData(data) {
@@ -2783,8 +3093,10 @@
       }
 
       function updateGroupStandingsStats() {
+        ensureValidGroupPredictions();
         Object.keys(groupPredictions).forEach(groupKey => {
           const group = groupPredictions[groupKey];
+          if (!group || !Array.isArray(group.teams)) return;
           group.teams.forEach((team, index) => {
             const stats = getSimulatedGroupStats(team.name, index, groupKey);
             team.p = stats.p;
@@ -2824,9 +3136,11 @@
       }
 
       function getBestThirdPlacedTeams() {
+        ensureValidGroupPredictions();
         const thirds = [];
         Object.keys(groupPredictions).forEach(groupKey => {
           const group = groupPredictions[groupKey];
+          if (!group || !Array.isArray(group.teams)) return;
           const team = group.teams[2]; // The 3rd placed team is at index 2
           if (!team) return;
           
@@ -2838,7 +3152,7 @@
           const { w, d, l } = getWDL(pts, baseSeed);
           
           // Get FIFA ranking
-          const teamObjFromData = typeof WC_TEAMS !== 'undefined' ? WC_TEAMS.find(t => t.name === team.name) : null;
+          const teamObjFromData = wcTeams().find(t => t.name === team.name) || null;
           const fifaRank = teamObjFromData ? teamObjFromData.ranking : 999;
           
           thirds.push({
@@ -2952,21 +3266,28 @@
       }
 
       // Initialize stats on load
-      updateGroupStandingsStats();
-      renderGroupStandings();
-      renderBestThirdPlacedTable();
-      // Restore the 3rd-place selection panel if rankings were already submitted.
-      if (areGroupRankingsSubmitted()) {
-        openThirdPlaceSelection();
+      try {
+        ensureValidGroupPredictions();
+        updateGroupStandingsStats();
+        renderGroupStandings();
+        renderBestThirdPlacedTable();
+      } catch (err) {
+        console.error('Failed to initialize World Cup group data:', err);
+        const fallbackGroups = wcGroups();
+        if (Object.keys(fallbackGroups).length) {
+          groupPredictions = JSON.parse(JSON.stringify(fallbackGroups));
+          localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
+        }
       }
-
       // Render functions for Group Standings
       function renderGroupStandings() {
         const container = document.getElementById('wc-dashboard-groups');
         if (!container) return;
+        ensureValidGroupPredictions();
         container.innerHTML = '';
         Object.keys(groupPredictions).forEach(groupKey => {
           const group = groupPredictions[groupKey];
+          if (!group || !Array.isArray(group.teams)) return;
           const card = document.createElement('div');
           card.className = 'wc-card';
           let html = `
@@ -3019,10 +3340,12 @@
       function renderGroupPredictions() {
         const container = document.getElementById('group-predictions-grid');
         if (!container) return;
+        ensureValidGroupPredictions();
         const isGuest = !state.user;
         container.innerHTML = '';
         Object.keys(groupPredictions).forEach(groupKey => {
           const group = groupPredictions[groupKey];
+          if (!group || !Array.isArray(group.teams)) return;
           const card = document.createElement('div');
           card.className = 'wc-card';
           const title = document.createElement('div');
@@ -3173,7 +3496,7 @@
         if (!confirm('Reset all your World Cup predictions? This clears your group rankings, third-place picks and the entire knockout bracket.')) return;
 
         // Restore group standings to their default order.
-        groupPredictions = JSON.parse(JSON.stringify(WC_GROUPS));
+        groupPredictions = JSON.parse(JSON.stringify(wcGroups()));
         localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
         localStorage.removeItem(GROUP_RANKINGS_SUBMITTED_KEY);
 
@@ -3293,10 +3616,15 @@
       function renderMatchPredictions() {
         const container = document.getElementById('wc-predictions-fixtures');
         if (!container) return;
+        const fixtures = wcFixtures();
         const isGuest = !state.user;
         const inputAttrs = isGuest ? 'readonly onclick="requireLoginForPredictions()"' : '';
         container.innerHTML = '';
-        WC_FIXTURES.forEach(fixture => {
+        if (!fixtures.length) {
+          container.innerHTML = '<div style="padding:1.5rem;color:var(--text3);text-align:center">Match fixtures are loading…</div>';
+          return;
+        }
+        fixtures.forEach(fixture => {
           const card = document.createElement('div');
           card.className = 'wc-pred-fixture-card';
           const pred = matchPredictions[fixture.id] || { homeScore: '', awayScore: '' };
@@ -3374,16 +3702,15 @@
         return 'linear-gradient(135deg, #eab308, #ca8a04)';
       }
       function getEligiblePlayers() {
+        const players = wcPlayers();
         if (currentModalAwardKey === 'golden-boot') {
-          return WC_PLAYERS.filter(p => p.pos === 'Forward' || p.subPos === 'Attacking Midfielder');
+          return players.filter(p => p.pos === 'Forward' || p.subPos === 'Attacking Midfielder');
         } else if (currentModalAwardKey === 'golden-glove') {
-          return WC_PLAYERS.filter(p => p.pos === 'Goalkeeper');
+          return players.filter(p => p.pos === 'Goalkeeper');
         } else if (currentModalAwardKey === 'best-young') {
-          return WC_PLAYERS.filter(p => p.age <= 22);
-        } else {
-          // Golden Ball: all positions
-          return WC_PLAYERS;
+          return players.filter(p => p.age <= 22);
         }
+        return players;
       }
       function openSelectorModal(awardKey, awardTitle, type) {
         if (!requireLoginForPredictions()) return;
@@ -3488,7 +3815,7 @@
         if (nationSelect) {
           let nations = [];
           if (currentModalType === 'team') {
-            nations = WC_TEAMS.map(t => t.name).sort();
+            nations = wcTeams().map(t => t.name).sort();
           } else {
             const eligible = getEligiblePlayers();
             nations = [...new Set(eligible.map(p => p.team))].sort();
@@ -3519,6 +3846,11 @@
         const query = currentModalSearchQuery.toLowerCase().trim();
         if (currentModalType === 'player') {
           let list = getEligiblePlayers();
+          if (!wcPlayers().length) {
+            emptyState.textContent = 'Player database is still loading. Please refresh and try again.';
+            emptyState.style.display = 'block';
+            return;
+          }
           if (query.length > 0) {
             list = list.filter(p => 
               p.name.toLowerCase().includes(query) ||
@@ -3637,7 +3969,7 @@
             });
           });
         } else {
-          let list = [...WC_TEAMS];
+          let list = [...wcTeams()];
           if (query.length > 0) {
             list = list.filter(t => t.name.toLowerCase().includes(query) || t.confederation.toLowerCase().includes(query));
           }
@@ -3685,7 +4017,7 @@
         if (currentModalType === 'team') {
           awardPredictions[currentModalAwardKey] = name;
         } else {
-          const player = WC_PLAYERS.find(p => p.name === name);
+          const player = wcPlayers().find(p => p.name === name);
           if (player) {
             awardPredictions[currentModalAwardKey] = player;
           }
@@ -3746,14 +4078,14 @@
           }
         ];
         grid.innerHTML = awardsConfig.map(award => {
-          const pred = awardPredictions[award.key];
+          const pred = resolveAwardPrediction(award.key, awardPredictions[award.key]);
           const isSelected = !!pred;
           const cardClass = isSelected ? 'wc-award-card selected' : 'wc-award-card';
           let selectionHtml = '';
           if (isSelected) {
             if (award.type === 'team') {
               const teamName = typeof pred === 'string' ? pred : pred.name;
-              const teamObj = WC_TEAMS.find(t => t.name === teamName) || { name: teamName, ranking: 'N/A', confederation: 'N/A', recent: 'N/A' };
+              const teamObj = wcTeams().find(t => t.name === teamName) || { name: teamName, ranking: 'N/A', confederation: 'N/A', recent: 'N/A' };
               selectionHtml = `
                 <div class="wc-award-selected-team-card">
                   <div class="wc-selected-team-flag">${getFlagImg(teamObj.name)}</div>
@@ -3768,7 +4100,7 @@
                   </div>
                 </div>
               `;
-            } else {
+            } else if (typeof pred === 'object' && pred.name) {
               const initials = pred.name.split(' ').map(n => n[0]).join('');
               const grad = getPlayerGradient(pred.pos);
               selectionHtml = `
@@ -3787,12 +4119,18 @@
                       <span>•</span>
                       <span>${pred.pos}</span>
                     </div>
-                    <div class="wc-selected-player-stats">Stats: ${pred.stats}</div>
+                    <div class="wc-selected-player-stats">Stats: ${pred.stats || ''}</div>
                     <div style="font-size:0.65rem; color:var(--success); font-weight:600; margin-top:0.15rem;">
                       Age: ${pred.age} • ${pred.formIndicator || '⭐ Stable'}
                     </div>
                   </div>
                 </div>
+              `;
+            } else {
+              const name = typeof pred === 'string' ? pred : 'Selected';
+              selectionHtml = `
+                <div class="wc-award-icon-placeholder">⚽</div>
+                <p style="font-size:0.85rem;color:var(--text);font-weight:600;margin-bottom:0.5rem">${name}</p>
               `;
             }
           } else {
@@ -4048,10 +4386,8 @@
             const found = groupPredictions[g].teams.find(t => t && t.name === name);
             if (found) return found;
           }
-          if (typeof WC_TEAMS !== 'undefined') {
-            const found = WC_TEAMS.find(t => t.name === name);
-            if (found) return found;
-          }
+          const found = wcTeams().find(t => t.name === name);
+          if (found) return found;
           return { name };
         }
 
@@ -6186,6 +6522,7 @@
       window.closePlayerProfileModal = closePlayerProfileModal;
       window.initAnalyticsTab = initAnalyticsTab;
       window.switchWCTab = switchWCTab;
+      window.renderWCLeaderboard = renderWCLeaderboard;
       window.requireLoginForPredictions = requireLoginForPredictions;
 
       function requireLoginForBracket() {
@@ -6203,24 +6540,23 @@
         return false;
       }
 
-      function updatePredictionCenterAuthUI() {
+      function syncPredictionCenterGuestUI() {
         const predictionsTab = document.getElementById('wc-predictions');
         const notice = document.getElementById('wc-predictions-guest-notice');
         const isGuest = !state.user;
-        if (predictionsTab) {
-          predictionsTab.classList.toggle('wc-predictions-guest', isGuest);
-        }
-        if (notice) {
-          notice.style.display = isGuest ? '' : 'none';
-        }
-        if (predictionsTab && predictionsTab.style.display !== 'none') {
+        if (predictionsTab) predictionsTab.classList.toggle('wc-predictions-guest', isGuest);
+        if (notice) notice.style.display = isGuest ? '' : 'none';
+      }
+
+      function updatePredictionCenterAuthUI() {
+        syncPredictionCenterGuestUI();
+        if (document.getElementById('wc-predictions')?.style.display !== 'none') {
           renderGroupPredictions();
           renderMatchPredictions();
-          updateAwardsDisplay();
-          const thirdPanel = document.getElementById('third-place-selection-panel');
-          if (thirdPanel && thirdPanel.style.display !== 'none') {
-            renderThirdPlaceSelection();
-          }
+        }
+        const thirdPanel = document.getElementById('third-place-selection-panel');
+        if (thirdPanel && thirdPanel.style.display !== 'none') {
+          renderThirdPlaceSelection();
         }
         const selectorModal = document.getElementById('wc-selector-modal');
         if (selectorModal && selectorModal.style.display === 'flex') {
@@ -6232,16 +6568,29 @@
       window.bracketPredictor = bracketPredictor;
       let bracketInitialized = false;
       function syncWcMobileNavSub(tabId) {
+        const onWc = state.currentPage === 'worldcup';
         document.querySelectorAll('.wc-mobile-tab').forEach(el => {
-          el.classList.toggle('active', el.dataset.wcTab === tabId);
+          el.classList.toggle('active', onWc && el.dataset.wcTab === tabId);
         });
       }
 
       function toggleWcMobileNav(btn) {
         const sub = document.getElementById('wc-mobile-nav-sub');
         if (!sub) return;
+        const opening = !sub.classList.contains('open');
         sub.classList.toggle('open');
         btn.classList.toggle('expanded');
+        if (opening) {
+          if (state.currentPage === 'worldcup') {
+            const activeTabBtn = document.querySelector('.wc-nav-tabs .wc-tab.active');
+            const tabId = activeTabBtn
+              ? activeTabBtn.getAttribute('onclick').match(/'([^']+)'/)[1]
+              : 'dashboard';
+            syncWcMobileNavSub(tabId);
+          } else {
+            document.querySelectorAll('.wc-mobile-tab').forEach(el => el.classList.remove('active'));
+          }
+        }
       }
 
       function switchWCTabFromMobile(tabId) {
@@ -6269,13 +6618,18 @@
           renderGroupStandings();
           renderBestThirdPlacedTable();
         } else if (tabId === 'predictions') {
-          renderGroupStandings();
-          renderGroupPredictions();
-          renderMatchPredictions();
-          updateAwardsDisplay();
-          updatePredictorProfile();
-          renderBestThirdPlacedTable();
-          updatePredictionCenterAuthUI();
+          syncPredictionCenterGuestUI();
+          awardPredictions = normalizeAwardPredictions(awardPredictions);
+          ensureValidGroupPredictions();
+          updateGroupStandingsStats();
+          try { renderGroupPredictions(); } catch (err) { console.error('renderGroupPredictions failed:', err); }
+          try { renderMatchPredictions(); } catch (err) { console.error('renderMatchPredictions failed:', err); }
+          try { updateAwardsDisplay(); } catch (err) { console.error('updateAwardsDisplay failed:', err); }
+          try { updatePredictorProfile(); } catch (err) { console.error('updatePredictorProfile failed:', err); }
+          try { renderBestThirdPlacedTable(); } catch (err) { console.error('renderBestThirdPlacedTable failed:', err); }
+          if (areGroupRankingsSubmitted()) {
+            try { openThirdPlaceSelection(); } catch (err) { console.error('openThirdPlaceSelection failed:', err); }
+          }
         } else if (tabId === 'bracket') {
           if (!bracketInitialized) {
             bracketPredictor.init();

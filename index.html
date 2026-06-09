@@ -5,19 +5,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Footy-Trivia — The Football Knowledge Arena</title>
+  <meta name="description"
+    content="Footy-Trivia — The Football Knowledge Arena. Test your football IQ across leagues, players, transfers and legendary moments.">
+  <meta property="og:title" content="Footy-Trivia — Football Knowledge Arena">
+  <meta property="og:description" content="Test your football knowledge against players worldwide!">
+  <meta property="og:image" content="https://footy--trivia.vercel.app/favicon-512.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://footy--trivia.vercel.app/">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Barlow:wght@300;400;500;600;700&family=Montserrat:wght@700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-</head>
-  <meta name="description"
-    content="Footy-Trivia — The Football Knowledge Arena. Test your football IQ across leagues, players, transfers and legendary moments.">
-  <meta property="og:title" content="Footy-Trivia — Football Knowledge Arena">
-  <meta property="og:description" content="Test your football knowledge against players worldwide!">
-  <meta property="og:image" content="https://via.placeholder.com/1200x630.png?text=Footy-Trivia">
-  <meta name="twitter:card" content="summary_large_image">
-  <link rel="canonical" href="https://footy-trivia.gg/">
   <!-- Firebase SDK (v9 compat mode) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -101,7 +104,7 @@
         <span class="wc-mobile-nav-chevron" aria-hidden="true">▾</span>
       </button>
       <div class="wc-mobile-nav-sub" id="wc-mobile-nav-sub">
-        <button type="button" class="wc-mobile-tab active" data-wc-tab="dashboard" onclick="switchWCTabFromMobile('dashboard')">Dashboard</button>
+        <button type="button" class="wc-mobile-tab" data-wc-tab="dashboard" onclick="switchWCTabFromMobile('dashboard')">Dashboard</button>
         <button type="button" class="wc-mobile-tab" data-wc-tab="predictions" onclick="switchWCTabFromMobile('predictions')">Prediction Center</button>
         <button type="button" class="wc-mobile-tab" data-wc-tab="matchday" onclick="switchWCTabFromMobile('matchday')">Matchday Hub</button>
         <button type="button" class="wc-mobile-tab" data-wc-tab="bracket" onclick="switchWCTabFromMobile('bracket')">Knockout Bracket</button>
@@ -171,28 +174,28 @@
           style="margin-top: 4rem; display: flex; gap: 3rem; justify-content: center; flex-wrap: wrap;">
           <div class="hero-stat" style="text-align: center;">
             <div class="hero-stat-num" id="hero-stat-players"
-              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);"></div>
+              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);">…</div>
             <div class="hero-stat-label"
               style="font-size: 0.85rem; color: var(--text3); font-weight: 400; margin-top: 0.25rem; font-family: var(--font-ui);">
               Active players</div>
           </div>
           <div class="hero-stat" style="text-align: center;">
             <div class="hero-stat-num" id="hero-stat-questions"
-              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);"></div>
+              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);">…</div>
             <div class="hero-stat-label"
               style="font-size: 0.85rem; color: var(--text3); font-weight: 400; margin-top: 0.25rem; font-family: var(--font-ui);">
               Questions</div>
           </div>
           <div class="hero-stat" style="text-align: center;">
             <div class="hero-stat-num" id="hero-stat-categories"
-              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);"></div>
+              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);">…</div>
             <div class="hero-stat-label"
               style="font-size: 0.85rem; color: var(--text3); font-weight: 400; margin-top: 0.25rem; font-family: var(--font-ui);">
               Categories</div>
           </div>
           <div class="hero-stat" style="text-align: center;">
             <div class="hero-stat-num" id="hero-stat-modes"
-              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);"></div>
+              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);">…</div>
             <div class="hero-stat-label"
               style="font-size: 0.85rem; color: var(--text3); font-weight: 400; margin-top: 0.25rem; font-family: var(--font-ui);">
               Game modes</div>

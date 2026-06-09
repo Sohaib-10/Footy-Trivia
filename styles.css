@@ -929,7 +929,7 @@
     }
 
     .hero-stats.is-loading .hero-stat-num {
-      visibility: hidden;
+      color: var(--text3);
     }
 
     .hero-stat {
@@ -3384,10 +3384,10 @@
       padding: .55rem .85rem;
       border-radius: 5px;
     }
-    .wc-mobile-nav-toggle.active,
-    .wc-mobile-nav-toggle.expanded {
+    .wc-mobile-nav-toggle.active {
       background: var(--surface2);
       color: var(--text);
+      font-weight: 600;
     }
     .wc-mobile-nav-chevron {
       font-size: 0.75rem;

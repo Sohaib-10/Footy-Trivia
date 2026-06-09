@@ -43,8 +43,8 @@ async def get_stats_overview(db: AsyncSession = Depends(get_db)):
             "active_count": active_count
         })
 
-    # Fallback to realistic/hardcoded defaults if database is not fully populated yet
-    display_user_count = user_count if user_count > 0 else 8420
+    # Base community size plus real signups (matches league player count style)
+    display_user_count = 8420 + user_count
     display_question_count = question_count if question_count > 0 else 248
     display_category_count = category_count if category_count > 0 else 12
 
