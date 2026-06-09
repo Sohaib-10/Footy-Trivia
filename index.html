@@ -319,25 +319,11 @@
 
             <div class="section-eyebrow">Top Players</div>
 
-            <div class="section-title">Leaderboard <span>Today</span></div>
+            <div class="section-title">Leaderboard</div>
 
           </div>
 
           <div class="leaderboard-card">
-
-            <div class="lb-header">
-
-              <div class="lb-tabs">
-
-                <button class="lb-tab active">Daily</button>
-
-                <button class="lb-tab" onclick="switchTab(this)">Weekly</button>
-
-                <button class="lb-tab" onclick="switchTab(this)">All Time</button>
-
-              </div>
-
-            </div>
 
             <div id="lb-list"></div>
 
@@ -1279,27 +1265,6 @@
 
         <div class="leaderboard-card" style="margin-bottom:2rem">
 
-          <div class="lb-header" style="flex-wrap:wrap;gap:.5rem">
-
-            <div class="lb-tabs" id="lb-main-tabs">
-
-              <button class="lb-tab active" onclick="switchLbTab(this,'daily')">Daily</button>
-
-              <button class="lb-tab" onclick="switchLbTab(this,'weekly')">Weekly</button>
-
-              <button class="lb-tab" onclick="switchLbTab(this,'monthly')">Monthly</button>
-
-              <button class="lb-tab" onclick="switchLbTab(this,'alltime')">All Time</button>
-
-            </div>
-
-            <div
-              style="font-family:var(--font-ui);font-size:.75rem;color:var(--text3);letter-spacing:.5px;text-transform:none;display:flex;align-items:center;gap:.4rem">
-
-              🏆 Season 3 Active</div>
-
-          </div>
-
           <div id="lb-main-list"></div>
 
         </div>
@@ -1510,6 +1475,22 @@
             ⚙️ Preferences</h3>
 
           <div style="display:grid;gap:1rem">
+
+            <div
+              style="display:flex;align-items:center;justify-content:space-between;padding:1rem;background:var(--surface2);border-radius:8px;flex-wrap:wrap;gap:.5rem">
+
+              <div>
+
+                <div style="font-family:var(--font-ui);font-weight:700;font-size:.9rem">Your Country</div>
+
+                <div id="profile-country-label" style="font-size:.8rem;color:var(--text3)">Not set</div>
+
+              </div>
+
+              <button id="profile-country-btn" class="btn btn-ghost" style="font-size:.8rem;padding:.3rem .7rem"
+                onclick="openFavCountryModal()">Set</button>
+
+            </div>
 
             <div
               style="display:flex;align-items:center;justify-content:space-between;padding:1rem;background:var(--surface2);border-radius:8px;flex-wrap:wrap;gap:.5rem">

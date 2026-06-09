@@ -1590,6 +1590,7 @@
       font-family: var(--font-ui);
       font-weight: 500;
       font-size: .875rem;
+      color: var(--text);
       display: flex;
       align-items: center;
       gap: .65rem;
@@ -4655,7 +4656,7 @@
       flex-shrink: 0;
     }
     .explorer-option-text {
-      color: var(--text2);
+      color: var(--text);
       font-weight: 500;
     }
     .explorer-option.correct {

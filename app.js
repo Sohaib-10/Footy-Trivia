@@ -36,7 +36,7 @@
         transfer: { playerIdx: 0, guesses: [], maxGuesses: 5, revealed: false, hintsRevealed: 1 },
         theme: 'dark',
         sound: false,
-        lbTab: 'daily',
+        lbTab: 'alltime',
         selectedMode: 'solo',
         selectedDiff: 'easy',
       };
@@ -813,10 +813,8 @@
         img.replaceWith(span);
       }
 
-      function renderStaticLeaderboard(container) {
-        // Default to the visually-active tab (Daily) so the highlight matches the data.
-        const dailyBtn = document.querySelector('#lb-main-tabs .lb-tab');
-        switchLbTab(dailyBtn || null, dailyBtn ? 'daily' : 'alltime');
+      function renderStaticLeaderboard() {
+        switchLbTab(null, 'alltime');
       }
       // Map UI tab -> backend period query param.
       const LB_TAB_TO_PERIOD = { daily: 'daily', weekly: 'weekly', monthly: 'monthly', alltime: 'all_time' };
@@ -855,9 +853,7 @@
       }
 
       async function switchLbTab(el, tab) {
-        document.querySelectorAll('#lb-main-tabs .lb-tab').forEach(t => t.classList.remove('active'));
-        if (el) el.classList.add('active');
-        state.lbTab = tab;
+        state.lbTab = tab || 'alltime';
         const container = document.getElementById('lb-main-list');
         if (!container) return;
 
@@ -913,13 +909,6 @@
           switchLbTab(null, 'alltime');
         } else if (containerId === 'lb-list') {
           updateHomeLeaderboardPreview();
-        }
-      }
-      function switchTab(el) {
-        // Stub to support existing nav active styling if referenced
-        if (el) {
-          el.parentNode.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
-          el.classList.add('active');
         }
       }
       function setActive(el) {
@@ -1284,6 +1273,135 @@
         ]
       };
       let currentFavClubLeague = "";
+
+      const PROFILE_COUNTRY_EXTRAS = [
+        { name: 'Pakistan', code: 'pk' },
+        { name: 'India', code: 'in' },
+        { name: 'Bangladesh', code: 'bd' },
+        { name: 'United Kingdom', code: 'gb' },
+        { name: 'Ireland', code: 'ie' },
+        { name: 'United Arab Emirates', code: 'ae' },
+        { name: 'Malaysia', code: 'my' },
+        { name: 'Indonesia', code: 'id' },
+        { name: 'Philippines', code: 'ph' },
+        { name: 'Singapore', code: 'sg' },
+      ];
+
+      function getProfileCountriesList() {
+        const seen = new Set();
+        const list = [];
+        const add = (name, code) => {
+          const key = `${name}|${code}`;
+          if (!name || !code || seen.has(key)) return;
+          seen.add(key);
+          list.push({ name, code });
+        };
+        if (typeof COUNTRY_CODES !== 'undefined') {
+          Object.entries(COUNTRY_CODES).forEach(([name, code]) => add(name, code));
+        }
+        WORLD_CUP_TEAMS.forEach(t => add(t.name, t.code));
+        PROFILE_COUNTRY_EXTRAS.forEach(c => add(c.name, c.code));
+        return list.sort((a, b) => a.name.localeCompare(b.name));
+      }
+
+      function applyProfilePreferences(prefs, userObj = state.user) {
+        if (!userObj || !prefs || typeof prefs !== 'object') return;
+        userObj.profilePreferences = { ...(userObj.profilePreferences || {}), ...prefs };
+        if (prefs.country) {
+          userObj.country = prefs.country.name;
+          userObj.countryCode = prefs.country.code;
+          userObj.countryFlag = prefs.country.flag || `https://flagcdn.com/w80/${prefs.country.code}.png`;
+        }
+        if (prefs.favClub) {
+          userObj.favClub = prefs.favClub.name;
+          userObj.favClubLogo = prefs.favClub.logo;
+        }
+        if (prefs.favWc) {
+          userObj.favWc = prefs.favWc.name;
+          userObj.favWcLogo = prefs.favWc.flag || (prefs.favWc.code ? `https://flagcdn.com/w80/${prefs.favWc.code}.png` : '');
+        }
+        localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
+      }
+
+      async function saveProfilePreferences(partial) {
+        if (!state.user) return;
+        const merged = { ...(state.user.profilePreferences || {}), ...partial };
+        try {
+          const updated = await apiRequest('/api/users/me', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ preferences: merged }),
+          });
+          applyProfilePreferences(updated.preferences || merged);
+          updateAuthUI();
+        } catch (err) {
+          console.error('Profile preferences save failed:', err);
+          applyProfilePreferences(merged);
+          updateAuthUI();
+          showToast('Saved locally — sync preferences when back online.', 'warning');
+        }
+      }
+
+      function openFavCountryModal() {
+        const overlay = document.getElementById('modal-overlay');
+        const content = document.getElementById('modal-content');
+        if (!overlay || !content) return;
+        const modalContainer = overlay.querySelector('.modal');
+        if (modalContainer) modalContainer.style.maxWidth = '580px';
+        content.innerHTML = `
+        <h2 class="modal-title" style="margin-bottom:0.5rem;font-family:var(--font-ui);font-weight:700">Select Your Country</h2>
+        <div style="margin-bottom:1.25rem">
+          <input type="text" id="fav-country-search" placeholder="Search countries..." oninput="filterFavCountry()" style="width:100%;padding:0.6rem;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-family:var(--font-ui);outline:none"/>
+        </div>
+        <div id="fav-country-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));gap:0.75rem;max-height:350px;overflow-y:auto;padding-right:0.25rem"></div>
+      `;
+        overlay.classList.add('show');
+        renderFavCountryGrid();
+      }
+
+      function renderFavCountryGrid() {
+        const grid = document.getElementById('fav-country-grid');
+        const searchInput = document.getElementById('fav-country-search');
+        const searchVal = searchInput ? searchInput.value.trim().toLowerCase() : '';
+        if (!grid) return;
+        let countries = getProfileCountriesList();
+        if (searchVal) countries = countries.filter(c => c.name.toLowerCase().includes(searchVal));
+        if (countries.length === 0) {
+          grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text3);font-size:0.9rem">No countries found</div>`;
+          return;
+        }
+        grid.innerHTML = countries.map(c => {
+          const flagUrl = `https://flagcdn.com/w80/${c.code}.png`;
+          return `
+          <div class="fav-club-card" onclick="selectFavCountry('${c.name.replace(/'/g, "\\'")}', '${c.code}')" style="display:flex;flex-direction:column;align-items:center;padding:0.75rem;background:var(--surface2);border-radius:6px;cursor:pointer;border:1px solid transparent;transition:all 0.2s ease;text-align:center" onmouseover="this.style.borderColor='var(--border2)';this.style.background='var(--surface3)'" onmouseout="this.style.borderColor='transparent';this.style.background='var(--surface2)'">
+            <img src="${flagUrl}" style="height:32px;width:48px;object-fit:cover;border-radius:3px;margin-bottom:0.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.3)"/>
+            <div style="font-size:0.8rem;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%">${c.name}</div>
+          </div>
+        `;
+        }).join('');
+      }
+
+      function filterFavCountry() {
+        renderFavCountryGrid();
+      }
+
+      async function selectFavCountry(name, code) {
+        const flagUrl = `https://flagcdn.com/w80/${code}.png`;
+        if (state.user) {
+          await saveProfilePreferences({ country: { name, code, flag: flagUrl } });
+        } else {
+          state.guestCountry = name;
+          state.guestCountryCode = code;
+          state.guestCountryFlag = flagUrl;
+          localStorage.setItem('footytrivia_guest_country', name);
+          localStorage.setItem('footytrivia_guest_country_code', code);
+          localStorage.setItem('footytrivia_guest_country_flag', flagUrl);
+          updateAuthUI();
+        }
+        closeModal();
+        showToast(`Country set to ${name}!`, 'success');
+      }
+
       function openFavClubModal() {
         const overlay = document.getElementById('modal-overlay');
         const content = document.getElementById('modal-content');
@@ -1365,11 +1483,9 @@
       function filterFavClubs() {
         renderFavClubsGrid();
       }
-      function selectFavClub(name, logo) {
+      async function selectFavClub(name, logo) {
         if (state.user) {
-          state.user.favClub = name;
-          state.user.favClubLogo = logo;
-          localStorage.setItem('footytrivia_user', JSON.stringify(state.user));
+          await saveProfilePreferences({ favClub: { name, logo } });
         } else {
           state.guestFavClub = name;
           state.guestFavClubLogo = logo;
@@ -1477,12 +1593,10 @@
       function filterFavWc() {
         renderFavWcGrid();
       }
-      function selectFavWc(name, code) {
+      async function selectFavWc(name, code) {
         const flagUrl = `https://flagcdn.com/w80/${code}.png`;
         if (state.user) {
-          state.user.favWc = name;
-          state.user.favWcLogo = flagUrl;
-          localStorage.setItem('footytrivia_user', JSON.stringify(state.user));
+          await saveProfilePreferences({ favWc: { name, code, flag: flagUrl } });
         } else {
           state.guestFavWc = name;
           state.guestFavWcLogo = flagUrl;
@@ -1547,10 +1661,11 @@
         try { progress = await apiRequest('/api/users/me/progress'); } catch (e) {}
 
         const userObj = buildUserFromApi(profile, progress, email);
+        applyProfilePreferences(profile.preferences, userObj);
         localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
         state.user = userObj;
         updateAuthUI();
-        syncWcPredictionsToApi();
+        await hydrateWcPredictionsForUser();
         updatePredictorProfile();
         return userObj;
       }
@@ -1567,9 +1682,34 @@
           const progress = await apiRequest('/api/users/me/progress');
           const stored = JSON.parse(localStorage.getItem('footytrivia_user') || '{}');
           const userObj = buildUserFromApi(profile, progress, stored.email || '');
+          applyProfilePreferences(profile.preferences, userObj);
+          if (!profile.preferences?.favClub && stored.favClub) {
+            userObj.favClub = stored.favClub;
+            userObj.favClubLogo = stored.favClubLogo;
+          }
+          if (!profile.preferences?.favWc && stored.favWc) {
+            userObj.favWc = stored.favWc;
+            userObj.favWcLogo = stored.favWcLogo;
+          }
+          if (!profile.preferences?.country && stored.country) {
+            userObj.country = stored.country;
+            userObj.countryCode = stored.countryCode;
+            userObj.countryFlag = stored.countryFlag;
+          }
           state.user = userObj;
           localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
-          syncWcPredictionsToApi();
+          const legacyPrefs = {};
+          if (!profile.preferences?.country && userObj.country) {
+            legacyPrefs.country = { name: userObj.country, code: userObj.countryCode, flag: userObj.countryFlag };
+          }
+          if (!profile.preferences?.favClub && userObj.favClub) {
+            legacyPrefs.favClub = { name: userObj.favClub, logo: userObj.favClubLogo };
+          }
+          if (!profile.preferences?.favWc && userObj.favWc) {
+            legacyPrefs.favWc = { name: userObj.favWc, flag: userObj.favWcLogo };
+          }
+          if (Object.keys(legacyPrefs).length) saveProfilePreferences(legacyPrefs);
+          await hydrateWcPredictionsForUser();
           updatePredictorProfile();
         } catch (e) {
           console.warn('Session restore failed:', e);
@@ -1944,6 +2084,19 @@
           }
           updatePredictionCenterAuthUI();
         }
+        const countryLabel = document.getElementById('profile-country-label');
+        const countryBtn = document.getElementById('profile-country-btn');
+        const countryName = state.user ? state.user.country : state.guestCountry;
+        const countryFlag = state.user ? state.user.countryFlag : state.guestCountryFlag;
+        if (countryName) {
+          if (countryLabel) {
+            countryLabel.innerHTML = `<div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.25rem"><img src="${countryFlag}" style="height:1.2rem;width:1.8rem;object-fit:cover;border-radius:2px;vertical-align:middle" onerror="this.style.display='none'"/> <span style="color:var(--text);font-weight:600">${countryName}</span></div>`;
+          }
+          if (countryBtn) countryBtn.textContent = 'Change';
+        } else {
+          if (countryLabel) countryLabel.textContent = 'Not set';
+          if (countryBtn) countryBtn.textContent = 'Set';
+        }
         // Update Favourite Club UI
         const favClubLabel = document.getElementById('profile-fav-club-label');
         const favClubBtn = document.getElementById('profile-fav-club-btn');
@@ -2230,6 +2383,9 @@
           state.guestFavClubLogo = localStorage.getItem('footytrivia_guest_fav_club_logo');
           state.guestFavWc = localStorage.getItem('footytrivia_guest_fav_wc');
           state.guestFavWcLogo = localStorage.getItem('footytrivia_guest_fav_wc_logo');
+          state.guestCountry = localStorage.getItem('footytrivia_guest_country');
+          state.guestCountryCode = localStorage.getItem('footytrivia_guest_country_code');
+          state.guestCountryFlag = localStorage.getItem('footytrivia_guest_country_flag');
         }
         updateAuthUI();
         // Auto-join battle lobby if code is in URL
@@ -2253,7 +2409,7 @@
         
         // Init leaderboard with static data on load
         const lbContainer = document.getElementById('lb-main-list');
-        if (lbContainer) renderStaticLeaderboard(lbContainer);
+        if (lbContainer) renderStaticLeaderboard();
         renderCategories('home-cats');
         renderCategories('play-cats');
         updateDynamicCategoryCounts();
@@ -2389,7 +2545,81 @@
           third_place: manualThirdPlace.confirmed ? manualThirdPlace.groups.slice() : [],
           bracket,
           champion,
+          bracket_submitted: localStorage.getItem(BRACKET_SUBMITTED_KEY) === '1',
+          group_rankings_submitted: areGroupRankingsSubmitted(),
         };
+      }
+
+      let wcSyncTimer = null;
+      function scheduleWcSync() {
+        if (!state.user) return;
+        clearTimeout(wcSyncTimer);
+        wcSyncTimer = setTimeout(() => syncWcPredictionsToApi(), 1000);
+      }
+
+      function applyWcPredictionsFromApi(data) {
+        if (!data) return;
+        if (data.matches && Object.keys(data.matches).length) {
+          matchPredictions = data.matches;
+          localStorage.setItem('wc_match_predictions', JSON.stringify(matchPredictions));
+        }
+        if (data.awards && Object.keys(data.awards).length) {
+          awardPredictions = data.awards;
+          localStorage.setItem('wc_award_predictions', JSON.stringify(awardPredictions));
+        }
+        if (data.groups && Object.keys(data.groups).length) {
+          groupPredictions = data.groups;
+          localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
+        }
+        if (data.group_rankings_submitted) {
+          localStorage.setItem(GROUP_RANKINGS_SUBMITTED_KEY, 'true');
+        }
+        if (data.third_place && data.third_place.length) {
+          manualThirdPlace = { confirmed: true, groups: data.third_place.slice() };
+          saveManualThirdPlace();
+        }
+        if (data.bracket && data.bracket.length) {
+          const bracketStore = data.bracket.map(m => ({
+            home: (m.home && typeof m.home === 'object') ? m.home.name : m.home,
+            away: (m.away && typeof m.away === 'object') ? m.away.name : m.away,
+            winner: m.winner || null,
+          }));
+          localStorage.setItem('wc_bracket_state_official_slots_v1', JSON.stringify(bracketStore));
+        }
+        if (data.bracket_submitted) {
+          localStorage.setItem(BRACKET_SUBMITTED_KEY, '1');
+        }
+        if (window.bracketPredictor) {
+          window.bracketPredictor.syncRound32Matchups();
+          window.bracketPredictor.loadSavedBracket();
+          window.bracketPredictor.updateDownloadButton();
+        }
+      }
+
+      function wcPredictionsHasServerData(data) {
+        if (!data) return false;
+        return !!(
+          (data.bracket && data.bracket.length) ||
+          (data.matches && Object.keys(data.matches).length) ||
+          (data.groups && Object.keys(data.groups).length) ||
+          (data.awards && Object.keys(data.awards).length) ||
+          (data.third_place && data.third_place.length)
+        );
+      }
+
+      async function hydrateWcPredictionsForUser() {
+        if (!state.user) return;
+        try {
+          const serverData = await apiRequest('/api/wc/predictions');
+          if (wcPredictionsHasServerData(serverData)) {
+            applyWcPredictionsFromApi(serverData);
+          } else {
+            await syncWcPredictionsToApi();
+          }
+        } catch (err) {
+          console.error('WC prediction load failed:', err);
+          await syncWcPredictionsToApi();
+        }
       }
 
       async function syncWcPredictionsToApi() {
@@ -3729,6 +3959,7 @@
             winner: m.winner
           }));
           localStorage.setItem(this.storageKey, JSON.stringify(data));
+          scheduleWcSync();
         }
 
         findTeamByName(name) {
