@@ -2493,12 +2493,10 @@
         }
       }
 
-      const HERO_ACTIVE_PLAYERS_FALLBACK = 8420;
-
       function formatActivePlayers(count) {
         const n = Number(count);
-        if (!Number.isFinite(n) || n <= 0) return '8K+';
-        return n >= 1000 ? `${Math.round(n / 1000)}K+` : String(n);
+        if (!Number.isFinite(n) || n < 0) return '0';
+        return n.toLocaleString();
       }
 
       function getLocalStatsFallback() {
@@ -2509,7 +2507,7 @@
           if (Array.isArray(pool)) totalQuestions += pool.length;
         });
         return {
-          active_players: HERO_ACTIVE_PLAYERS_FALLBACK,
+          active_players: 0,
           total_questions: totalQuestions || null,
           total_categories: categories.length || null,
           total_game_modes: 4,
@@ -2540,8 +2538,7 @@
           const categoriesEl = document.getElementById('hero-stat-categories');
           const modesEl = document.getElementById('hero-stat-modes');
           
-          const playerCount = Math.max(stats.active_players || 0, HERO_ACTIVE_PLAYERS_FALLBACK);
-          if (playersEl) playersEl.textContent = formatActivePlayers(playerCount);
+          if (playersEl) playersEl.textContent = formatActivePlayers(stats.active_players);
           if (questionsEl) questionsEl.textContent = `${stats.total_questions}+`;
           if (categoriesEl) categoriesEl.textContent = stats.total_categories;
           if (modesEl) modesEl.textContent = stats.total_game_modes;
@@ -2945,9 +2942,24 @@
         localStorage.setItem(MANUAL_THIRD_PLACE_KEY, JSON.stringify(manualThirdPlace));
       }
 
+      const WC_PREDICTIONS_SYNCED_AT_KEY = 'wc_predictions_synced_at';
+
+      function slimGroupsForPayload(groups) {
+        const slim = {};
+        Object.entries(groups || {}).forEach(([key, group]) => {
+          if (!group || !Array.isArray(group.teams)) return;
+          slim[key] = {
+            name: group.name || `Group ${key}`,
+            teams: group.teams.slice(0, 4).map(team => ({ name: team.name })),
+          };
+        });
+        return slim;
+      }
+
       function collectWcPredictionPayload() {
         let bracket = [];
         let champion = null;
+        let bracketSubmitted = false;
         if (window.bracketPredictor && window.bracketPredictor.matches) {
           bracket = window.bracketPredictor.matches.map(m => {
             const entry = {
@@ -2964,6 +2976,7 @@
           if (finalM && finalM.winner && finalM[finalM.winner]) {
             champion = finalM[finalM.winner].name || finalM[finalM.winner];
           }
+          bracketSubmitted = window.bracketPredictor.isBracketSubmitted();
         }
         const awards = {};
         Object.entries(awardPredictions).forEach(([key, val]) => {
@@ -2972,11 +2985,11 @@
         return {
           matches: matchPredictions,
           awards,
-          groups: groupPredictions,
+          groups: slimGroupsForPayload(groupPredictions),
           third_place: manualThirdPlace.confirmed ? manualThirdPlace.groups.slice() : [],
           bracket,
           champion,
-          bracket_submitted: localStorage.getItem(BRACKET_SUBMITTED_KEY) === '1',
+          bracket_submitted: bracketSubmitted,
           group_rankings_submitted: areGroupRankingsSubmitted(),
         };
       }
@@ -3041,33 +3054,51 @@
 
       async function hydrateWcPredictionsForUser() {
         if (!state.user) return;
+        const localPayload = collectWcPredictionPayload();
+        const localHasData = wcPredictionsHasServerData(localPayload);
         try {
+          if (localHasData) {
+            const pushed = await syncWcPredictionsToApi({ silent: true });
+            if (pushed) {
+              refreshPredictionCenterIfVisible();
+              return;
+            }
+          }
           const serverData = await apiRequest('/api/wc/predictions');
           if (wcPredictionsHasServerData(serverData)) {
             applyWcPredictionsFromApi(serverData);
-          } else {
-            await syncWcPredictionsToApi();
+          } else if (localHasData) {
+            await syncWcPredictionsToApi({ silent: true });
           }
         } catch (err) {
           console.error('WC prediction load failed:', err);
-          await syncWcPredictionsToApi();
+          if (localHasData) {
+            await syncWcPredictionsToApi({ silent: true });
+          }
         }
       }
 
-      async function syncWcPredictionsToApi() {
-        if (!state.user) return;
+      async function syncWcPredictionsToApi(options = {}) {
+        const { silent = false } = options;
+        if (!state.user) return false;
         try {
           const me = await apiRequest('/api/wc/predictions/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(collectWcPredictionPayload()),
-          });
+          }, 30000);
           if (me) {
             state.wcMe = me;
             updatePredictorProfileFromApi(me);
           }
+          localStorage.setItem(WC_PREDICTIONS_SYNCED_AT_KEY, String(Date.now()));
+          return true;
         } catch (err) {
           console.error('WC prediction sync failed:', err);
+          if (!silent) {
+            showToast(err.message || 'Could not save predictions to your account. Please try again.', 'error');
+          }
+          return false;
         }
       }
 
@@ -3305,9 +3336,8 @@
           window.bracketPredictor.syncRound32Matchups();
         }
         updatePredictorProfile();
+        scheduleWcSync();
       }
-
-      // Initialize stats on load
       try {
         ensureValidGroupPredictions();
         updateGroupStandingsStats();
@@ -3469,7 +3499,9 @@
             m.away = null;
             m.winner = null;
           });
+          window.bracketPredictor.clearBracketSubmitted();
           window.bracketPredictor.saveBracket();
+          window.bracketPredictor.updateDownloadButton();
         }
       }
       function handleDrop(e) {
@@ -3510,7 +3542,7 @@
         teams[targetIdx] = temp;
         onGroupStandingsChanged();
       }
-      function submitGroupPredictions() {
+      async function submitGroupPredictions() {
         if (!requireLoginForPredictions()) return;
         updateGroupStandingsStats();
         localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
@@ -3522,47 +3554,54 @@
           window.bracketPredictor.syncRound32Matchups();
           window.bracketPredictor.renderBracket();
         }
-        // Reveal the interactive 3rd-place qualifier selection panel.
         openThirdPlaceSelection();
-        syncWcPredictionsToApi();
+        const saved = await syncWcPredictionsToApi();
         updatePredictorProfile();
-        showToast('Group rankings saved! Now choose the 8 third-place teams that advance.', 'success');
+        if (saved) {
+          showToast('Group rankings saved! Now choose the 8 third-place teams that advance.', 'success');
+        }
         const panel = document.getElementById('third-place-selection-panel');
         if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
       // Reset all World Cup predictions: group standings, third-place picks and the
       // knockout bracket — returning everything to its default, unpredicted state.
-      function resetPredictions() {
+      async function resetPredictions() {
         if (!requireLoginForPredictions()) return;
         if (!confirm('Reset all your World Cup predictions? This clears your group rankings, third-place picks and the entire knockout bracket.')) return;
 
-        // Restore group standings to their default order.
         groupPredictions = JSON.parse(JSON.stringify(wcGroups()));
         localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
         localStorage.removeItem(GROUP_RANKINGS_SUBMITTED_KEY);
 
-        // Clear the third-place qualifier selection.
+        matchPredictions = {};
+        localStorage.setItem('wc_match_predictions', JSON.stringify(matchPredictions));
+        awardPredictions = {};
+        localStorage.setItem('wc_award_predictions', JSON.stringify(awardPredictions));
+
         manualThirdPlace = { confirmed: false, groups: [] };
         saveManualThirdPlace();
         thirdPlaceDraft = [];
         const panel = document.getElementById('third-place-selection-panel');
         if (panel) panel.style.display = 'none';
 
-        // Clear the knockout bracket (overrides + picked winners) and empty its slots.
         if (window.bracketPredictor) {
           clearBracketPredictions();
           window.bracketPredictor.syncRound32Matchups();
           window.bracketPredictor.renderBracket();
         }
 
-        // Re-render the prediction center.
         updateGroupStandingsStats();
         renderGroupPredictions();
         renderGroupStandings();
+        renderMatchPredictions();
+        updateAwardsDisplay();
         renderBestThirdPlacedTable();
         updatePredictorProfile();
-        showToast('All predictions have been reset.', 'success');
+        const saved = await syncWcPredictionsToApi();
+        if (saved) {
+          showToast('All predictions have been reset.', 'success');
+        }
       }
 
       // ── Interactive 3rd-place qualifier selection ──
@@ -3637,7 +3676,7 @@
         if (btn) btn.disabled = count !== 8 || !state.user;
       }
 
-      function confirmThirdPlaceQualifiers() {
+      async function confirmThirdPlaceQualifiers() {
         if (!requireLoginForPredictions()) return;
         if (thirdPlaceDraft.length !== 8) {
           showToast('Select exactly 8 third-place teams to continue.', 'error');
@@ -3651,8 +3690,10 @@
           window.bracketPredictor.renderBracket();
         }
         updatePredictorProfile();
-        syncWcPredictionsToApi();
-        showToast('3rd place qualifiers confirmed! All 32 teams are set for the knockout bracket.', 'success');
+        const saved = await syncWcPredictionsToApi();
+        if (saved) {
+          showToast('3rd place qualifiers confirmed! All 32 teams are set for the knockout bracket.', 'success');
+        }
       }
       // Render upcoming match predictions
       function renderMatchPredictions() {
@@ -3706,7 +3747,7 @@
           container.appendChild(card);
         });
       }
-      function saveMatchPrediction(fixtureId) {
+      async function saveMatchPrediction(fixtureId) {
         if (!requireLoginForPredictions()) return;
         const homeVal = document.getElementById(`pred-home-${fixtureId}`).value;
         const awayVal = document.getElementById(`pred-away-${fixtureId}`).value;
@@ -3725,8 +3766,10 @@
           statusEl.classList.add('wc-pred-status--saved');
         }
         updatePredictorProfile();
-        syncWcPredictionsToApi();
-        showToast('Prediction saved successfully!', 'success');
+        const saved = await syncWcPredictionsToApi();
+        if (saved) {
+          showToast('Prediction saved successfully!', 'success');
+        }
       }
       // Searchable Awards Modal System
       let currentModalAwardKey = null;
@@ -4054,7 +4097,7 @@
           });
         }
       }
-      function selectSelectorItemFromModal(name) {
+      async function selectSelectorItemFromModal(name) {
         if (!requireLoginForPredictions()) return;
         if (currentModalType === 'team') {
           awardPredictions[currentModalAwardKey] = name;
@@ -4068,8 +4111,10 @@
         updateAwardsDisplay();
         closeSelectorModal();
         updatePredictorProfile();
-        syncWcPredictionsToApi();
-        showToast(`Prediction for ${currentModalAwardTitle} saved!`, 'success');
+        const saved = await syncWcPredictionsToApi();
+        if (saved) {
+          showToast(`Prediction for ${currentModalAwardTitle} saved!`, 'success');
+        }
       }
       function updateAwardsDisplay() {
         renderAwardsGrid();
@@ -4246,8 +4291,17 @@
           this.submittedKey = BRACKET_SUBMITTED_KEY;
         }
 
+        isBracketComplete() {
+          return this.matches.every(m => !!m.winner);
+        }
+
         isBracketSubmitted() {
-          return localStorage.getItem(this.submittedKey) === '1';
+          if (localStorage.getItem(this.submittedKey) !== '1') return false;
+          if (!this.isBracketComplete()) {
+            this.clearBracketSubmitted();
+            return false;
+          }
+          return true;
         }
 
         markBracketSubmitted() {
@@ -5320,9 +5374,9 @@
         updateDownloadButton() {
           const btn = document.getElementById('bp-download-pdf');
           if (!btn) return;
-          const submitted = this.isBracketSubmitted();
+          const submitted = this.isBracketSubmitted() && this.isBracketComplete();
           btn.disabled = !submitted;
-          btn.title = submitted ? '' : 'Submit your bracket prediction first to download.';
+          btn.title = submitted ? '' : 'Submit your complete bracket prediction first to download.';
         }
 
         _preparePdfCapture(root) {
@@ -5440,8 +5494,8 @@
 
         async downloadPdf() {
           if (!this._requireBracketAuth()) return;
-          if (!this.isBracketSubmitted()) {
-            showToast('Submit your bracket prediction before downloading.', 'warning');
+          if (!this.isBracketSubmitted() || !this.isBracketComplete()) {
+            showToast('Submit your complete bracket prediction before downloading.', 'warning');
             return;
           }
           if (typeof html2canvas === 'undefined' || typeof jspdf === 'undefined') {
@@ -5545,7 +5599,7 @@
           showToast('Bracket reset successfully.', 'success');
         }
 
-        submit() {
+        async submit() {
           if (!this._requireBracketAuth()) return;
           const incomplete = this.matches.find(m => !m.winner);
           if (incomplete) {
@@ -5554,10 +5608,12 @@
           }
           const champion = this.matches[30][this.matches[30].winner];
           this.markBracketSubmitted();
-          syncWcPredictionsToApi();
+          const saved = await syncWcPredictionsToApi();
           updatePredictorProfile();
           this.updateDownloadButton();
-          showToast(`Bracket submitted! Predicted champion: ${champion.name}`, 'success');
+          if (saved) {
+            showToast(`Bracket submitted! Predicted champion: ${champion.name}`, 'success');
+          }
         }
       }
       // Analytics State variables
