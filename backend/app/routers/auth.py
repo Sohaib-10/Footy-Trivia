@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -11,8 +12,22 @@ from uuid import UUID
 from app.database import get_db
 from app import models, schemas, auth
 from app.email_service import send_verification_email, send_password_reset_email, EmailDeliveryError
+from app.cookie_auth import (
+    clear_auth_cookies,
+    generate_csrf_token,
+    set_auth_cookies,
+    set_csrf_cookie,
+    REFRESH_TOKEN_COOKIE,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+@router.get("/csrf", response_model=schemas.CsrfTokenResponse)
+async def issue_csrf_token(response: Response):
+    csrf_token = generate_csrf_token()
+    set_csrf_cookie(response, csrf_token)
+    return {"csrf_token": csrf_token}
 
 @router.post("/register", response_model=schemas.UserRead, status_code=status.HTTP_201_CREATED)
 async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
@@ -168,18 +183,29 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     user.last_login = datetime.utcnow()
     await db.commit()
 
-    # Generate tokens
     access_token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
     refresh_token = auth.create_refresh_token(data={"sub": str(user.id)})
+    csrf_token = generate_csrf_token()
 
-    return {
+    body = {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
     }
+    response = JSONResponse(content=body)
+    set_auth_cookies(response, access_token, refresh_token, csrf_token)
+    return response
 
 @router.post("/refresh", response_model=schemas.Token)
-async def refresh(refresh_token: str, db: AsyncSession = Depends(get_db)):
+async def refresh(
+    request: Request,
+    body: schemas.RefreshTokenRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    refresh_token = body.refresh_token or request.cookies.get(REFRESH_TOKEN_COOKIE)
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing refresh token")
+
     payload = auth.decode_token(refresh_token, expected_type="refresh")
     user_id_str = payload.get("sub")
     if not user_id_str:
@@ -200,15 +226,19 @@ async def refresh(refresh_token: str, db: AsyncSession = Depends(get_db)):
 
     new_access_token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
     new_refresh_token = auth.create_refresh_token(data={"sub": str(user.id)})
+    csrf_token = generate_csrf_token()
 
-    return {
-        "access_token": new_access_token,
-        "refresh_token": new_refresh_token,
-        "token_type": "bearer"
-    }
+    response = JSONResponse(
+        content={
+            "access_token": new_access_token,
+            "refresh_token": new_refresh_token,
+            "token_type": "bearer",
+        }
+    )
+    set_auth_cookies(response, new_access_token, new_refresh_token, csrf_token)
+    return response
 
 @router.post("/logout")
-async def logout():
-    # Stateless JWT logout is handled client-side by deleting tokens.
-    # We return success message.
+async def logout(response: Response):
+    clear_auth_cookies(response)
     return {"detail": "Successfully logged out"}

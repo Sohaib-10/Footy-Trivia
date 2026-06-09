@@ -30,6 +30,8 @@ class Settings(BaseSettings):
 
     # Email / auth links
     FRONTEND_URL: str = Field(default="http://localhost:9999")
+    # Set to true in production (Render) so auth cookies are Secure + HTTPS-only
+    COOKIE_SECURE: bool = Field(default=False)
     BREVO_API_KEY: str = Field(default="")
     BREVO_SENDER: str = Field(default="")
     RESEND_API_KEY: str = Field(default="")
@@ -48,5 +50,23 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore"
     )
+
+    @property
+    def cookie_secure(self) -> bool:
+        if self.COOKIE_SECURE:
+            return True
+        return self.FRONTEND_URL.startswith("https://")
+
+    @property
+    def cors_origins(self) -> list[str]:
+        origins = {
+            self.FRONTEND_URL.rstrip("/"),
+            "http://localhost:9999",
+            "http://127.0.0.1:8765",
+            "http://localhost:8765",
+            "https://footy--trivia.vercel.app",
+        }
+        return sorted(origins)
+
 
 settings = Settings()

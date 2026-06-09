@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import auth, users, leaderboard, quiz, questions, teams, countries, achievements, storage_router, profiles, stats, battle, wc
 from app.database import engine, Base
 from app import models  # noqa: F401  (ensures all tables are registered on Base.metadata)
+from app.config import settings
+from app.middleware.csrf import CsrfMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +31,15 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS configuration to allow local frontend access
+app.add_middleware(CsrfMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, set this to the specific frontend origin, e.g. ["http://localhost:5500", "http://127.0.0.1:5500"]
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Register routers

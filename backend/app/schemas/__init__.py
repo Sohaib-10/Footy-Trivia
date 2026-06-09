@@ -15,6 +15,12 @@ class TokenData(BaseModel):
     user_id: Optional[UUID] = None
     role: Optional[str] = None
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
+class CsrfTokenResponse(BaseModel):
+    csrf_token: str
+
 # ============================================================================
 # COUNTRY SCHEMAS
 # ============================================================================

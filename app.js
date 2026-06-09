@@ -2490,7 +2490,7 @@
           showToast(`🎉 Level Up! You reached Level ${user.level}!`, 'success');
         }
 
-        if (localStorage.getItem('footytrivia_token')) {
+        if (state.user) {
           try {
             await apiRequest('/api/users/me/progress/sync', {
               method: 'POST',
@@ -2794,7 +2794,7 @@
 
         try {
           const cachedUser = localStorage.getItem('footytrivia_user');
-          if (cachedUser && localStorage.getItem('footytrivia_token')) {
+          if (cachedUser) {
             state.user = JSON.parse(cachedUser);
           }
         } catch (e) {}
@@ -6989,14 +6989,23 @@
         }
         
         if (!ablyClient) {
-          const token = localStorage.getItem('footytrivia_token');
           const ablyOptions = (window.ENV && window.ENV.ABLY_API_KEY)
             ? { key: window.ENV.ABLY_API_KEY, clientId: String(state.user.id) }
             : {
-                authUrl: `${API_BASE_URL}/api/battle/token`,
-                authHeaders: {
-                  'Authorization': `Bearer ${token}`
-                }
+                authCallback: (tokenParams, callback) => {
+                  ensureCsrfToken()
+                    .then((csrf) => fetch(`${API_BASE_URL}/api/battle/token`, {
+                      credentials: 'include',
+                      headers: { 'X-CSRF-Token': csrf },
+                    }))
+                    .then((res) => {
+                      if (!res.ok) throw new Error('Ably auth failed');
+                      return res.json();
+                    })
+                    .then((data) => callback(null, data))
+                    .catch((err) => callback(err, null));
+                },
+                clientId: String(state.user.id),
               };
           ablyClient = new Ably.Realtime(ablyOptions);
         }
