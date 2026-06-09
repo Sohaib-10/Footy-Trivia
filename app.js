@@ -2329,6 +2329,12 @@
           if (questionsEl) questionsEl.textContent = `${stats.total_questions}+`;
           if (categoriesEl) categoriesEl.textContent = stats.total_categories;
           if (modesEl) modesEl.textContent = stats.total_game_modes;
+
+          const heroStats = document.querySelector('.hero-stats');
+          if (heroStats) {
+            heroStats.classList.remove('is-loading');
+            heroStats.querySelectorAll('.hero-stat-num').forEach(el => { el.style.animation = 'popIn .6s ease'; });
+          }
           
           // Update league rankings counts on the leaderboard page
           const plRank = document.getElementById('league-rank-pl');
@@ -2473,8 +2479,6 @@
         setInterval(updateCountdown, 1000);
         updateCountdown();
         syncModeCardSelection();
-        // Animate hero stats on load
-        setTimeout(() => { document.querySelectorAll('.hero-stat-num').forEach(el => { el.style.animation = 'popIn .6s ease'; }); }, 300);
       });
       // ── WORLD CUP 2026 DATA & FUNCTIONS ──
       // COUNTRY_CODES loaded from data.js
@@ -5330,6 +5334,7 @@
       }
 
       function initAnalyticsTab() {
+        if (document.getElementById('wc-analytics')?.classList.contains('wc-analytics-locked')) return;
         populateTeamDropdown();
         
         document.getElementById('wc-analytics-search').value = '';

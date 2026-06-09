@@ -928,6 +928,10 @@
       flex-wrap: wrap;
     }
 
+    .hero-stats.is-loading .hero-stat-num {
+      visibility: hidden;
+    }
+
     .hero-stat {
       text-align: center;
     }
@@ -3732,6 +3736,19 @@
       color: var(--text2);
       line-height: 1.45;
     }
+
+    /* ── ANALYTICS — locked until tournament starts ── */
+    #wc-analytics.wc-analytics-locked {
+      position: relative;
+      min-height: 420px;
+    }
+    #wc-analytics.wc-analytics-locked .wc-analytics-content {
+      filter: blur(6px);
+      pointer-events: none;
+      user-select: none;
+      opacity: 0.55;
+    }
+
     #wc-predictions.wc-predictions-guest .wc-reorder-item { cursor: default; }
     #wc-predictions.wc-predictions-guest .wc-reorder-item:active { cursor: default; background: var(--surface2); }
     .wc-reorder-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }

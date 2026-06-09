@@ -167,32 +167,32 @@
             Categories</button>
         </div>
 
-        <div class="hero-stats"
+        <div class="hero-stats is-loading"
           style="margin-top: 4rem; display: flex; gap: 3rem; justify-content: center; flex-wrap: wrap;">
           <div class="hero-stat" style="text-align: center;">
             <div class="hero-stat-num" id="hero-stat-players"
-              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);">12K+</div>
+              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);"></div>
             <div class="hero-stat-label"
               style="font-size: 0.85rem; color: var(--text3); font-weight: 400; margin-top: 0.25rem; font-family: var(--font-ui);">
               Active players</div>
           </div>
           <div class="hero-stat" style="text-align: center;">
             <div class="hero-stat-num" id="hero-stat-questions"
-              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);">250+</div>
+              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);"></div>
             <div class="hero-stat-label"
               style="font-size: 0.85rem; color: var(--text3); font-weight: 400; margin-top: 0.25rem; font-family: var(--font-ui);">
               Questions</div>
           </div>
           <div class="hero-stat" style="text-align: center;">
             <div class="hero-stat-num" id="hero-stat-categories"
-              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);">13</div>
+              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);"></div>
             <div class="hero-stat-label"
               style="font-size: 0.85rem; color: var(--text3); font-weight: 400; margin-top: 0.25rem; font-family: var(--font-ui);">
               Categories</div>
           </div>
           <div class="hero-stat" style="text-align: center;">
             <div class="hero-stat-num" id="hero-stat-modes"
-              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);">4</div>
+              style="font-size: 2rem; font-weight: 500; color: var(--text); font-family: var(--font-ui);"></div>
             <div class="hero-stat-label"
               style="font-size: 0.85rem; color: var(--text3); font-weight: 400; margin-top: 0.25rem; font-family: var(--font-ui);">
               Game modes</div>
@@ -1824,7 +1824,15 @@
         </div>
 
         <!-- ANALYTICS TAB -->
-        <div id="wc-analytics" class="wc-tab-content" style="display:none">
+        <div id="wc-analytics" class="wc-tab-content wc-analytics-locked" style="display:none">
+          <div class="wc-matchday-overlay" id="wc-analytics-overlay">
+            <div class="wc-matchday-overlay-card">
+              <div class="wc-matchday-overlay-icon">📊</div>
+              <div class="wc-matchday-overlay-title">Analytics Coming Soon</div>
+              <div class="wc-matchday-overlay-sub">Once the tournament starts, you will get to see the analytics.</div>
+            </div>
+          </div>
+          <div class="wc-analytics-content">
           <!-- Analytics Control Panel -->
           <div class="wc-card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
@@ -1974,6 +1982,7 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;" id="advanced-leaderboards-grid">
               <!-- Generated dynamically in Javascript -->
             </div>
+          </div>
           </div>
 
         </div>
