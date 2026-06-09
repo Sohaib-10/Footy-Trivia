@@ -963,6 +963,7 @@
         hidePleaseWait();
         const container = document.getElementById('toast-container');
         if (!container) return;
+        container.classList.add('auth-wait-active');
         authWaitToast = document.createElement('div');
         authWaitToast.className = 'toast info auth-wait-toast';
         authWaitToast.innerHTML = `<span>⏳</span> <span>${msg}</span>`;
@@ -974,6 +975,8 @@
           authWaitToast.remove();
           authWaitToast = null;
         }
+        const container = document.getElementById('toast-container');
+        if (container) container.classList.remove('auth-wait-active');
       }
 
       function authPasswordField(id, placeholder, extraAttrs = '') {
@@ -999,18 +1002,13 @@
         const form = document.querySelector('#modal-content form');
         if (!form) return;
         const passwordInput = form.querySelector('#auth-password, #auth-new-password');
-        if (passwordInput) {
-          passwordInput.addEventListener('keydown', (ev) => {
-            if (ev.key === 'Enter') {
-              ev.preventDefault();
-              if (typeof form.requestSubmit === 'function') {
-                form.requestSubmit();
-              } else {
-                form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-              }
-            }
-          });
-        }
+        if (!passwordInput) return;
+        passwordInput.addEventListener('keydown', (ev) => {
+          if (ev.key !== 'Enter') return;
+          ev.preventDefault();
+          const submitBtn = form.querySelector('button[type="submit"]');
+          if (submitBtn && !submitBtn.disabled) submitBtn.click();
+        });
       }
 
       function setAuthSubmitting(form, isSubmitting) {
