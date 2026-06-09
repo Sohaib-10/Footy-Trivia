@@ -44,9 +44,58 @@
         }
       }
 
+      function getCsrfTokenFromCookie() {
+        const match = document.cookie.match(/(?:^|;\s*)ft_csrf=([^;]*)/);
+        return match ? decodeURIComponent(match[1]) : null;
+      }
+
+      let csrfTokenPromise = null;
+      async function ensureCsrfToken() {
+        const cached = getCsrfTokenFromCookie();
+        if (cached) return cached;
+        if (!csrfTokenPromise) {
+          csrfTokenPromise = fetchWithTimeout(`${API_BASE_URL}/api/auth/csrf`, {
+            credentials: 'include',
+          }, 15000)
+            .then(async (res) => {
+              if (!res.ok) throw new Error('Failed to fetch CSRF token');
+              const data = await res.json();
+              return data.csrf_token || getCsrfTokenFromCookie();
+            })
+            .finally(() => { csrfTokenPromise = null; });
+        }
+        return csrfTokenPromise;
+      }
+
+      async function prepareApiOptions(options = {}) {
+        const prepared = { ...options, credentials: options.credentials || 'include' };
+        const method = (prepared.method || 'GET').toUpperCase();
+        if (!prepared.headers) prepared.headers = {};
+        const token = localStorage.getItem('footytrivia_token');
+        if (token && !prepared.headers['Authorization']) {
+          prepared.headers['Authorization'] = `Bearer ${token}`;
+        }
+        const csrfExempt = [
+          '/api/auth/login',
+          '/api/auth/register',
+          '/api/auth/csrf',
+          '/api/auth/forgot-password',
+          '/api/auth/resend-verification',
+          '/api/auth/verify-email',
+          '/api/auth/reset-password',
+        ];
+        const needsCsrf = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+        const endpoint = prepared._apiEndpoint || '';
+        if (needsCsrf && !csrfExempt.some((path) => endpoint.startsWith(path))) {
+          prepared.headers['X-CSRF-Token'] = await ensureCsrfToken();
+        }
+        delete prepared._apiEndpoint;
+        return prepared;
+      }
+
       function wakeApiServer() {
         if (!apiWakePromise) {
-          apiWakePromise = fetchWithTimeout(`${API_BASE_URL}/`, {}, 8000)
+          apiWakePromise = fetchWithTimeout(`${API_BASE_URL}/`, { credentials: 'include' }, 8000)
             .catch(() => null)
             .finally(() => { apiWakePromise = null; });
         }
@@ -55,14 +104,10 @@
 
       async function apiRequest(endpoint, options = {}, timeoutMs = API_TIMEOUT_MS) {
         const url = `${API_BASE_URL}${endpoint}`;
-        const token = localStorage.getItem('footytrivia_token');
-        if (token) {
-          if (!options.headers) options.headers = {};
-          options.headers['Authorization'] = `Bearer ${token}`;
-        }
+        const prepared = await prepareApiOptions({ ...options, _apiEndpoint: endpoint });
         
         try {
-          const response = await fetchWithTimeout(url, options, timeoutMs);
+          const response = await fetchWithTimeout(url, prepared, timeoutMs);
           if (!response.ok) {
             const err = await response.json().catch(() => ({ detail: 'API request failed' }));
             throw new Error(err.detail || 'API request failed');
@@ -1936,7 +1981,8 @@
             tokenRes = await fetchWithTimeout(`${API_BASE_URL}/api/auth/login`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: formData
+              body: formData,
+              credentials: 'include',
             }, 35000);
             break;
           } catch (error) {
@@ -1954,11 +2000,10 @@
           throw new Error(authErrorMessage(err.detail, 'Invalid email or password'));
         }
 
-        const tokenData = await tokenRes.json();
-        localStorage.setItem('footytrivia_token', tokenData.access_token);
-        if (tokenData.refresh_token) {
-          localStorage.setItem('footytrivia_refresh_token', tokenData.refresh_token);
-        }
+        await tokenRes.json();
+        localStorage.removeItem('footytrivia_token');
+        localStorage.removeItem('footytrivia_refresh_token');
+        await ensureCsrfToken();
 
         const profile = await apiRequest('/api/users/me');
         let progress = {};
@@ -1976,13 +2021,8 @@
       }
 
       async function restoreSession() {
-        const token = localStorage.getItem('footytrivia_token');
-        if (!token) {
-          localStorage.removeItem('footytrivia_user');
-          state.user = null;
-          return;
-        }
         try {
+          await ensureCsrfToken().catch(() => null);
           const profile = await apiRequest('/api/users/me');
           let progress = {};
           try { progress = await apiRequest('/api/users/me/progress'); } catch (e) {}
@@ -2158,7 +2198,8 @@
           const registerRes = await fetchWithTimeout(`${API_BASE_URL}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email, password })
+            body: JSON.stringify({ username, email, password }),
+            credentials: 'include',
           }, 20000);
 
           if (!registerRes.ok) {
@@ -2207,7 +2248,8 @@
           const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email }),
+            credentials: 'include',
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {
@@ -2236,7 +2278,8 @@
           const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, new_password })
+            body: JSON.stringify({ token, new_password }),
+            credentials: 'include',
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(authErrorMessage(data.detail, 'Password reset failed'));
@@ -2257,7 +2300,8 @@
           const res = await fetch(`${API_BASE_URL}/api/auth/resend-verification`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email }),
+            credentials: 'include',
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(authErrorMessage(data.detail, 'Could not resend verification email'));
@@ -2282,7 +2326,8 @@
             const res = await fetch(`${API_BASE_URL}/api/auth/verify-email`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token: verifyToken })
+              body: JSON.stringify({ token: verifyToken }),
+              credentials: 'include',
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(authErrorMessage(data.detail, 'Verification failed'));
@@ -2301,7 +2346,10 @@
         }
       }
 
-      function logout() {
+      async function logout() {
+        try {
+          await apiRequest('/api/auth/logout', { method: 'POST' });
+        } catch (_) {}
         state.user = null;
         localStorage.removeItem('footytrivia_user');
         localStorage.removeItem('footytrivia_token');
@@ -7306,6 +7354,12 @@
         }
         
         revealContainer.innerHTML = hostHtml + guestHtml;
+
+        const myAns = battleRoom.role === 'host' ? hostAns : guestAns;
+        if (myAns) {
+          if (myAns.is_correct) playCorrectSound();
+          else playWrongSound();
+        }
         
         let timeLeft = data.next_question_delay_sec || 5;
         const countdownEl = document.getElementById('battle-reveal-countdown');
