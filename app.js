@@ -86,6 +86,9 @@
           switchWCTab(activeTabId, activeTabBtn);
           syncWcMobileNavSub(activeTabId);
         }
+        if (page === 'profile' && state.user) {
+          refreshProfileStats();
+        }
       }
       function setPageBg(src) {
         const wrap = document.getElementById('page-bg-watermark');
@@ -546,17 +549,30 @@
       function restartQuiz() {
         document.getElementById('results-screen').classList.add('hidden');
         document.getElementById('mode-select').classList.remove('hidden');
+        syncModeCardSelection();
       }
+      function syncModeCardSelection(mode) {
+        const activeMode = mode || state.selectedMode || 'solo';
+        document.querySelectorAll('.mode-card').forEach(card => {
+          card.classList.toggle('active', card.dataset.mode === activeMode);
+        });
+      }
+
       function selectMode(mode) {
-        state.selectedMode = mode;
-        showToast(`⚡ Mode: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`, 'info');
-        if (mode === 'daily') { startQuiz('daily'); return; }
+        if (mode === 'daily') {
+          state.selectedMode = mode;
+          syncModeCardSelection(mode);
+          startQuiz('daily');
+          return;
+        }
         if (mode === 'multiplayer') {
           if (!state.user) {
             showToast('Please log in or sign up to enter the Realtime Arena.', 'warning');
             openModal('login');
             return;
           }
+          state.selectedMode = mode;
+          syncModeCardSelection(mode);
           showPage('battle');
           return;
         }
@@ -564,11 +580,12 @@
           if (!state.user) {
             showToast('Please log in to play Ranked Mode. Your scores count towards the global leaderboard!', 'warning');
             openModal('login');
-            state.selectedMode = 'solo';
             return;
           }
         }
-        document.querySelectorAll('.mode-card').forEach(c => c.style.borderColor = '');
+        state.selectedMode = mode;
+        syncModeCardSelection(mode);
+        showToast(`⚡ Mode: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`, 'info');
       }
       function selectDiff(diff, el) {
         state.selectedDiff = diff;
@@ -1287,7 +1304,9 @@
         { name: 'Singapore', code: 'sg' },
       ];
 
+      let profileCountriesCache = null;
       function getProfileCountriesList() {
+        if (profileCountriesCache) return profileCountriesCache;
         const seen = new Set();
         const list = [];
         const add = (name, code) => {
@@ -1301,7 +1320,8 @@
         }
         WORLD_CUP_TEAMS.forEach(t => add(t.name, t.code));
         PROFILE_COUNTRY_EXTRAS.forEach(c => add(c.name, c.code));
-        return list.sort((a, b) => a.name.localeCompare(b.name));
+        profileCountriesCache = list.sort((a, b) => a.name.localeCompare(b.name));
+        return profileCountriesCache;
       }
 
       function applyProfilePreferences(prefs, userObj = state.user) {
@@ -1323,23 +1343,20 @@
         localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
       }
 
-      async function saveProfilePreferences(partial) {
+      function saveProfilePreferences(partial) {
         if (!state.user) return;
         const merged = { ...(state.user.profilePreferences || {}), ...partial };
-        try {
-          const updated = await apiRequest('/api/users/me', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ preferences: merged }),
-          });
-          applyProfilePreferences(updated.preferences || merged);
-          updateAuthUI();
-        } catch (err) {
-          console.error('Profile preferences save failed:', err);
-          applyProfilePreferences(merged);
-          updateAuthUI();
-          showToast('Saved locally — sync preferences when back online.', 'warning');
-        }
+        applyProfilePreferences(merged);
+        updateAuthUI();
+        apiRequest('/api/users/me', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preferences: merged }),
+        }).then((updated) => {
+          if (updated && updated.preferences) applyProfilePreferences(updated.preferences);
+        }).catch((err) => {
+          console.error('Profile preferences sync failed:', err);
+        });
       }
 
       function openFavCountryModal() {
@@ -1385,10 +1402,10 @@
         renderFavCountryGrid();
       }
 
-      async function selectFavCountry(name, code) {
+      function selectFavCountry(name, code) {
         const flagUrl = `https://flagcdn.com/w80/${code}.png`;
         if (state.user) {
-          await saveProfilePreferences({ country: { name, code, flag: flagUrl } });
+          saveProfilePreferences({ country: { name, code, flag: flagUrl } });
         } else {
           state.guestCountry = name;
           state.guestCountryCode = code;
@@ -1483,9 +1500,9 @@
       function filterFavClubs() {
         renderFavClubsGrid();
       }
-      async function selectFavClub(name, logo) {
+      function selectFavClub(name, logo) {
         if (state.user) {
-          await saveProfilePreferences({ favClub: { name, logo } });
+          saveProfilePreferences({ favClub: { name, logo } });
         } else {
           state.guestFavClub = name;
           state.guestFavClubLogo = logo;
@@ -1593,10 +1610,10 @@
       function filterFavWc() {
         renderFavWcGrid();
       }
-      async function selectFavWc(name, code) {
+      function selectFavWc(name, code) {
         const flagUrl = `https://flagcdn.com/w80/${code}.png`;
         if (state.user) {
-          await saveProfilePreferences({ favWc: { name, code, flag: flagUrl } });
+          saveProfilePreferences({ favWc: { name, code, flag: flagUrl } });
         } else {
           state.guestFavWc = name;
           state.guestFavWcLogo = flagUrl;
@@ -1615,7 +1632,7 @@
         return fallback;
       }
 
-      function buildUserFromApi(profile, progress, email) {
+      function buildUserFromApi(profile, progress, email, rank = null) {
         const totalPoints = progress.total_points || 0;
         return {
           id: profile.user_id,
@@ -1623,15 +1640,67 @@
           email: email || '',
           level: Math.floor(totalPoints / 1000) + 1,
           xp: totalPoints % 1000,
-          gamesPlayed: progress.total_quizzes_played || profile.total_quizzes_played || 0,
+          totalPoints,
+          gamesPlayed: profile.total_quizzes_played || 0,
           correctAnswers: progress.total_correct || 0,
-          currentStreak: progress.current_streak || 0,
           bestStreak: progress.longest_streak || 0,
           accuracy: progress.total_questions_answered > 0
             ? Math.round((progress.total_correct / progress.total_questions_answered) * 100)
             : 0,
-          totalQuestions: progress.total_questions_answered || 0
+          totalQuestions: progress.total_questions_answered || 0,
+          globalRank: rank,
         };
+      }
+
+      function renderProfileStats(user) {
+        const stats = user || { gamesPlayed: 0, totalPoints: 0, accuracy: 0, bestStreak: 0, globalRank: null };
+        const gamesEl = document.getElementById('prof-stat-games');
+        const pointsEl = document.getElementById('prof-stat-points');
+        const accEl = document.getElementById('prof-stat-accuracy');
+        const streakEl = document.getElementById('prof-stat-streak');
+        const rankEl = document.getElementById('prof-stat-rank');
+        if (gamesEl) gamesEl.textContent = String(stats.gamesPlayed ?? 0);
+        if (pointsEl) pointsEl.textContent = (stats.totalPoints ?? 0).toLocaleString();
+        if (accEl) accEl.textContent = `${stats.accuracy ?? 0}%`;
+        if (streakEl) streakEl.textContent = String(stats.bestStreak ?? 0);
+        if (rankEl) {
+          rankEl.textContent = stats.globalRank ? `#${stats.globalRank}` : '#--';
+        }
+      }
+
+      async function refreshProfileStats() {
+        if (!state.user) return;
+        try {
+          const [profile, progress, ranked] = await Promise.all([
+            apiRequest('/api/users/me'),
+            apiRequest('/api/users/me/progress'),
+            apiRequest('/api/leaderboard/ranked?period=all_time').catch(() => null),
+          ]);
+          let rank = null;
+          if (ranked?.current_user?.rank) {
+            rank = ranked.current_user.rank;
+          } else if (ranked?.entries?.length) {
+            const me = ranked.entries.find(e => e.user_id === state.user.id);
+            if (me?.rank) rank = me.rank;
+          }
+          const userObj = buildUserFromApi(profile, progress, state.user.email, rank);
+          state.user = { ...state.user, ...userObj };
+          localStorage.setItem('footytrivia_user', JSON.stringify(state.user));
+          renderProfileStats(state.user);
+          const xpFillEl = document.querySelector('.profile-xp-fill');
+          const xpLabelEl = document.querySelector('.profile-xp-label');
+          const profileRankEl = document.querySelector('.profile-rank');
+          if (xpFillEl) xpFillEl.style.width = `${(userObj.xp / 1000) * 100}%`;
+          if (xpLabelEl) xpLabelEl.textContent = `${userObj.xp} / 1000 XP to next level`;
+          if (profileRankEl) {
+            const ranks = ['Rookie - Silver I', 'Amateur - Silver II', 'Pro - Gold I', 'Elite - Gold II', 'World Class - Diamond I', 'Legendary - Champion'];
+            const rankIdx = Math.min(ranks.length - 1, Math.floor(userObj.level / 2));
+            profileRankEl.textContent = ranks[rankIdx].toUpperCase();
+          }
+        } catch (err) {
+          console.warn('Failed to refresh profile stats:', err);
+          renderProfileStats(state.user);
+        }
       }
 
       async function completeLogin(email, password) {
@@ -1665,9 +1734,10 @@
         localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
         state.user = userObj;
         updateAuthUI();
+        await refreshProfileStats();
         await hydrateWcPredictionsForUser();
         updatePredictorProfile();
-        return userObj;
+        return state.user;
       }
 
       async function restoreSession() {
@@ -1709,6 +1779,7 @@
             legacyPrefs.favWc = { name: userObj.favWc, flag: userObj.favWcLogo };
           }
           if (Object.keys(legacyPrefs).length) saveProfilePreferences(legacyPrefs);
+          await refreshProfileStats();
           await hydrateWcPredictionsForUser();
           updatePredictorProfile();
         } catch (e) {
@@ -2014,7 +2085,6 @@
         const profileRankEl = document.querySelector('.profile-rank');
         const xpFillEl = document.querySelector('.profile-xp-fill');
         const xpLabelEl = document.querySelector('.profile-xp-label');
-        const statsVals = document.querySelectorAll('.profile-stat-val');
         if (state.user) {
           const user = state.user;
           if (navAuthWrap) {
@@ -2047,12 +2117,7 @@
           if (xpLabelEl) {
             xpLabelEl.textContent = `${user.xp} / 1000 XP to next level`;
           }
-          if (statsVals && statsVals.length >= 4) {
-            statsVals[0].textContent = user.gamesPlayed || 0;
-            statsVals[1].textContent = user.correctAnswers || 0;
-            statsVals[2].textContent = `${user.accuracy || 0}%`;
-            statsVals[3].textContent = user.bestStreak || 0;
-          }
+          renderProfileStats(user);
           updatePredictionCenterAuthUI();
         } else {
           if (navAuthWrap) {
@@ -2076,12 +2141,7 @@
           if (profileRankEl) profileRankEl.textContent = 'ROOKIE - SILVER I';
           if (xpFillEl) xpFillEl.style.width = '12%';
           if (xpLabelEl) xpLabelEl.textContent = '120 / 1000 XP to next level';
-          if (statsVals && statsVals.length >= 4) {
-            statsVals[0].textContent = '0';
-            statsVals[1].textContent = '0';
-            statsVals[2].textContent = '0%';
-            statsVals[3].textContent = '0';
-          }
+          renderProfileStats(null);
           updatePredictionCenterAuthUI();
         }
         const countryLabel = document.getElementById('profile-country-label');
@@ -2160,11 +2220,7 @@
                 quizzes_played: 1
               })
             });
-            const profile = await apiRequest('/api/users/me');
-            const progress = await apiRequest('/api/users/me/progress');
-            const userObj = buildUserFromApi(profile, progress, user.email);
-            state.user = userObj;
-            localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
+            await refreshProfileStats();
           } catch (e) {
             console.warn('Failed to sync quiz progress to server:', e);
             localStorage.setItem('footytrivia_user', JSON.stringify(user));
@@ -2416,6 +2472,7 @@
         newTransferGame();
         setInterval(updateCountdown, 1000);
         updateCountdown();
+        syncModeCardSelection();
         // Animate hero stats on load
         setTimeout(() => { document.querySelectorAll('.hero-stat-num').forEach(el => { el.style.animation = 'popIn .6s ease'; }); }, 300);
       });

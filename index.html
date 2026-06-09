@@ -888,7 +888,7 @@
 
       <div class="modes-grid">
 
-        <div class="mode-card" onclick="selectMode('solo')">
+        <div class="mode-card active" data-mode="solo" onclick="selectMode('solo')">
           <div class="mode-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -901,7 +901,7 @@
           <div class="mode-desc">Play at your own pace</div>
         </div>
 
-        <div class="mode-card" onclick="selectMode('blitz')">
+        <div class="mode-card" data-mode="blitz" onclick="selectMode('blitz')">
           <div class="mode-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -914,7 +914,7 @@
           <div class="mode-desc">Fast answers, big points</div>
         </div>
 
-        <div class="mode-card" onclick="selectMode('hardcore')">
+        <div class="mode-card" data-mode="hardcore" onclick="selectMode('hardcore')">
           <div class="mode-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -927,7 +927,7 @@
           <div class="mode-desc">One wrong = game over</div>
         </div>
 
-        <div class="mode-card" onclick="selectMode('daily')">
+        <div class="mode-card" data-mode="daily" onclick="selectMode('daily')">
           <div class="mode-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -943,7 +943,7 @@
           <div class="mode-desc">10 questions refreshed daily</div>
         </div>
 
-        <div class="mode-card" onclick="selectMode('multiplayer')">
+        <div class="mode-card" data-mode="multiplayer" onclick="selectMode('multiplayer')">
           <div class="mode-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -958,7 +958,7 @@
           <div class="mode-desc">Challenge friends live</div>
         </div>
 
-        <div class="mode-card" onclick="selectMode('ranked')">
+        <div class="mode-card" data-mode="ranked" onclick="selectMode('ranked')">
           <div class="mode-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -1390,7 +1390,7 @@
 
           <div class="profile-stat-card">
 
-            <div class="profile-stat-val text-accent">0</div>
+            <div class="profile-stat-val text-accent" id="prof-stat-games">0</div>
 
             <div class="profile-stat-key">Games Played</div>
 
@@ -1398,7 +1398,7 @@
 
           <div class="profile-stat-card">
 
-            <div class="profile-stat-val text-gold">0</div>
+            <div class="profile-stat-val text-gold" id="prof-stat-points">0</div>
 
             <div class="profile-stat-key">Total Points</div>
 
@@ -1406,7 +1406,7 @@
 
           <div class="profile-stat-card">
 
-            <div class="profile-stat-val text-green">0%</div>
+            <div class="profile-stat-val text-green" id="prof-stat-accuracy">0%</div>
 
             <div class="profile-stat-key">Accuracy</div>
 
@@ -1414,7 +1414,7 @@
 
           <div class="profile-stat-card">
 
-            <div class="profile-stat-val">0</div>
+            <div class="profile-stat-val" id="prof-stat-streak">0</div>
 
             <div class="profile-stat-key">Best Streak</div>
 
@@ -1422,15 +1422,7 @@
 
           <div class="profile-stat-card">
 
-            <div class="profile-stat-val">0</div>
-
-            <div class="profile-stat-key">Daily Streak</div>
-
-          </div>
-
-          <div class="profile-stat-card">
-
-            <div class="profile-stat-val">#--</div>
+            <div class="profile-stat-val" id="prof-stat-rank">#--</div>
 
             <div class="profile-stat-key">Global Rank</div>
 
@@ -1566,15 +1558,8 @@
 
     <!-- ──────────────────────────  a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a•  CLUB PAGE a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a• a•  -->
 
-    <div id="page-worldcup" class="page wc-hub" style="padding-top:64px">
-      <div class="section">
-        
-        <div class="wc-hero">
-          <img src="https://upload.wikimedia.org/wikipedia/en/thumb/1/17/2026_FIFA_World_Cup_emblem.svg/960px-2026_FIFA_World_Cup_emblem.svg.png" alt="2026 World Cup">
-          <h1>FIFA World Cup 2026™ Hub</h1>
-          <p>The ultimate premium tournament experience. Predict matches, track live standings, explore deep analytics, and climb the global leaderboards across 48 teams and 104 matches.</p>
-        </div>
-
+    <div id="page-worldcup" class="page wc-hub">
+      <nav class="wc-nav-tabs-bar" id="wc-nav-tabs-bar" aria-label="World Cup sections">
         <div class="wc-nav-tabs" id="wc-nav-tabs">
           <button class="wc-tab active" onclick="switchWCTab('dashboard', this)">Dashboard</button>
           <button class="wc-tab" onclick="switchWCTab('predictions', this)">Prediction Center</button>
@@ -1582,6 +1567,15 @@
           <button class="wc-tab" onclick="switchWCTab('bracket', this)">Knockout Bracket</button>
           <button class="wc-tab" onclick="switchWCTab('analytics', this)">Analytics</button>
           <button class="wc-tab" onclick="switchWCTab('leaderboard', this)">Leaderboard</button>
+        </div>
+      </nav>
+
+      <div class="section wc-hub-section">
+        
+        <div class="wc-hero">
+          <img src="https://upload.wikimedia.org/wikipedia/en/thumb/1/17/2026_FIFA_World_Cup_emblem.svg/960px-2026_FIFA_World_Cup_emblem.svg.png" alt="2026 World Cup">
+          <h1>FIFA World Cup 2026™ Hub</h1>
+          <p>The ultimate premium tournament experience. Predict matches, track live standings, explore deep analytics, and climb the global leaderboards across 48 teams and 104 matches.</p>
         </div>
 
         <!-- DASHBOARD TAB -->

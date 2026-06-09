@@ -273,6 +273,30 @@ def _tier(points: int) -> str:
     return "Unranked"
 
 
+@router.get("/predictions", response_model=schemas.WcPredictionsSync)
+async def get_predictions(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    pred_result = await db.execute(
+        select(models.WcUserPredictions).where(models.WcUserPredictions.user_id == current_user.id)
+    )
+    record = pred_result.scalars().first()
+    if not record or not record.data:
+        return schemas.WcPredictionsSync()
+    data = record.data if isinstance(record.data, dict) else {}
+    return schemas.WcPredictionsSync(
+        matches=data.get("matches") or {},
+        awards=data.get("awards") or {},
+        groups=data.get("groups") or {},
+        third_place=data.get("third_place") or [],
+        bracket=data.get("bracket") or [],
+        champion=data.get("champion"),
+        bracket_submitted=bool(data.get("bracket_submitted")),
+        group_rankings_submitted=bool(data.get("group_rankings_submitted")),
+    )
+
+
 @router.post("/predictions/sync", response_model=schemas.WcMeRead)
 async def sync_predictions(
     payload: schemas.WcPredictionsSync,

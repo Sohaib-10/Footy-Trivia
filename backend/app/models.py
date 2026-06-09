@@ -79,6 +79,7 @@ class Profile(Base):
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     country_id: Mapped[Optional[int]] = mapped_column(ForeignKey("countries.id", ondelete="SET NULL"), nullable=True)
     favourite_team_id: Mapped[Optional[int]] = mapped_column(ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
+    preferences: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     total_quizzes_played: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[datetime] = mapped_column(default=func.now(), onupdate=func.now())
 

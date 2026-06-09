@@ -61,6 +61,7 @@ CREATE TABLE profiles (
     bio TEXT,
     country_id INT REFERENCES countries(id) ON DELETE SET NULL,
     favourite_team_id INT REFERENCES teams(id) ON DELETE SET NULL,
+    preferences JSONB NOT NULL DEFAULT '{}'::jsonb,
     total_quizzes_played INT DEFAULT 0,
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

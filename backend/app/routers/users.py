@@ -88,8 +88,11 @@ async def update_profile(
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    # Update profile fields if supplied
-    for field, value in profile_data.model_dump(exclude_unset=True).items():
+    updates = profile_data.model_dump(exclude_unset=True)
+    if "preferences" in updates and updates["preferences"] is not None:
+        current_prefs = profile.preferences if isinstance(profile.preferences, dict) else {}
+        updates["preferences"] = {**current_prefs, **updates["preferences"]}
+    for field, value in updates.items():
         setattr(profile, field, value)
 
     await db.commit()

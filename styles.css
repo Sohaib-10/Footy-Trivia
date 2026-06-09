@@ -2396,9 +2396,13 @@
     }
 
     .mode-card.active {
-      border-color: var(--accent);
+      border-color: var(--gold);
       background: var(--surface2);
-      box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 0 1px var(--gold), 0 0 14px rgba(212, 168, 83, 0.15);
+    }
+
+    .mode-card.active:hover {
+      border-color: var(--gold);
     }
 
     .mode-card.locked {
@@ -3229,9 +3233,17 @@
         display: flex;
       }
 
+      .wc-nav-tabs-bar {
+        padding: 0 0.85rem;
+      }
+
       .wc-nav-tabs {
         gap: 0.5rem;
-        padding-top: 0.5rem;
+        padding: 0.5rem 0 0.65rem;
+      }
+
+      .wc-hub-section {
+        padding-top: 3.15rem;
       }
 
       .wc-tab {
@@ -3292,6 +3304,32 @@
       margin: 1rem 0;
     }
     /* ── WORLD CUP HUB ── */
+    #page-worldcup {
+      padding-top: var(--nav-h);
+    }
+
+    .wc-nav-tabs-bar {
+      position: fixed;
+      top: var(--nav-h);
+      left: 0;
+      right: 0;
+      z-index: 95;
+      background: rgba(8, 8, 8, 0.96);
+      backdrop-filter: blur(12px) saturate(1.1);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+      padding: 0 1.75rem;
+    }
+
+    [data-theme="light"] .wc-nav-tabs-bar {
+      background: rgba(245, 245, 245, 0.96);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    .wc-hub-section {
+      padding-top: 3.5rem;
+    }
+
     .wc-hero {
       background: linear-gradient(135deg, var(--bg) 0%, rgba(16, 185, 129, 0.15) 100%);
       padding: 3rem 2rem;
@@ -3309,15 +3347,11 @@
     .wc-nav-tabs {
       display: flex;
       gap: 1rem;
-      border-bottom: 1px solid var(--border);
-      padding: 0.75rem 0 1rem;
-      margin-bottom: 2rem;
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0.65rem 0 0.75rem;
       overflow-x: auto;
       scrollbar-width: none;
-      position: sticky;
-      top: var(--nav-h);
-      z-index: 90;
-      background: var(--bg);
       -webkit-overflow-scrolling: touch;
     }
     .wc-nav-tabs::-webkit-scrollbar { display: none; }

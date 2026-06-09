@@ -66,6 +66,7 @@ class ProfileUpdate(BaseModel):
     bio: Optional[str] = None
     country_id: Optional[int] = None
     favourite_team_id: Optional[int] = None
+    preferences: Optional[Dict[str, Any]] = None
 
 class ProfileRead(BaseModel):
     id: int
@@ -75,6 +76,7 @@ class ProfileRead(BaseModel):
     bio: Optional[str]
     country_id: Optional[int]
     favourite_team_id: Optional[int]
+    preferences: Dict[str, Any] = Field(default_factory=dict)
     total_quizzes_played: int
     updated_at: datetime
 
@@ -277,6 +279,8 @@ class WcPredictionsSync(BaseModel):
     third_place: List[str] = Field(default_factory=list)
     bracket: List[Any] = Field(default_factory=list)
     champion: Optional[Any] = None
+    bracket_submitted: bool = False
+    group_rankings_submitted: bool = False
 
 
 class WcLeaderboardRead(BaseModel):
