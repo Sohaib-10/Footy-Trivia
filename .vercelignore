@@ -1,3 +1,18 @@
 config.js
 .env
+backend/
 backend/.env
+node_modules/
+*.pdf
+pdf_page_*.txt
+pdf_sample_ascii.txt
+por_players.txt
+squad_compare_out.txt
+test_*.js
+build_wc_players.py
+extract*.py
+generate_*.py
+optimize_grid.py
+search_code.py
+wc_players_generated.json
+SquadLists-English (1).pdf
