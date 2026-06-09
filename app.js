@@ -85,7 +85,11 @@
             || (activeTabBtn ? activeTabBtn.getAttribute('onclick').match(/'([^']+)'/)[1] : 'dashboard');
           switchWCTab(activeTabId, activeTabBtn);
           syncWcMobileNavSub(activeTabId);
+        } else {
+          resetWcMobileNavSub();
         }
+        const wcToggle = document.querySelector('.wc-mobile-nav-toggle');
+        if (wcToggle) wcToggle.classList.toggle('active', page === 'worldcup');
         if (page === 'profile' && state.user) {
           refreshProfileStats();
         }
@@ -1036,8 +1040,23 @@
         if (sEl) sEl.textContent = pad(s);
       }
       // ────────────────────────── a•a•a•a•a•a• HAMBURGER a•a•a•a•a•a•a•
-      function toggleMenu() { document.getElementById('mobile-menu').classList.toggle('open'); }
-      function closeMenu() { document.getElementById('mobile-menu').classList.remove('open'); }
+      function resetWcMobileNavSub() {
+        const sub = document.getElementById('wc-mobile-nav-sub');
+        const toggle = document.querySelector('.wc-mobile-nav-toggle');
+        if (sub) sub.classList.remove('open');
+        if (toggle) toggle.classList.remove('expanded');
+      }
+
+      function toggleMenu() {
+        const menu = document.getElementById('mobile-menu');
+        const opening = !menu.classList.contains('open');
+        menu.classList.toggle('open');
+        if (opening) resetWcMobileNavSub();
+      }
+      function closeMenu() {
+        document.getElementById('mobile-menu').classList.remove('open');
+        resetWcMobileNavSub();
+      }
       // ──────────────────────────  FAVOURITE CLUB DATA & ACTIONS ──────────────────────────
       const ALL_CLUBS = {
         "Premier League": [
@@ -6216,12 +6235,6 @@
         document.querySelectorAll('.wc-mobile-tab').forEach(el => {
           el.classList.toggle('active', el.dataset.wcTab === tabId);
         });
-        const sub = document.getElementById('wc-mobile-nav-sub');
-        const toggle = document.querySelector('.wc-mobile-nav-toggle');
-        if (sub && toggle && state.currentPage === 'worldcup') {
-          sub.classList.add('open');
-          toggle.classList.add('expanded');
-        }
       }
 
       function toggleWcMobileNav(btn) {

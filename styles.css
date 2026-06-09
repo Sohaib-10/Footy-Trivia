@@ -3381,6 +3381,13 @@
       cursor: pointer;
       font: inherit;
       color: inherit;
+      padding: .55rem .85rem;
+      border-radius: 5px;
+    }
+    .wc-mobile-nav-toggle.active,
+    .wc-mobile-nav-toggle.expanded {
+      background: var(--surface2);
+      color: var(--text);
     }
     .wc-mobile-nav-chevron {
       font-size: 0.75rem;
