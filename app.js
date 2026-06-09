@@ -99,11 +99,64 @@
         user: null,
         transfer: { playerIdx: 0, guesses: [], maxGuesses: 5, revealed: false, hintsRevealed: 1 },
         theme: 'dark',
-        sound: false,
+        sound: localStorage.getItem('footytrivia_sound') !== '0',
         lbTab: 'alltime',
         selectedMode: 'solo',
         selectedDiff: 'easy',
       };
+
+      let sfxContext = null;
+      function getSfxContext() {
+        if (!sfxContext) {
+          sfxContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        return sfxContext;
+      }
+
+      function playSfxTone(freq, startTime, duration, type = 'sine', volume = 0.12) {
+        const ctx = getSfxContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(volume, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      }
+
+      function playCorrectSound() {
+        if (!state.sound) return;
+        try {
+          const ctx = getSfxContext();
+          if (ctx.state === 'suspended') ctx.resume();
+          const t = ctx.currentTime;
+          playSfxTone(523.25, t, 0.1, 'sine', 0.1);
+          playSfxTone(659.25, t + 0.08, 0.1, 'sine', 0.1);
+          playSfxTone(783.99, t + 0.16, 0.22, 'sine', 0.12);
+        } catch (e) {}
+      }
+
+      function playWrongSound() {
+        if (!state.sound) return;
+        try {
+          const ctx = getSfxContext();
+          if (ctx.state === 'suspended') ctx.resume();
+          const t = ctx.currentTime;
+          playSfxTone(220, t, 0.18, 'square', 0.05);
+          playSfxTone(165, t + 0.1, 0.28, 'sawtooth', 0.045);
+        } catch (e) {}
+      }
+
+      function syncSoundUi() {
+        const btn = document.getElementById('sound-btn');
+        const status = document.getElementById('sound-status');
+        if (btn) btn.textContent = state.sound ? 'Disable' : 'Enable';
+        if (status) status.textContent = 'Currently: ' + (state.sound ? 'On' : 'Off');
+      }
+
       // ──────────────────────────  a• a• a• a• a• a•  NAVIGATION a• a• a• a• a• a• a• 
       function showPage(page) {
         if (page === 'profile' && !state.user) {
@@ -495,6 +548,8 @@
         }, correct ? 1800 : 2200);
       }
       function showFeedback(correct, pts, streak) {
+        if (correct) playCorrectSound();
+        else playWrongSound();
         const overlay = document.getElementById('feedback-overlay');
         document.getElementById('fb-icon').textContent = correct ? (streak >= 3 ? '!!!' : 'OK') : 'X';
         document.getElementById('fb-title').textContent = correct ? (streak >= 3 ? `${streak}X COMBO!` : 'CORRECT!') : 'WRONG!';
@@ -826,6 +881,8 @@
           <button class="btn btn-primary mt-3" onclick="newTransferGame()">Try Another</button>
         `;
           showToast(correct ? 'You got it!' : `It was ${player.name}`, correct ? 'success' : 'error');
+          if (correct) playCorrectSound();
+          else playWrongSound();
         }
       }
       // ──────────────────────────  a• a• a• a• a• a•  LEADERBOARD a• a• a• a• a• a• a• 
@@ -1075,8 +1132,10 @@
       }
       function toggleSound() {
         state.sound = !state.sound;
-        document.getElementById('sound-btn').textContent = state.sound ? 'Disable' : 'Enable';
-        showToast('Sound ON', 'info');
+        localStorage.setItem('footytrivia_sound', state.sound ? '1' : '0');
+        syncSoundUi();
+        showToast(state.sound ? 'Sound effects enabled' : 'Sound effects disabled', 'info');
+        if (state.sound) playCorrectSound();
       }
       // ────────────────────────── a•a•a•a•a•a• TOAST a•a•a•a•a•a•a•
       let authWaitToast = null;
@@ -2694,6 +2753,7 @@
 
         loadGuestPreferences();
         updateAuthUI();
+        syncSoundUi();
         wakeApiServer();
         restoreSession()
           .then(() => {

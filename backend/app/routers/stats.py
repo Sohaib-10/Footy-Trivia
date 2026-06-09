@@ -10,8 +10,8 @@ router = APIRouter(prefix="/api/stats", tags=["stats"])
 
 @router.get("/overview")
 async def get_stats_overview(db: AsyncSession = Depends(get_db)):
-    # 1. Total players (users)
-    user_count_query = select(func.count(models.User.id))
+    # 1. Total active registered players
+    user_count_query = select(func.count(models.User.id)).where(models.User.is_active == True)
     user_count_result = await db.execute(user_count_query)
     user_count = user_count_result.scalar() or 0
 
@@ -43,18 +43,16 @@ async def get_stats_overview(db: AsyncSession = Depends(get_db)):
             "active_count": active_count
         })
 
-    # Base community size plus real signups (matches league player count style)
-    display_user_count = 8420 + user_count
+    display_user_count = user_count
     display_question_count = question_count if question_count > 0 else 248
     display_category_count = category_count if category_count > 0 else 12
 
-    # 5. League Counts (players per category - can count from Leaderboard/Profile or fallback)
-    # Let's count from profiles matching favourite team's country or categories, or default
+    # 5. League counts — use real signup total until per-league tracking exists
     league_counts = {
-        "premier-league": 8231 + user_count,
-        "la-liga": 5182 + user_count,
-        "ucl": 9402 + user_count,
-        "world-cup": 11020 + user_count
+        "premier-league": user_count,
+        "la-liga": user_count,
+        "ucl": user_count,
+        "world-cup": user_count,
     }
 
     # If top countries is empty, fallback to seed top countries
