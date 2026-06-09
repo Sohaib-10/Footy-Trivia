@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from uuid import UUID
 
@@ -266,6 +266,53 @@ class LeaderboardRead(BaseModel):
     accuracy: Optional[str] = "0%"
 
     model_config = ConfigDict(from_attributes=True)
+
+# ============================================================================
+# WORLD CUP PREDICTION & LEADERBOARD SCHEMAS
+# ============================================================================
+class WcPredictionsSync(BaseModel):
+    matches: Dict[str, Any] = Field(default_factory=dict)
+    awards: Dict[str, Any] = Field(default_factory=dict)
+    groups: Dict[str, Any] = Field(default_factory=dict)
+    third_place: List[str] = Field(default_factory=list)
+    bracket: List[Any] = Field(default_factory=list)
+    champion: Optional[Any] = None
+
+
+class WcLeaderboardRead(BaseModel):
+    id: int
+    user_id: UUID
+    username: Optional[str] = None
+    rank: Optional[int]
+    total_points: int
+    correct_predictions: int
+    total_graded: int
+    accuracy: str = "0%"
+    tier: str = "Unranked"
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WcMeRead(BaseModel):
+    user_id: UUID
+    username: str
+    total_points: int
+    correct_predictions: int
+    total_graded: int
+    rank: Optional[int]
+    accuracy: str = "0%"
+    tier: str = "Unranked"
+
+
+class WcResultItem(BaseModel):
+    result_key: str
+    result_data: Dict[str, Any] = Field(default_factory=dict)
+
+
+class WcResultsBulk(BaseModel):
+    results: List[WcResultItem]
+
 
 # ============================================================================
 # ACHIEVEMENT SCHEMAS

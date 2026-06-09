@@ -95,7 +95,20 @@
 
     <a class="nav-link" href="#" onclick="showPage('leaderboard');closeMenu()">Leaderboard</a>
 
-    <a class="nav-link" href="#" onclick="showPage('worldcup');closeMenu()">World Cup '26 <span style="font-size:0.5rem;background:var(--gold);color:#000;padding:2px 4px;border-radius:3px;margin-left:4px;vertical-align:middle;font-weight:800">NEW</span></a>
+    <div class="wc-mobile-nav">
+      <button type="button" class="nav-link wc-mobile-nav-toggle" onclick="toggleWcMobileNav(this)">
+        <span>World Cup '26 <span style="font-size:0.5rem;background:var(--gold);color:#000;padding:2px 4px;border-radius:3px;margin-left:4px;vertical-align:middle;font-weight:800">NEW</span></span>
+        <span class="wc-mobile-nav-chevron" aria-hidden="true">▾</span>
+      </button>
+      <div class="wc-mobile-nav-sub" id="wc-mobile-nav-sub">
+        <button type="button" class="wc-mobile-tab active" data-wc-tab="dashboard" onclick="switchWCTabFromMobile('dashboard')">Dashboard</button>
+        <button type="button" class="wc-mobile-tab" data-wc-tab="predictions" onclick="switchWCTabFromMobile('predictions')">Prediction Center</button>
+        <button type="button" class="wc-mobile-tab" data-wc-tab="matchday" onclick="switchWCTabFromMobile('matchday')">Matchday Hub</button>
+        <button type="button" class="wc-mobile-tab" data-wc-tab="bracket" onclick="switchWCTabFromMobile('bracket')">Knockout Bracket</button>
+        <button type="button" class="wc-mobile-tab" data-wc-tab="analytics" onclick="switchWCTabFromMobile('analytics')">Analytics</button>
+        <button type="button" class="wc-mobile-tab" data-wc-tab="leaderboard" onclick="switchWCTabFromMobile('leaderboard')">Leaderboard</button>
+      </div>
+    </div>
 
     <a class="nav-link" href="#" onclick="showPage('profile');closeMenu()">Profile</a>
 
@@ -1581,7 +1594,7 @@
           <p>The ultimate premium tournament experience. Predict matches, track live standings, explore deep analytics, and climb the global leaderboards across 48 teams and 104 matches.</p>
         </div>
 
-        <div class="wc-nav-tabs">
+        <div class="wc-nav-tabs" id="wc-nav-tabs">
           <button class="wc-tab active" onclick="switchWCTab('dashboard', this)">Dashboard</button>
           <button class="wc-tab" onclick="switchWCTab('predictions', this)">Prediction Center</button>
           <button class="wc-tab" onclick="switchWCTab('matchday', this)">Matchday Hub</button>
@@ -2038,38 +2051,15 @@
           <div class="wc-grid">
             <div class="wc-card" style="grid-column: 1 / -1;">
               <div class="wc-card-title">Global Prediction Rankings</div>
-              <p style="color:var(--text2);font-size:0.9rem;margin-bottom:1.5rem">Compete globally or against friends to reach Elite status by the end of the tournament.</p>
+              <p style="color:var(--text2);font-size:0.9rem;margin-bottom:1.5rem">Separate from the main trivia leaderboard. Points are earned only when your World Cup predictions turn out correct.</p>
               <div style="overflow-x:auto">
                 <table class="wc-table" style="font-size:1rem;min-width:600px" id="wc-leaderboard-table">
-                  <tr><th style="width:60px">Rank</th><th>Predictor</th><th>Accuracy</th><th>Points</th><th>Tier</th></tr>
-                  <tr>
-                    <td><span style="color:var(--gold);font-weight:800;font-size:1.2rem;display:inline-block;width:30px;text-align:center">1</span></td>
-                    <td><div style="display:flex;align-items:center;gap:0.75rem"><div class="profile-avatar" style="width:32px;height:32px;font-size:0.8rem;background:var(--surface2);border-color:var(--gold)">F</div><span style="font-weight:600">FootyNerd</span></div></td>
-                    <td>92%</td>
-                    <td style="font-weight:700">4,520</td>
-                    <td><span class="wc-tier-badge wc-tier-elite">Elite</span></td>
-                  </tr>
-                  <tr>
-                    <td><span style="color:var(--text2);font-weight:800;font-size:1.2rem;display:inline-block;width:30px;text-align:center">2</span></td>
-                    <td><div style="display:flex;align-items:center;gap:0.75rem"><div class="profile-avatar" style="width:32px;height:32px;font-size:0.8rem;background:var(--surface2)">S</div><span style="font-weight:600">StatMaster</span></div></td>
-                    <td>88%</td>
-                    <td style="font-weight:700">4,100</td>
-                    <td><span class="wc-tier-badge wc-tier-elite">Elite</span></td>
-                  </tr>
-                  <tr>
-                    <td><span style="color:#b45309;font-weight:800;font-size:1.2rem;display:inline-block;width:30px;text-align:center">3</span></td>
-                    <td><div style="display:flex;align-items:center;gap:0.75rem"><div class="profile-avatar" style="width:32px;height:32px;font-size:0.8rem;background:var(--surface2)">M</div><span style="font-weight:600">Messi10</span></div></td>
-                    <td>85%</td>
-                    <td style="font-weight:700">3,850</td>
-                    <td><span class="wc-tier-badge wc-tier-gold">Gold</span></td>
-                  </tr>
-                  <tr>
-                    <td><span style="color:var(--text3);font-weight:800;font-size:1.1rem;display:inline-block;width:30px;text-align:center">4</span></td>
-                    <td><div style="display:flex;align-items:center;gap:0.75rem"><div class="profile-avatar" style="width:32px;height:32px;font-size:0.8rem;background:var(--surface2)">T</div><span style="font-weight:600">Tacticos</span></div></td>
-                    <td>81%</td>
-                    <td style="font-weight:700">3,400</td>
-                    <td><span class="wc-tier-badge wc-tier-gold">Gold</span></td>
-                  </tr>
+                  <thead>
+                    <tr><th style="width:60px">Rank</th><th>Predictor</th><th>Accuracy</th><th>Points</th><th>Tier</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colspan="5" style="text-align:center;padding:2rem">Loading prediction rankings...</td></tr>
+                  </tbody>
                 </table>
               </div>
             </div>

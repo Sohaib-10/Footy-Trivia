@@ -2,7 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, users, leaderboard, quiz, questions, teams, countries, achievements, storage_router, profiles, stats, battle
+from app.routers import auth, users, leaderboard, quiz, questions, teams, countries, achievements, storage_router, profiles, stats, battle, wc
 from app.database import engine, Base
 from app import models  # noqa: F401  (ensures all tables are registered on Base.metadata)
 
@@ -51,6 +51,7 @@ app.include_router(storage_router.router)
 app.include_router(profiles.router)
 app.include_router(stats.router)
 app.include_router(battle.router)
+app.include_router(wc.router)
 
 @app.get("/")
 async def root():

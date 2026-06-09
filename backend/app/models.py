@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import String, Integer, SmallInteger, Boolean, Text, ForeignKey, CHAR, CheckConstraint, UniqueConstraint
+from sqlalchemy import String, Integer, SmallInteger, Boolean, Text, ForeignKey, CHAR, CheckConstraint, UniqueConstraint, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -64,6 +64,8 @@ class User(Base):
     profile: Mapped["Profile"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
     progress: Mapped["UserProgress"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
     leaderboard: Mapped["Leaderboard"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
+    wc_leaderboard: Mapped["WcLeaderboard"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
+    wc_predictions: Mapped["WcUserPredictions"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
     quiz_sessions: Mapped[List["QuizSession"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     achievements: Mapped[List["UserAchievement"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
@@ -188,6 +190,45 @@ class Leaderboard(Base):
     # Relationships
     user: Mapped[User] = relationship(back_populates="leaderboard")
     country: Mapped[Optional[Country]] = relationship(back_populates="leaderboards")
+
+
+class WcUserPredictions(Base):
+    __tablename__ = "wc_user_predictions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    data: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(default=func.now(), onupdate=func.now())
+
+    user: Mapped[User] = relationship(back_populates="wc_predictions")
+
+
+class WcLeaderboard(Base):
+    __tablename__ = "wc_leaderboard"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    rank: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    total_points: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    correct_predictions: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    total_graded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        CheckConstraint("total_points >= 0", name="check_wc_leaderboard_total_points"),
+    )
+
+    user: Mapped[User] = relationship(back_populates="wc_leaderboard")
+
+
+class WcResult(Base):
+    __tablename__ = "wc_results"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    result_key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    result_data: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(default=func.now(), onupdate=func.now())
+
 
 class Achievement(Base):
     __tablename__ = "achievements"

@@ -76,9 +76,15 @@
           }
         }
         if (page === 'worldcup') {
-          const activeTabBtn = document.querySelector('.wc-nav-tabs .wc-tab.active');
-          const activeTabId = activeTabBtn ? activeTabBtn.getAttribute('onclick').match(/'([^']+)'/)[1] : 'dashboard';
+          const pendingTab = window._pendingWcTab;
+          delete window._pendingWcTab;
+          const activeTabBtn = pendingTab
+            ? document.querySelector(`.wc-nav-tabs .wc-tab[onclick*="switchWCTab('${pendingTab}'"]`)
+            : document.querySelector('.wc-nav-tabs .wc-tab.active');
+          const activeTabId = pendingTab
+            || (activeTabBtn ? activeTabBtn.getAttribute('onclick').match(/'([^']+)'/)[1] : 'dashboard');
           switchWCTab(activeTabId, activeTabBtn);
+          syncWcMobileNavSub(activeTabId);
         }
       }
       function setPageBg(src) {
@@ -1546,6 +1552,8 @@
         localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
         state.user = userObj;
         updateAuthUI();
+        syncWcPredictionsToApi();
+        updatePredictorProfile();
         return userObj;
       }
 
@@ -1563,6 +1571,8 @@
           const userObj = buildUserFromApi(profile, progress, stored.email || '');
           state.user = userObj;
           localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
+          syncWcPredictionsToApi();
+          updatePredictorProfile();
         } catch (e) {
           console.warn('Session restore failed:', e);
           localStorage.removeItem('footytrivia_token');
@@ -2162,27 +2172,21 @@
         `;
         
         try {
-          const data = await apiRequest('/api/leaderboard/global?limit=10');
+          const data = await apiRequest('/api/wc/leaderboard?limit=10');
           if (!data || data.length === 0) {
             tbody.innerHTML = `
-              <tr><td colspan="5" style="text-align:center;padding:2rem">No rankings available yet.</td></tr>
+              <tr><td colspan="5" style="text-align:center;padding:2rem">No prediction rankings yet. Points are awarded when your predictions are correct.</td></tr>
             `;
             return;
           }
           
           let html = '';
-          html += `<tr><th style="width:60px">Rank</th><th>Predictor</th><th>Accuracy</th><th>Points</th><th>Tier</th></tr>`;
-          
           data.forEach((p, i) => {
-            const rankNum = i + 1;
+            const rankNum = p.rank || (i + 1);
             const rankStyle = rankNum === 1 ? 'color:var(--gold);font-weight:800;font-size:1.2rem;' : (rankNum === 2 ? 'color:var(--text2);font-weight:800;font-size:1.2rem;' : (rankNum === 3 ? 'color:#b45309;font-weight:800;font-size:1.2rem;' : 'color:var(--text3);font-weight:800;font-size:1.1rem;'));
             
-            let tierName = 'Bronze';
-            let tierClass = 'wc-tier-bronze';
-            if (p.total_points >= 10000) { tierName = 'Elite'; tierClass = 'wc-tier-elite'; }
-            else if (p.total_points >= 5000) { tierName = 'Elite'; tierClass = 'wc-tier-elite'; }
-            else if (p.total_points >= 2500) { tierName = 'Gold'; tierClass = 'wc-tier-gold'; }
-            else if (p.total_points >= 1000) { tierName = 'Silver'; tierClass = 'wc-tier-silver'; }
+            const tierName = p.tier || 'Unranked';
+            const tierClass = tierName === 'Elite' ? 'wc-tier-elite' : (tierName === 'Gold' ? 'wc-tier-gold' : 'wc-tier-bronze');
             
             const accuracy = p.accuracy || "0%";
             
@@ -2353,6 +2357,72 @@
 
       function saveManualThirdPlace() {
         localStorage.setItem(MANUAL_THIRD_PLACE_KEY, JSON.stringify(manualThirdPlace));
+      }
+
+      function collectWcPredictionPayload() {
+        let bracket = [];
+        let champion = null;
+        if (window.bracketPredictor && window.bracketPredictor.matches) {
+          bracket = window.bracketPredictor.matches.map(m => {
+            const entry = {
+              home: m.home ? m.home.name : null,
+              away: m.away ? m.away.name : null,
+              winner: m.winner || null,
+            };
+            if (m.winner && m[m.winner]) {
+              entry[m.winner] = m[m.winner].name || m[m.winner];
+            }
+            return entry;
+          });
+          const finalM = window.bracketPredictor.matches[30];
+          if (finalM && finalM.winner && finalM[finalM.winner]) {
+            champion = finalM[finalM.winner].name || finalM[finalM.winner];
+          }
+        }
+        const awards = {};
+        Object.entries(awardPredictions).forEach(([key, val]) => {
+          awards[key] = (val && typeof val === 'object') ? val.name : val;
+        });
+        return {
+          matches: matchPredictions,
+          awards,
+          groups: groupPredictions,
+          third_place: manualThirdPlace.confirmed ? manualThirdPlace.groups.slice() : [],
+          bracket,
+          champion,
+        };
+      }
+
+      async function syncWcPredictionsToApi() {
+        if (!state.user) return;
+        try {
+          const me = await apiRequest('/api/wc/predictions/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(collectWcPredictionPayload()),
+          });
+          if (me) {
+            state.wcMe = me;
+            updatePredictorProfileFromApi(me);
+          }
+        } catch (err) {
+          console.error('WC prediction sync failed:', err);
+        }
+      }
+
+      function updatePredictorProfileFromApi(me) {
+        const pts = me.total_points || 0;
+        const tier = me.tier || 'Unranked';
+        const tierClass = tier === 'Elite' ? 'wc-tier-elite' : (tier === 'Gold' ? 'wc-tier-gold' : 'wc-tier-gold');
+        const ptsEl = document.getElementById('wc-profile-pts');
+        const accEl = document.getElementById('wc-profile-accuracy');
+        const tierEl = document.getElementById('wc-profile-tier');
+        if (ptsEl) ptsEl.textContent = pts.toLocaleString();
+        if (accEl) accEl.textContent = me.accuracy || '0%';
+        if (tierEl) {
+          tierEl.textContent = `Tier: ${tier}`;
+          tierEl.className = `wc-tier-badge ${tierClass}`;
+        }
       }
 
       // Returns the 8 confirmed group keys for the bracket, or null to fall back to auto top-8.
@@ -2780,6 +2850,8 @@
         }
         // Reveal the interactive 3rd-place qualifier selection panel.
         openThirdPlaceSelection();
+        syncWcPredictionsToApi();
+        updatePredictorProfile();
         showToast('Group rankings saved! Now choose the 8 third-place teams that advance.', 'success');
         const panel = document.getElementById('third-place-selection-panel');
         if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2905,6 +2977,7 @@
           window.bracketPredictor.renderBracket();
         }
         updatePredictorProfile();
+        syncWcPredictionsToApi();
         showToast('3rd place qualifiers confirmed! All 32 teams are set for the knockout bracket.', 'success');
       }
       // Render upcoming match predictions
@@ -2973,6 +3046,7 @@
           statusEl.classList.add('wc-pred-status--saved');
         }
         updatePredictorProfile();
+        syncWcPredictionsToApi();
         showToast('Prediction saved successfully!', 'success');
       }
       // Searchable Awards Modal System
@@ -3311,6 +3385,7 @@
         updateAwardsDisplay();
         closeSelectorModal();
         updatePredictorProfile();
+        syncWcPredictionsToApi();
         showToast(`Prediction for ${currentModalAwardTitle} saved!`, 'success');
       }
       function updateAwardsDisplay() {
@@ -3450,27 +3525,17 @@
         });
       }
       function updatePredictorProfile() {
-        const matchCount = Object.keys(matchPredictions).length;
-        const awardsCount = Object.keys(awardPredictions).length;
-        let groupComps = 0;
-        if (localStorage.getItem('wc_group_predictions')) {
-          groupComps = 12;
+        if (!state.user) {
+          updatePredictorProfileFromApi({ total_points: 0, accuracy: '0%', tier: 'Unranked' });
+          return;
         }
-        const pts = (matchCount * 10) + (groupComps * 10) + (awardsCount * 50);
-        let tier = 'Unranked';
-        let tierClass = 'wc-tier-gold';
-        if (pts >= 300) { tier = 'Elite'; tierClass = 'wc-tier-elite'; }
-        else if (pts >= 150) { tier = 'Gold'; tierClass = 'wc-tier-gold'; }
-        else if (pts > 0) { tier = 'Bronze'; tierClass = 'wc-tier-gold'; }
-        const ptsEl = document.getElementById('wc-profile-pts');
-        const accEl = document.getElementById('wc-profile-accuracy');
-        const tierEl = document.getElementById('wc-profile-tier');
-        if (ptsEl) ptsEl.textContent = pts.toLocaleString();
-        if (accEl) accEl.textContent = pts > 0 ? '85%' : '0%';
-        if (tierEl) {
-          tierEl.textContent = `Tier: ${tier}`;
-          tierEl.className = `wc-tier-badge ${tierClass}`;
-        }
+        if (state.wcMe) updatePredictorProfileFromApi(state.wcMe);
+        apiRequest('/api/wc/me')
+          .then(me => {
+            state.wcMe = me;
+            updatePredictorProfileFromApi(me);
+          })
+          .catch(() => {});
       }
       // Bracket Predictor Class — Symmetric Template
       class BracketPredictor {
@@ -4779,6 +4844,8 @@
             return;
           }
           const champion = this.matches[30][this.matches[30].winner];
+          syncWcPredictionsToApi();
+          updatePredictorProfile();
           showToast(`Bracket submitted! Predicted champion: ${champion.name}`, 'success');
         }
       }
@@ -5830,6 +5897,30 @@
       const bracketPredictor = new BracketPredictor();
       window.bracketPredictor = bracketPredictor;
       let bracketInitialized = false;
+      function syncWcMobileNavSub(tabId) {
+        document.querySelectorAll('.wc-mobile-tab').forEach(el => {
+          el.classList.toggle('active', el.dataset.wcTab === tabId);
+        });
+        const sub = document.getElementById('wc-mobile-nav-sub');
+        const toggle = document.querySelector('.wc-mobile-nav-toggle');
+        if (sub && toggle && state.currentPage === 'worldcup') {
+          sub.classList.add('open');
+          toggle.classList.add('expanded');
+        }
+      }
+
+      function toggleWcMobileNav(btn) {
+        const sub = document.getElementById('wc-mobile-nav-sub');
+        if (!sub) return;
+        sub.classList.toggle('open');
+        btn.classList.toggle('expanded');
+      }
+
+      function switchWCTabFromMobile(tabId) {
+        window._pendingWcTab = tabId;
+        showPage('worldcup');
+      }
+
       function switchWCTab(tabId, btnElement) {
         if (tabId === 'bracket' && !requireLoginForBracket()) {
           const dashboardBtn = document.querySelector('.wc-tab[onclick*="\'dashboard\'"]');
@@ -5841,6 +5932,11 @@
         const target = document.getElementById('wc-' + tabId);
         if (target) target.style.display = 'block';
         if (btnElement) btnElement.classList.add('active');
+        else {
+          const fallbackBtn = document.querySelector(`.wc-nav-tabs .wc-tab[onclick*="switchWCTab('${tabId}'"]`);
+          if (fallbackBtn) fallbackBtn.classList.add('active');
+        }
+        syncWcMobileNavSub(tabId);
         if (tabId === 'dashboard') {
           renderGroupStandings();
           renderBestThirdPlacedTable();

@@ -2100,6 +2100,17 @@
         { name: 'Shomurodov', team: 'Uzbekistan', pos: 'Forward', subPos: 'Striker', club: 'Ba ş ak ş ehir FK', formIndicator: 'Squad', stats: '2 Goals, 1 Assists', age: 30, goals: 2, assists: 1, caps: 5, marketValue: 25, popularity: 72, form: 7.8 },
       ];
 
+      // Official tournament results for WC prediction scoring (stored in DB via /api/wc/results).
+      // Leave empty until matches are played; points are only awarded for correct predictions.
+      const WC_RESULTS = {
+        matches: {},
+        awards: {},
+        groups: {},
+        third_place: [],
+        bracket: [],
+        champion: null,
+      };
+
       const WC_FIXTURES = [
         { id: 1, home: 'Mexico', away: 'South Korea', date: 'Jun 11', time: '15:00', venue: 'Estadio Azteca, Mexico City', group: 'Group A' },
         { id: 2, home: 'Canada', away: 'Switzerland', date: 'Jun 12', time: '12:00', venue: 'BC Place, Vancouver', group: 'Group B' },
@@ -2126,3 +2137,4 @@
       window.WC_GROUPS = WC_GROUPS;
       window.WC_PLAYERS = WC_PLAYERS;
       window.WC_FIXTURES = WC_FIXTURES;
+      window.WC_RESULTS = WC_RESULTS;
