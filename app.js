@@ -2337,6 +2337,7 @@
       let matchPredictions = JSON.parse(localStorage.getItem('wc_match_predictions')) || {};
       let awardPredictions = JSON.parse(localStorage.getItem('wc_award_predictions')) || {};
       const GROUP_RANKINGS_SUBMITTED_KEY = 'wc_group_rankings_submitted';
+      const BRACKET_SUBMITTED_KEY = 'wc_bracket_submitted';
       function areGroupRankingsSubmitted() {
         return localStorage.getItem(GROUP_RANKINGS_SUBMITTED_KEY) === 'true';
       }
@@ -3552,6 +3553,19 @@
           }));
           this.activeDropdown = null;
           this.storageKey = 'wc_bracket_state_official_slots_v1';
+          this.submittedKey = BRACKET_SUBMITTED_KEY;
+        }
+
+        isBracketSubmitted() {
+          return localStorage.getItem(this.submittedKey) === '1';
+        }
+
+        markBracketSubmitted() {
+          localStorage.setItem(this.submittedKey, '1');
+        }
+
+        clearBracketSubmitted() {
+          localStorage.removeItem(this.submittedKey);
         }
 
         _requireBracketAuth() {
@@ -4617,7 +4631,9 @@
         updateDownloadButton() {
           const btn = document.getElementById('bp-download-pdf');
           if (!btn) return;
-          btn.disabled = false;
+          const submitted = this.isBracketSubmitted();
+          btn.disabled = !submitted;
+          btn.title = submitted ? '' : 'Submit your bracket prediction first to download.';
         }
 
         _preparePdfCapture(root) {
@@ -4735,6 +4751,10 @@
 
         async downloadPdf() {
           if (!this._requireBracketAuth()) return;
+          if (!this.isBracketSubmitted()) {
+            showToast('Submit your bracket prediction before downloading.', 'warning');
+            return;
+          }
           if (typeof html2canvas === 'undefined' || typeof jspdf === 'undefined') {
             showToast('PDF libraries failed to load. Please refresh the page.', 'error');
             return;
@@ -4827,10 +4847,12 @@
           localStorage.removeItem(this.storageKey);
           localStorage.removeItem('wc_bracket_state_manual_groups');
           localStorage.removeItem('wc_bracket_state');
+          this.clearBracketSubmitted();
           this.syncRound32Matchups();
           this.renderBracket();
           this.renderProgress();
           this.updateChampionDisplay();
+          this.updateDownloadButton();
           showToast('Bracket reset successfully.', 'success');
         }
 
@@ -4842,8 +4864,10 @@
             return;
           }
           const champion = this.matches[30][this.matches[30].winner];
+          this.markBracketSubmitted();
           syncWcPredictionsToApi();
           updatePredictorProfile();
+          this.updateDownloadButton();
           showToast(`Bracket submitted! Predicted champion: ${champion.name}`, 'success');
         }
       }
