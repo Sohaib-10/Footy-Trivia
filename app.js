@@ -33,7 +33,7 @@
         currentPage: 'home',
         quiz: { active: false, questions: [], idx: 0, score: 0, correct: 0, streak: 0, bestStreak: 0, hintPenalty: 1, timer: null, timeLeft: 15, mode: 'solo', diff: 'easy', hintsUsed: [] },
         user: null,
-        transfer: { playerIdx: 0, guesses: [], maxGuesses: 3, revealed: false, hintsRevealed: 1 },
+        transfer: { playerIdx: 0, guesses: [], maxGuesses: 5, revealed: false, hintsRevealed: 1 },
         theme: 'dark',
         sound: false,
         lbTab: 'daily',
@@ -572,9 +572,10 @@
       }
       // ────────────────────────── a•a•a•a•a•a• TRANSFER GUESSER a•a•a•a•a•a•a•
       function newTransferGame() {
-        state.transfer = { playerIdx: Math.floor(Math.random() * TRANSFER_PLAYERS.length), guesses: [], maxGuesses: 3, revealed: false, hintsRevealed: 1 };
+        const maxGuesses = 5;
+        state.transfer = { playerIdx: Math.floor(Math.random() * TRANSFER_PLAYERS.length), guesses: [], maxGuesses, revealed: false, hintsRevealed: 1 };
         document.getElementById('tg-num').textContent = state.transfer.playerIdx + 1;
-        document.getElementById('tg-guesses-left').textContent = 3;
+        document.getElementById('tg-guesses-left').textContent = maxGuesses;
         document.getElementById('tg-input').value = '';
         document.getElementById('tg-guesses-list').innerHTML = '';
         document.getElementById('tg-answer-reveal').classList.add('hidden');
