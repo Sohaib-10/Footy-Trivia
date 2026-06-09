@@ -522,8 +522,7 @@
         document.getElementById('r-correct').textContent = q.correct;
         document.getElementById('r-points').textContent = q.score;
         document.getElementById('r-best-streak').textContent = q.bestStreak;
-        saveQuizResult(q.category, q.score, q.correct, q.questions.length, 0);
-        saveQuizResult(state.selectedMode, q.score, q.correct, total, TIMER_MAX - state.quiz.timeLeft);
+        saveQuizResult(q.category, q.score, q.correct, total, TIMER_MAX - state.quiz.timeLeft);
         markCategoryCompleted(q.category);
         // animate arc
         setTimeout(() => {
@@ -1435,6 +1434,81 @@
         if (Array.isArray(detail)) return detail.map(d => d.msg || String(d)).join('. ');
         return fallback;
       }
+
+      function buildUserFromApi(profile, progress, email) {
+        const totalPoints = progress.total_points || 0;
+        return {
+          id: profile.user_id,
+          username: profile.display_name || (email ? email.split('@')[0] : 'Player'),
+          email: email || '',
+          level: Math.floor(totalPoints / 1000) + 1,
+          xp: totalPoints % 1000,
+          gamesPlayed: progress.total_quizzes_played || profile.total_quizzes_played || 0,
+          correctAnswers: progress.total_correct || 0,
+          currentStreak: progress.current_streak || 0,
+          bestStreak: progress.longest_streak || 0,
+          accuracy: progress.total_questions_answered > 0
+            ? Math.round((progress.total_correct / progress.total_questions_answered) * 100)
+            : 0,
+          totalQuestions: progress.total_questions_answered || 0
+        };
+      }
+
+      async function completeLogin(email, password) {
+        const formData = new URLSearchParams();
+        formData.append('username', email);
+        formData.append('password', password);
+
+        const tokenRes = await fetch(`${API_BASE_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData
+        });
+
+        if (!tokenRes.ok) {
+          const err = await tokenRes.json().catch(() => ({ detail: 'Invalid email or password' }));
+          throw new Error(authErrorMessage(err.detail, 'Invalid email or password'));
+        }
+
+        const tokenData = await tokenRes.json();
+        localStorage.setItem('footytrivia_token', tokenData.access_token);
+        if (tokenData.refresh_token) {
+          localStorage.setItem('footytrivia_refresh_token', tokenData.refresh_token);
+        }
+
+        const profile = await apiRequest('/api/users/me');
+        let progress = {};
+        try { progress = await apiRequest('/api/users/me/progress'); } catch (e) {}
+
+        const userObj = buildUserFromApi(profile, progress, email);
+        localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
+        state.user = userObj;
+        updateAuthUI();
+        return userObj;
+      }
+
+      async function restoreSession() {
+        const token = localStorage.getItem('footytrivia_token');
+        if (!token) {
+          localStorage.removeItem('footytrivia_user');
+          state.user = null;
+          return;
+        }
+        try {
+          const profile = await apiRequest('/api/users/me');
+          const progress = await apiRequest('/api/users/me/progress');
+          const stored = JSON.parse(localStorage.getItem('footytrivia_user') || '{}');
+          const userObj = buildUserFromApi(profile, progress, stored.email || '');
+          state.user = userObj;
+          localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
+        } catch (e) {
+          console.warn('Session restore failed:', e);
+          localStorage.removeItem('footytrivia_token');
+          localStorage.removeItem('footytrivia_refresh_token');
+          localStorage.removeItem('footytrivia_user');
+          state.user = null;
+        }
+      }
       function openModal(type) {
         const overlay = document.getElementById('modal-overlay');
         const content = document.getElementById('modal-content');
@@ -1570,12 +1644,9 @@
             throw new Error(authErrorMessage(err.detail, 'Registration failed'));
           }
 
-          localStorage.removeItem('footytrivia_user');
-          localStorage.removeItem('footytrivia_token');
-          state.user = null;
+          await completeLogin(email, password);
           closeModal();
-          updateAuthUI();
-          showToast('Account created! Check your email to verify your account before logging in.', 'success');
+          showToast(`Welcome, ${username}! Your account is ready.`, 'success');
         } catch (err) {
           console.error(err);
           showToast(err.message || 'Registration failed', 'error');
@@ -1589,46 +1660,8 @@
         if (!email || !password) return;
         
         try {
-          const formData = new URLSearchParams();
-          formData.append('username', email);
-          formData.append('password', password);
-          
-          const tokenRes = await fetch(`${API_BASE_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData
-          });
-          
-          if (!tokenRes.ok) {
-            const err = await tokenRes.json().catch(() => ({ detail: 'Invalid email or password' }));
-            throw new Error(authErrorMessage(err.detail, 'Invalid email or password'));
-          }
-          
-          const tokenData = await tokenRes.json();
-          localStorage.setItem('footytrivia_token', tokenData.access_token);
-          
-          const profile = await apiRequest('/api/users/me');
-          let progress = {};
-          try { progress = await apiRequest('/api/users/me/progress'); } catch(e) {}
-          
-          const userObj = {
-            id: profile.user_id,
-            username: profile.display_name || email.split('@')[0],
-            email: email,
-            level: Math.floor((progress.total_points || 0) / 1000) + 1,
-            xp: (progress.total_points || 0) % 1000,
-            gamesPlayed: progress.total_quizzes_played || profile.total_quizzes_played || 0,
-            correctAnswers: progress.total_correct || 0,
-            currentStreak: progress.current_streak || 0,
-            bestStreak: progress.longest_streak || 0,
-            accuracy: progress.total_questions_answered > 0 ? Math.round((progress.total_correct / progress.total_questions_answered) * 100) : 0,
-            totalQuestions: progress.total_questions_answered || 0
-          };
-          
-          localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
-          state.user = userObj;
+          const userObj = await completeLogin(email, password);
           closeModal();
-          updateAuthUI();
           showToast(`Welcome back, ${userObj.username}!`, 'success');
         } catch (err) {
           console.error(err);
@@ -1742,6 +1775,7 @@
         state.user = null;
         localStorage.removeItem('footytrivia_user');
         localStorage.removeItem('footytrivia_token');
+        localStorage.removeItem('footytrivia_refresh_token');
         updateAuthUI();
         const bracketTab = document.getElementById('wc-bracket');
         if (bracketTab && bracketTab.style.display !== 'none') {
@@ -1857,9 +1891,10 @@
           if (favWcBtn) favWcBtn.textContent = 'Set';
         }
       }
-      function saveQuizResult(mode, score, correct, total, timeTaken) {
+      async function saveQuizResult(mode, score, correct, total, timeTaken) {
         if (!state.user) return;
         const user = state.user;
+        const incorrect = Math.max(0, total - correct);
         user.gamesPlayed = (user.gamesPlayed || 0) + 1;
         user.correctAnswers = (user.correctAnswers || 0) + correct;
         user.totalQuestions = (user.totalQuestions || 0) + total;
@@ -1874,7 +1909,34 @@
           user.level = (user.level || 0) + 1;
           showToast(`🎉 Level Up! You reached Level ${user.level}!`, 'success');
         }
-        localStorage.setItem('footytrivia_user', JSON.stringify(user));
+
+        if (localStorage.getItem('footytrivia_token')) {
+          try {
+            await apiRequest('/api/users/me/progress/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                points_earned: score,
+                correct,
+                incorrect,
+                questions_answered: total,
+                longest_streak: state.quiz.bestStreak,
+                current_streak: 0,
+                quizzes_played: 1
+              })
+            });
+            const profile = await apiRequest('/api/users/me');
+            const progress = await apiRequest('/api/users/me/progress');
+            const userObj = buildUserFromApi(profile, progress, user.email);
+            state.user = userObj;
+            localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
+          } catch (e) {
+            console.warn('Failed to sync quiz progress to server:', e);
+            localStorage.setItem('footytrivia_user', JSON.stringify(user));
+          }
+        } else {
+          localStorage.setItem('footytrivia_user', JSON.stringify(user));
+        }
         updateAuthUI();
       }
       function renderCategories(containerId) {
@@ -2074,7 +2136,7 @@
         }
       }
 
-      document.addEventListener('DOMContentLoaded', () => {
+      document.addEventListener('DOMContentLoaded', async () => {
         // Clear la-liga from completed categories on load as requested
         try {
           const completed = JSON.parse(localStorage.getItem('footytrivia_completed_categories') || '[]');
@@ -2085,11 +2147,9 @@
           }
         } catch (e) {}
 
-        // Load session
-        const storedUser = localStorage.getItem('footytrivia_user');
-        if (storedUser) {
-          state.user = JSON.parse(storedUser);
-        } else {
+        // Restore authenticated session from API when a token exists
+        await restoreSession();
+        if (!state.user) {
           state.guestFavClub = localStorage.getItem('footytrivia_guest_fav_club');
           state.guestFavClubLogo = localStorage.getItem('footytrivia_guest_fav_club_logo');
           state.guestFavWc = localStorage.getItem('footytrivia_guest_fav_wc');
@@ -2531,6 +2591,9 @@
               item.addEventListener('dragover', handleDragOver);
               item.addEventListener('drop', handleDrop);
               item.addEventListener('dragend', handleDragEnd);
+            } else {
+              item.style.cursor = 'pointer';
+              item.addEventListener('click', () => requireLoginForPredictions());
             }
             let rankClass = 'q-fourth';
             let rankLabel = '4th';
@@ -2779,46 +2842,39 @@
         container.innerHTML = '';
         WC_FIXTURES.forEach(fixture => {
           const card = document.createElement('div');
-          card.className = 'wc-card';
-          card.style.background = 'var(--surface2)';
-          card.style.border = '1px solid var(--border)';
-          card.style.padding = '1.25rem';
-          card.style.display = 'flex';
-          card.style.flexDirection = 'column';
-          card.style.gap = '0.75rem';
+          card.className = 'wc-pred-fixture-card';
           const pred = matchPredictions[fixture.id] || { homeScore: '', awayScore: '' };
           const hasPredicted = pred.homeScore !== '' && pred.awayScore !== '';
+          const guestStyle = isGuest ? ' wc-pred-score-input--guest' : '';
           card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text3); border-bottom:1px solid var(--border); padding-bottom:0.5rem;">
+            <div class="wc-pred-fixture-meta">
               <span>${fixture.group}</span>
               <span>${fixture.date} • ${fixture.time}</span>
             </div>
-            
-            <div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0;">
-              <div style="display:flex; align-items:center; gap:0.5rem; flex:1;">
-                ${getFlagImg(fixture.home)}
-                <span style="font-weight:600; font-size:0.9rem;">${fixture.home}</span>
+
+            <div class="wc-pred-matchup">
+              <div class="wc-pred-team wc-pred-team-home">
+                <span class="wc-pred-flag">${getFlagImg(fixture.home)}</span>
+                <span class="wc-pred-name" title="${fixture.home}">${fixture.home}</span>
               </div>
-              <input type="number" id="pred-home-${fixture.id}" value="${pred.homeScore}" min="0" placeholder="-" ${inputAttrs} style="width:42px; text-align:center; padding:0.3rem; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--text); font-weight:700;${isGuest ? 'cursor:pointer;' : ''}">
-              
-              <span style="margin:0 0.75rem; color:var(--text3); font-size:0.8rem;">vs</span>
-              
-              <input type="number" id="pred-away-${fixture.id}" value="${pred.awayScore}" min="0" placeholder="-" ${inputAttrs} style="width:42px; text-align:center; padding:0.3rem; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--text); font-weight:700;${isGuest ? 'cursor:pointer;' : ''}">
-              <div style="display:flex; align-items:center; gap:0.5rem; flex:1; justify-content:flex-end;">
-                <span style="font-weight:600; font-size:0.9rem;">${fixture.away}</span>
-                ${getFlagImg(fixture.away)}
+              <div class="wc-pred-scores">
+                <input type="number" id="pred-home-${fixture.id}" class="wc-pred-score-input${guestStyle}" value="${pred.homeScore}" min="0" placeholder="-" ${inputAttrs}>
+                <span class="wc-pred-vs">vs</span>
+                <input type="number" id="pred-away-${fixture.id}" class="wc-pred-score-input${guestStyle}" value="${pred.awayScore}" min="0" placeholder="-" ${inputAttrs}>
+              </div>
+              <div class="wc-pred-team wc-pred-team-away">
+                <span class="wc-pred-name" title="${fixture.away}">${fixture.away}</span>
+                <span class="wc-pred-flag">${getFlagImg(fixture.away)}</span>
               </div>
             </div>
-            
-            <div style="font-size:0.75rem; color:var(--text2); text-align:center; margin-top:0.25rem; font-style:italic;">
-              Venue: ${fixture.venue}
-            </div>
-            
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem; border-top:1px solid var(--border); padding-top:0.75rem;">
-              <span id="pred-status-${fixture.id}" style="font-size:0.75rem; font-weight:700; color:${hasPredicted ? 'var(--success)' : 'var(--text3)'}">
+
+            <div class="wc-pred-venue">Venue: ${fixture.venue}</div>
+
+            <div class="wc-pred-fixture-footer">
+              <span id="pred-status-${fixture.id}" class="wc-pred-status${hasPredicted ? ' wc-pred-status--saved' : ''}">
                 ${hasPredicted ? `Predicted: ${pred.homeScore} - ${pred.awayScore}` : 'Not Predicted'}
               </span>
-              <button class="btn btn-ghost" style="padding:0.3rem 0.8rem; font-size:0.8rem;" onclick="${isGuest ? 'requireLoginForPredictions()' : `saveMatchPrediction(${fixture.id})`}">${isGuest ? 'Log in to Predict' : 'Save Prediction'}</button>
+              <button class="btn btn-ghost wc-pred-save-btn" onclick="${isGuest ? 'requireLoginForPredictions()' : `saveMatchPrediction(${fixture.id})`}">${isGuest ? 'Log in to Predict' : 'Save Prediction'}</button>
             </div>
           `;
           container.appendChild(card);
@@ -2840,7 +2896,7 @@
         const statusEl = document.getElementById(`pred-status-${fixtureId}`);
         if (statusEl) {
           statusEl.textContent = `Predicted: ${homeVal} - ${awayVal}`;
-          statusEl.style.color = 'var(--success)';
+          statusEl.classList.add('wc-pred-status--saved');
         }
         updatePredictorProfile();
         showToast('Prediction saved successfully!', 'success');
@@ -2873,6 +2929,7 @@
         }
       }
       function openSelectorModal(awardKey, awardTitle, type) {
+        if (!requireLoginForPredictions()) return;
         currentModalAwardKey = awardKey;
         currentModalAwardTitle = awardTitle;
         currentModalType = type;
@@ -3065,6 +3122,13 @@
             }
             const card = document.createElement('div');
             card.className = `wc-modal-player-card ${isFav ? 'favorite' : ''}`;
+            if (!state.user) {
+              card.style.cursor = 'pointer';
+              card.addEventListener('click', (e) => {
+                if (e.target.closest('.wc-card-select-btn')) return;
+                requireLoginForPredictions();
+              });
+            }
             card.innerHTML = `
               ${favBadge}
               <div class="wc-card-player-hero">
@@ -3132,6 +3196,13 @@
           list.forEach(t => {
             const card = document.createElement('div');
             card.className = 'wc-modal-team-card';
+            if (!state.user) {
+              card.style.cursor = 'pointer';
+              card.addEventListener('click', (e) => {
+                if (e.target.closest('.wc-card-select-btn')) return;
+                requireLoginForPredictions();
+              });
+            }
             card.innerHTML = `
               <div class="wc-card-flag-lg">${getFlagImg(t.name)}</div>
               <div class="wc-card-team-name">${t.name}</div>
@@ -3642,15 +3713,15 @@
           const winnerTeam = m[side];
           this.propagateWinner(matchId, winnerTeam, false);
           this.refreshBracketAfterChange(matchId);
-          this.updateChampionDisplay(winnerTeam);
+          this.updateChampionDisplay();
           this.renderProgress();
           this.saveBracket();
         }
 
         propagateWinner(matchId, team, render = true) {
           if (matchId === 30) {
-            // Final — no downstream
-            if (render) this.updateChampionDisplay(team);
+            // Final — no downstream propagation
+            if (render) this.updateChampionDisplay();
             return;
           }
           const dest = this.getDestination(matchId);
@@ -4381,15 +4452,15 @@
           return true;
         }
 
-        // ── CHAMPION ──
-        updateChampionDisplay(team = null) {
+        // ── CHAMPION (match 31 / index 30 only) ──
+        updateChampionDisplay() {
           const champBox = document.getElementById('bp-champion-box');
           const champFlag = document.getElementById('bp-champ-flag');
           const champName = document.getElementById('bp-champ-name');
           if (!champBox || !champFlag || !champName) return;
 
           const finalM = this.matches[30];
-          const champ = team || (finalM.winner ? finalM[finalM.winner] : null);
+          const champ = finalM.winner ? finalM[finalM.winner] : null;
 
           if (champ) {
             champBox.classList.add('crowned');
@@ -4417,50 +4488,112 @@
           root.querySelectorAll('img').forEach(img => { img.crossOrigin = 'anonymous'; });
         }
 
-        _addPdfPageDecorations(pdf, pageW, pageH, margin, hasChampion, champion, dateStr) {
-          pdf.setFontSize(11);
-          pdf.setTextColor(40, 40, 40);
-          pdf.text('Footy-Trivia — World Cup 2026 Bracket Prediction', margin, margin + 4);
-          pdf.setFontSize(9);
-          pdf.setTextColor(100, 100, 100);
-          const subline = hasChampion
-            ? `Champion: ${champion.name}  |  ${dateStr}`
-            : dateStr;
-          pdf.text(subline, margin, margin + 9);
-
-          if (!hasChampion) {
-            pdf.setFontSize(9);
-            pdf.setTextColor(220, 60, 60);
-            pdf.text(
-              'No champion selected. Pick a winner in the Final match.',
-              pageW - margin,
-              pageH - margin,
-              { align: 'right' }
-            );
-          }
+        _getPdfCaptureScale() {
+          const isMobile = window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+          return isMobile ? 1 : 1.25;
         }
 
-        _addCenteredChampionToPdf(pdf, champCanvas, pageW, pageH, margin, bracketBottomY = null) {
-          const champMaxW = 70;
-          const champScale = champMaxW / champCanvas.width;
-          const champW = champMaxW;
-          const champH = champCanvas.height * champScale;
-          const champX = (pageW - champW) / 2;
-          let champY;
-          if (bracketBottomY !== null) {
-            const spaceBelow = pageH - margin - bracketBottomY;
-            champY = bracketBottomY + Math.max(4, (spaceBelow - champH) / 2);
-          } else {
-            champY = (pageH - champH) / 2;
+        _fitCanvasToMaxSize(sourceCanvas, maxW = 1800, maxH = 2600) {
+          const ratio = Math.min(maxW / sourceCanvas.width, maxH / sourceCanvas.height, 1);
+          if (ratio >= 1) return sourceCanvas;
+          const w = Math.round(sourceCanvas.width * ratio);
+          const h = Math.round(sourceCanvas.height * ratio);
+          const out = document.createElement('canvas');
+          out.width = w;
+          out.height = h;
+          const ctx = out.getContext('2d');
+          ctx.fillStyle = '#0f1115';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(sourceCanvas, 0, 0, w, h);
+          return out;
+        }
+
+        _canvasToJpegImage(canvas, quality = 0.76) {
+          return {
+            data: canvas.toDataURL('image/jpeg', quality),
+            width: canvas.width,
+            height: canvas.height,
+            format: 'JPEG'
+          };
+        }
+
+        async _buildBracketCompositeImage(wrapper, champBox, hasChampion, captureScale) {
+          const bracketCanvas = await html2canvas(wrapper, {
+            width: wrapper.scrollWidth,
+            height: wrapper.scrollHeight,
+            scale: captureScale,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#0f1115',
+          });
+
+          let champCanvas = null;
+          if (hasChampion && champBox) {
+            champCanvas = await html2canvas(champBox, {
+              scale: 1,
+              useCORS: true,
+              logging: false,
+              backgroundColor: '#0f1115',
+            });
           }
-          pdf.addImage(
-            champCanvas.toDataURL('image/png'),
-            'PNG',
-            champX,
-            champY,
-            champW,
-            champH
-          );
+
+          const headerH = Math.round(48 * captureScale);
+          const gap = Math.round(20 * captureScale);
+          const contentW = bracketCanvas.width;
+          const champW = champCanvas ? champCanvas.width : 0;
+          const champH = champCanvas ? champCanvas.height : 0;
+          const totalW = Math.max(contentW, champW);
+          const totalH = headerH + bracketCanvas.height + (champCanvas ? gap + champH : 0);
+
+          const composite = document.createElement('canvas');
+          composite.width = totalW;
+          composite.height = totalH;
+          const ctx = composite.getContext('2d');
+          ctx.fillStyle = '#0f1115';
+          ctx.fillRect(0, 0, totalW, totalH);
+
+          ctx.fillStyle = '#d4af37';
+          ctx.font = `bold ${Math.round(18 * captureScale)}px Arial, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText('Footy-Trivia — World Cup 2026 Knockout Bracket', totalW / 2, Math.round(28 * captureScale));
+
+          ctx.fillStyle = '#9ca3af';
+          ctx.font = `${Math.round(11 * captureScale)}px Arial, sans-serif`;
+          ctx.fillText('Round of 32 through Final — full prediction route', totalW / 2, Math.round(42 * captureScale));
+
+          const bracketX = (totalW - bracketCanvas.width) / 2;
+          ctx.drawImage(bracketCanvas, bracketX, headerH);
+
+          if (champCanvas) {
+            const champX = (totalW - champCanvas.width) / 2;
+            ctx.drawImage(champCanvas, champX, headerH + bracketCanvas.height + gap);
+          }
+
+          return composite;
+        }
+
+        _savePdfFile(pdf, filename) {
+          const blob = pdf.output('blob');
+          const url = URL.createObjectURL(blob);
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+          if (isIOS) {
+            window.open(url, '_blank');
+            showToast('PDF opened — use Share → Save to Files to keep it.', 'info');
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            return;
+          }
+
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          }, 2000);
         }
 
         async downloadPdf() {
@@ -4481,7 +4614,9 @@
 
           const savedWrapperOverflow = wrapper.style.overflow;
           const savedWrapperWidth = wrapper.style.width;
+          const savedWrapperHeight = wrapper.style.height;
           const savedExportOverflow = exportArea.style.overflow;
+          const savedExportWidth = exportArea.style.width;
 
           this.closeAllDropdowns();
           exportArea.classList.add('bp-export-capturing');
@@ -4491,98 +4626,57 @@
 
           wrapper.style.overflow = 'visible';
           wrapper.style.width = wrapper.scrollWidth + 'px';
+          wrapper.style.height = wrapper.scrollHeight + 'px';
           exportArea.style.overflow = 'visible';
+          exportArea.style.width = wrapper.scrollWidth + 'px';
 
           await new Promise(r => setTimeout(r, 50));
           this.alignMatchesAndDrawConnectors();
           await new Promise(r => setTimeout(r, 100));
 
           try {
-            const bracketCanvas = await html2canvas(wrapper, {
-              width: wrapper.scrollWidth,
-              height: wrapper.scrollHeight,
-              scale: 2,
-              useCORS: true,
-              backgroundColor: getComputedStyle(document.body).backgroundColor,
-            });
-
-            let champCanvas = null;
-            if (hasChampion && champBox) {
-              champCanvas = await html2canvas(champBox, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: null,
-              });
-            }
+            const captureScale = this._getPdfCaptureScale();
+            const compositeCanvas = await this._buildBracketCompositeImage(
+              wrapper, champBox, hasChampion, captureScale
+            );
+            const fittedCanvas = this._fitCanvasToMaxSize(compositeCanvas, 1800, 2600);
+            const exportImage = this._canvasToJpegImage(fittedCanvas, 0.76);
 
             const { jsPDF } = jspdf;
-            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
             const pageW = pdf.internal.pageSize.getWidth();
             const pageH = pdf.internal.pageSize.getHeight();
-            const margin = 8;
-            const headerH = 14;
-            const footerH = hasChampion ? 0 : 10;
-            const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            const margin = 4;
+            const availW = pageW - margin * 2;
+            const availH = pageH - margin * 2;
 
-            this._addPdfPageDecorations(pdf, pageW, pageH, margin, hasChampion, champion, dateStr);
-
-            const imgW = pageW - margin * 2;
-            const champReserveH = hasChampion ? 42 : 0;
-            const imgAreaH = pageH - margin * 2 - headerH - footerH - champReserveH;
-            const scale = imgW / bracketCanvas.width;
-            const scaledH = bracketCanvas.height * scale;
-            let lastBracketBottomY = margin + headerH;
-
-            if (scaledH <= imgAreaH) {
-              const imgData = bracketCanvas.toDataURL('image/png');
-              const yOffset = margin + headerH + (imgAreaH - scaledH) / 2;
-              pdf.addImage(imgData, 'PNG', margin, yOffset, imgW, scaledH);
-              lastBracketBottomY = yOffset + scaledH;
-              if (hasChampion && champCanvas) {
-                this._addCenteredChampionToPdf(pdf, champCanvas, pageW, pageH, margin, lastBracketBottomY);
-              }
-            } else {
-              const sliceCanvasH = Math.floor(imgAreaH / scale);
-              let srcY = 0;
-              let pageNum = 0;
-              while (srcY < bracketCanvas.height) {
-                if (pageNum > 0) {
-                  pdf.addPage('a4', 'landscape');
-                  this._addPdfPageDecorations(pdf, pageW, pageH, margin, hasChampion, champion, dateStr);
-                }
-                const sliceH = Math.min(sliceCanvasH, bracketCanvas.height - srcY);
-                const sliceCanvas = document.createElement('canvas');
-                sliceCanvas.width = bracketCanvas.width;
-                sliceCanvas.height = sliceH;
-                const ctx = sliceCanvas.getContext('2d');
-                ctx.drawImage(bracketCanvas, 0, srcY, bracketCanvas.width, sliceH, 0, 0, bracketCanvas.width, sliceH);
-                const sliceData = sliceCanvas.toDataURL('image/png');
-                const sliceScaledH = sliceH * scale;
-                const yOffset = margin + headerH;
-                pdf.addImage(sliceData, 'PNG', margin, yOffset, imgW, sliceScaledH);
-                lastBracketBottomY = yOffset + sliceScaledH;
-                srcY += sliceH;
-                pageNum++;
-              }
-              if (hasChampion && champCanvas) {
-                pdf.addPage('a4', 'landscape');
-                this._addPdfPageDecorations(pdf, pageW, pageH, margin, hasChampion, champion, dateStr);
-                this._addCenteredChampionToPdf(pdf, champCanvas, pageW, pageH, margin);
-              }
+            // Scale the single composite image to fit the full page (width + height)
+            let drawW = availW;
+            let drawH = (exportImage.height / exportImage.width) * drawW;
+            if (drawH > availH) {
+              drawH = availH;
+              drawW = (exportImage.width / exportImage.height) * drawH;
             }
+            const drawX = (pageW - drawW) / 2;
+            const drawY = (pageH - drawH) / 2;
+
+            pdf.addImage(exportImage.data, exportImage.format, drawX, drawY, drawW, drawH);
 
             const slug = hasChampion
               ? champion.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-              : 'incomplete';
-            pdf.save(`footytrivia-bracket-2026-${slug}.pdf`);
-            showToast('Bracket PDF downloaded!', 'success');
+              : 'full-bracket';
+            const filename = `footytrivia-bracket-2026-${slug}.pdf`;
+            this._savePdfFile(pdf, filename);
+            showToast('Single-page bracket PDF ready!', 'success');
           } catch (err) {
             console.error('PDF export failed:', err);
             showToast('Failed to generate PDF. Please try again.', 'error');
           } finally {
             wrapper.style.overflow = savedWrapperOverflow;
             wrapper.style.width = savedWrapperWidth;
+            wrapper.style.height = savedWrapperHeight;
             exportArea.style.overflow = savedExportOverflow;
+            exportArea.style.width = savedExportWidth;
             exportArea.classList.remove('bp-export-capturing');
             this.alignMatchesAndDrawConnectors();
           }
@@ -5628,6 +5722,7 @@
 
       function requireLoginForPredictions() {
         if (state.user) return true;
+        closeSelectorModal();
         showToast('Please log in or sign up to make predictions.', 'warning');
         openModal('login');
         return false;

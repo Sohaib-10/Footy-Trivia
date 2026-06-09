@@ -244,6 +244,15 @@ class UserProgressRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class UserProgressSync(BaseModel):
+    points_earned: int = Field(0, ge=0)
+    correct: int = Field(0, ge=0)
+    incorrect: int = Field(0, ge=0)
+    questions_answered: int = Field(0, ge=0)
+    longest_streak: Optional[int] = Field(None, ge=0)
+    current_streak: Optional[int] = Field(None, ge=0)
+    quizzes_played: int = Field(0, ge=0)
+
 class LeaderboardRead(BaseModel):
     id: int
     user_id: UUID

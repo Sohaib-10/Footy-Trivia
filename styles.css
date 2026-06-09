@@ -2486,7 +2486,7 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      z-index: 300;
+      z-index: 10050;
       background: rgba(0, 0, 0, .6);
       backdrop-filter: blur(8px);
       display: flex;
@@ -3277,6 +3277,120 @@
     .wc-table tr:last-child td { border-bottom: none; }
     .wc-team { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
 
+    /* ── Match prediction fixture cards ── */
+    .wc-predictions-fixtures-grid {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+    .wc-pred-fixture-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .wc-pred-fixture-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text3);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    .wc-pred-matchup {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0;
+    }
+    .wc-pred-team {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      min-width: 0;
+    }
+    .wc-pred-team-away {
+      justify-content: flex-end;
+    }
+    .wc-pred-flag {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+    }
+    .wc-pred-flag img {
+      width: 22px;
+      height: 15px;
+      object-fit: cover;
+      border-radius: 2px;
+    }
+    .wc-pred-name {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text);
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .wc-pred-scores {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+    .wc-pred-score-input {
+      width: 40px;
+      text-align: center;
+      padding: 0.3rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .wc-pred-score-input--guest { cursor: pointer; }
+    .wc-pred-vs {
+      color: var(--text3);
+      font-size: 0.75rem;
+      flex-shrink: 0;
+    }
+    .wc-pred-venue {
+      font-size: 0.75rem;
+      color: var(--text2);
+      text-align: center;
+      font-style: italic;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .wc-pred-fixture-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.25rem;
+      border-top: 1px solid var(--border);
+      padding-top: 0.75rem;
+    }
+    .wc-pred-status {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text3);
+    }
+    .wc-pred-status--saved { color: var(--success); }
+    .wc-pred-save-btn {
+      padding: 0.3rem 0.8rem;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
     .wc-fixture { display: flex; justify-content: space-between; align-items: center; background: var(--surface2); border: 1px solid var(--border); padding: 1rem; border-radius: var(--r); margin-bottom: 0.75rem; }
     .wc-fixture-time { font-size: 0.75rem; color: var(--text2); text-align: center; width: 60px; }
     .wc-fixture-teams { flex: 1; display: flex; justify-content: space-between; align-items: center; padding: 0 1rem; font-weight: 600; color: var(--text); }
@@ -3372,6 +3486,11 @@
     }
     #bp-export-area { width: 100%; }
     .bp-export-capturing .bp-slot-edit { display: none !important; }
+    #bp-export-area.bp-export-capturing,
+    #bp-export-area.bp-export-capturing .bp-bracket-wrapper {
+      overflow: visible !important;
+      max-width: none !important;
+    }
     .bp-progress { display: none !important; }
     .bp-progress-step { font-size: 0.7rem; padding: 0.3rem 0.6rem; border-radius: 20px; background: var(--surface2); color: var(--text3); font-weight: 600; border: 1px solid var(--border); transition: all var(--transition); }
     .bp-progress-step.done { background: var(--success); color: #fff; border-color: var(--success); }
@@ -4511,6 +4630,47 @@
       .wc-fixture-time { width: 46px; font-size: 0.65rem; }
       .wc-fixture-teams { padding: 0 0.5rem; font-size: 0.72rem; }
       .wc-predict-btn { padding: 0.4rem 0.6rem; font-size: 0.62rem; }
+
+      /* ── Match prediction cards ── */
+      .wc-predictions-fixtures-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+      }
+      .wc-pred-fixture-card { padding: 1rem; }
+      .wc-pred-matchup {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        gap: 0.55rem;
+        text-align: center;
+      }
+      .wc-pred-team {
+        justify-content: center;
+      }
+      .wc-pred-team-away {
+        justify-content: center;
+      }
+      .wc-pred-name {
+        white-space: normal;
+        text-overflow: unset;
+        overflow: visible;
+        font-size: 0.8rem;
+        line-height: 1.25;
+      }
+      .wc-pred-scores {
+        justify-content: center;
+      }
+      .wc-pred-score-input {
+        width: 44px;
+        font-size: 0.9rem;
+      }
+      .wc-pred-fixture-footer {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .wc-pred-save-btn {
+        width: 100%;
+        justify-content: center;
+      }
 
       /* ── WC player leaderboard rows ── */
       .wc-leaderboard-row { padding: 0.5rem 0.35rem; }

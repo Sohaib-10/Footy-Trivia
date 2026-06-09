@@ -32,13 +32,13 @@ async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get
         else:
             raise HTTPException(status_code=400, detail="Username already taken")
 
-    # Create new User
+    # Create new User — verified immediately so login works across devices without email dependency
     hashed_pwd = auth.hash_password(user_data.password)
     new_user = models.User(
         email=email,
         username=user_data.username,
         password_hash=hashed_pwd,
-        is_verified=False
+        is_verified=True
     )
     db.add(new_user)
     await db.flush() # Flush to populate user.id
@@ -66,15 +66,8 @@ async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get
     await db.refresh(new_user)
     try:
         await send_verification_email(new_user.email, str(new_user.id))
-    except EmailDeliveryError as exc:
-        logger.exception("Failed to send verification email to %s", new_user.email)
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
-    except Exception as exc:
-        logger.exception("Failed to send verification email to %s", new_user.email)
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Account created but verification email could not be sent. Try resending from the login screen."
-        ) from exc
+    except Exception:
+        logger.exception("Failed to send welcome verification email to %s", new_user.email)
     return new_user
 
 @router.post("/verify-email")
@@ -140,6 +133,7 @@ async def reset_password(body: schemas.ResetPasswordRequest, db: AsyncSession = 
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     user.password_hash = auth.hash_password(body.new_password)
+    user.is_verified = True
     await db.commit()
     return {"detail": "Password reset successfully"}
 
@@ -166,11 +160,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user account")
 
+    # Allow login for legacy accounts that registered before auto-verify was enabled
     if not user.is_verified:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Please verify your email address before logging in."
-        )
+        user.is_verified = True
 
     # Update last login
     user.last_login = datetime.utcnow()
