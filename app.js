@@ -250,7 +250,7 @@
       }
       let state = {
         currentPage: 'home',
-        quiz: { active: false, questions: [], idx: 0, score: 0, correct: 0, streak: 0, bestStreak: 0, hintPenalty: 1, timer: null, timeLeft: 15, mode: 'solo', diff: 'easy', hintsUsed: [], serverMode: false, sessionId: null, verifyKey: null, pendingSyncs: [], submitting: false, answersSubmitted: 0 },
+        quiz: { active: false, questions: [], idx: 0, score: 0, correct: 0, streak: 0, bestStreak: 0, hintPenalty: 1, timer: null, timeLeft: 15, mode: 'solo', diff: 'easy', hintsUsed: [], serverMode: false, sessionId: null, verifyKey: null, pendingSyncs: [], answerSyncQueue: [], submitting: false, answersSubmitted: 0 },
         user: null,
         transfer: { playerIdx: 0, guesses: [], maxGuesses: 5, revealed: false, hintsRevealed: 1 },
         theme: 'dark',
@@ -815,18 +815,64 @@
         }));
       }
 
+      async function syncQuizAnswerItem(item, attempt = 0) {
+        if (item.synced) return item.result;
+        const payload = {
+          session_id: item.sessionId,
+          question_id: item.questionId,
+          time_taken_seconds: item.timeTakenSeconds,
+          timed_out: item.timedOut,
+        };
+        if (!item.timedOut) payload.selected_option = item.selectedOption;
+        try {
+          const result = await apiRequest('/api/quiz/answer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          }, QUIZ_ANSWER_TIMEOUT_MS);
+          item.synced = true;
+          item.result = result;
+          return result;
+        } catch (err) {
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+            return syncQuizAnswerItem(item, attempt + 1);
+          }
+          throw err;
+        }
+      }
+
       function queueQuizAnswerSync(selectedOption, timeTakenSeconds, timedOut = false) {
-        const sync = submitQuizAnswer(selectedOption, timeTakenSeconds, timedOut).catch((err) => {
+        const q = state.quiz;
+        const question = q.questions[q.idx];
+        const item = {
+          sessionId: q.sessionId,
+          questionId: question.id,
+          selectedOption,
+          timeTakenSeconds,
+          timedOut,
+          synced: false,
+          result: null,
+        };
+        if (!q.answerSyncQueue) q.answerSyncQueue = [];
+        q.answerSyncQueue.push(item);
+        const sync = syncQuizAnswerItem(item).catch((err) => {
           console.warn('Quiz answer sync failed', err);
         });
-        state.quiz.pendingSyncs.push(sync);
+        if (!q.pendingSyncs) q.pendingSyncs = [];
+        q.pendingSyncs.push(sync);
         return sync;
       }
 
       async function flushQuizAnswerSyncs() {
+        const queue = state.quiz.answerSyncQueue || [];
+        for (const item of queue) {
+          if (!item.synced) {
+            await syncQuizAnswerItem(item);
+          }
+        }
         const pending = state.quiz.pendingSyncs || [];
-        if (!pending.length) return;
-        await Promise.allSettled(pending);
+        if (pending.length) await Promise.allSettled(pending);
         state.quiz.pendingSyncs = [];
       }
 
@@ -888,6 +934,7 @@
               sessionId: data.session.id,
               verifyKey,
               pendingSyncs: [],
+              answerSyncQueue: [],
               questions,
               idx: 0,
               score: data.session.score || 0,
@@ -923,6 +970,7 @@
           openModal('login');
           return;
         }
+        showToast('Playing as guest — log in before starting a quiz to update the global leaderboard.', 'info');
         const picked = pickQuizQuestions(category, state.selectedDiff || 'mixed', QUIZ_QUESTIONS_PER_ROUND);
         if (!picked.length) {
           showToast('No questions available for this category.', 'warning');
@@ -935,6 +983,7 @@
           sessionId: null,
           verifyKey: null,
           pendingSyncs: [],
+          answerSyncQueue: [],
           questions: picked,
           idx: 0,
           score: 0,
@@ -1211,6 +1260,9 @@
               const session = await apiRequest(`/api/quiz/complete/${q.sessionId}`, { method: 'POST' });
               score = session.score ?? score;
               correct = q.correct;
+              clearLeaderboardCache();
+              updateHomeLeaderboardPreview();
+              if (state.lbTab) switchLbTab(null, state.lbTab);
             }
           } catch (err) {
             showToast(err.message || 'Quiz finished locally but could not be saved to leaderboard.', 'warning');
@@ -1534,12 +1586,14 @@
         return (typeof window !== 'undefined' && window.LEADERBOARD_DATA) || [];
       }
 
-      function readLbCache(period) {
+      function readLbCache(period, maxAgeMs = 2 * 60 * 1000) {
         try {
           const raw = localStorage.getItem('ft_lb_cache_' + period);
           if (!raw) return null;
           const parsed = JSON.parse(raw);
-          if (parsed && Array.isArray(parsed.entries)) return parsed;
+          if (!parsed || !Array.isArray(parsed.entries)) return null;
+          if (parsed.savedAt && Date.now() - parsed.savedAt > maxAgeMs) return null;
+          return parsed;
         } catch (e) {}
         return null;
       }
@@ -1552,6 +1606,12 @@
             current_user: currentUser || null,
           }));
         } catch (e) {}
+      }
+
+      function clearLeaderboardCache() {
+        ['all_time', 'weekly', 'monthly'].forEach((period) => {
+          try { localStorage.removeItem('ft_lb_cache_' + period); } catch (e) {}
+        });
       }
 
       function paintLbRows(container, entries, tab, currentUser) {
