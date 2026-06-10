@@ -439,7 +439,6 @@
         const club = clubs[clubId] || clubs['man-utd'];
         setClubBg(clubId);
         const pool = QUESTIONS[clubId] || [];
-        const completed = isCategoryCompleted(clubId);
         document.getElementById('club-page-content').innerHTML = `
     <div style="height:6px;background:var(--surface2)"></div>
     <div class="section">
@@ -478,30 +477,14 @@
               </div>
               <div class="explorer-q-text">${q.q}</div>
               <div class="explorer-actions">
-                <button class="btn-explorer-action" onclick="toggleExplorerAnswer(this, ${idx}, ${completed})">
-                  <span>👁️</span> Show ${completed ? 'Options & Answer' : 'Options'}
+                <button class="btn-explorer-action" onclick="toggleExplorerAnswer(this)">
+                  <span>👁️</span> Show Options
                 </button>
               </div>
               <div class="explorer-answer-details hidden">
                 <div class="explorer-options-list">
-                  ${q.opts.map((opt, oIdx) => {
-                    const isCorrect = oIdx === q.ans;
-                    const letter = ['A', 'B', 'C', 'D'][oIdx];
-                    const optionClass = completed ? (isCorrect ? 'correct' : 'incorrect') : '';
-                    return `
-                      <div class="explorer-option ${optionClass}">
-                        <span class="explorer-option-letter">${letter}</span>
-                        <span class="explorer-option-text">${opt}</span>
-                        ${completed && isCorrect ? `<span class="explorer-option-badge">Correct</span>` : ''}
-                      </div>
-                    `;
-                  }).join('')}
+                  ${renderExplorerOptionsHtml(q)}
                 </div>
-                ${completed && q.hint ? `
-                  <div class="explorer-hint">
-                    <span>💡</span> <strong>Hint:</strong> ${q.hint}
-                  </div>
-                ` : ''}
               </div>
             </div>
           `).join('')}
@@ -514,6 +497,18 @@
       </div>
     </div>`;
         showPage('club');
+      }
+
+      function renderExplorerOptionsHtml(question) {
+        return (question.opts || []).map((opt, oIdx) => {
+          const letter = ['A', 'B', 'C', 'D'][oIdx];
+          return `
+            <div class="explorer-option">
+              <span class="explorer-option-letter">${letter}</span>
+              <span class="explorer-option-text">${escapeHtml(opt)}</span>
+            </div>
+          `;
+        }).join('');
       }
 
       function toggleCategoryQuestions(categoryId, explorerId) {
@@ -542,8 +537,6 @@
         const catData = CATEGORIES_DATA.find(c => c.id === categoryId) || { name: categoryId, color: '#2563eb' };
         const catName = catData.name;
         const catColor = catData.color || '#2563eb';
-        const completed = isCategoryCompleted(categoryId);
-
         explorerEl.dataset.currentCategory = categoryId;
         explorerEl.innerHTML = `
           <div class="explorer-header">
@@ -561,32 +554,16 @@
                   <span style="font-size:0.75rem; color:var(--text3); font-weight:600; text-transform:uppercase;">Question ${idx + 1}</span>
                   <span class="q-difficulty ${q.diff}">${q.diff}</span>
                 </div>
-                <div class="explorer-q-text">${q.q}</div>
+                <div class="explorer-q-text">${escapeHtml(q.q)}</div>
                 <div class="explorer-actions">
-                  <button class="btn-explorer-action" onclick="toggleExplorerAnswer(this, ${idx}, ${completed})">
-                    <span>👁️</span> Show ${completed ? 'Options & Answer' : 'Options'}
+                  <button class="btn-explorer-action" onclick="toggleExplorerAnswer(this)">
+                    <span>👁️</span> Show Options
                   </button>
                 </div>
                 <div class="explorer-answer-details hidden">
                   <div class="explorer-options-list">
-                    ${q.opts.map((opt, oIdx) => {
-                      const isCorrect = oIdx === q.ans;
-                      const letter = ['A', 'B', 'C', 'D'][oIdx];
-                      const optionClass = completed ? (isCorrect ? 'correct' : 'incorrect') : '';
-                      return `
-                        <div class="explorer-option ${optionClass}">
-                          <span class="explorer-option-letter">${letter}</span>
-                          <span class="explorer-option-text">${opt}</span>
-                          ${completed && isCorrect ? `<span class="explorer-option-badge">Correct</span>` : ''}
-                        </div>
-                      `;
-                    }).join('')}
+                    ${renderExplorerOptionsHtml(q)}
                   </div>
-                  ${completed && q.hint ? `
-                    <div class="explorer-hint">
-                      <span>💡</span> <strong>Hint:</strong> ${q.hint}
-                    </div>
-                  ` : ''}
                 </div>
               </div>
             `).join('')}
@@ -598,16 +575,15 @@
         explorerEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
 
-      function toggleExplorerAnswer(btn, idx, completed) {
+      function toggleExplorerAnswer(btn) {
         const itemEl = btn.closest('.explorer-item');
         const detailsEl = itemEl.querySelector('.explorer-answer-details');
-        const showText = completed ? 'Options & Answer' : 'Options';
         if (detailsEl.classList.contains('hidden')) {
           detailsEl.classList.remove('hidden');
-          btn.innerHTML = `<span>🙈</span> Hide ${showText}`;
+          btn.innerHTML = '<span>🙈</span> Hide Options';
         } else {
           detailsEl.classList.add('hidden');
-          btn.innerHTML = `<span>👁️</span> Show ${showText}`;
+          btn.innerHTML = '<span>👁️</span> Show Options';
         }
       }
 
