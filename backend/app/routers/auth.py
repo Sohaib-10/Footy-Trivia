@@ -179,12 +179,17 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     if not user.is_verified:
         user.is_verified = True
 
-    # Update last login
-    user.last_login = datetime.utcnow()
+    # Single-device session: new login invalidates any other active device
+    session_token = auth.new_session_token()
+    now = datetime.utcnow()
+    user.session_token = session_token
+    user.last_activity_at = now
+    user.last_login = now
     await db.commit()
 
-    access_token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
-    refresh_token = auth.create_refresh_token(data={"sub": str(user.id)})
+    token_data = {"sub": str(user.id), "role": user.role, "sid": session_token}
+    access_token = auth.create_access_token(data=token_data)
+    refresh_token = auth.create_refresh_token(data={"sub": str(user.id), "sid": session_token})
     csrf_token = generate_csrf_token()
 
     body = {
@@ -224,8 +229,13 @@ async def refresh(
             detail="Please verify your email address before refreshing your session."
         )
 
-    new_access_token = auth.create_access_token(data={"sub": str(user.id), "role": user.role})
-    new_refresh_token = auth.create_refresh_token(data={"sub": str(user.id)})
+    await auth.validate_user_session(user, payload, db)
+    auth.touch_user_activity(user)
+    await db.commit()
+
+    token_data = {"sub": str(user.id), "role": user.role, "sid": user.session_token}
+    new_access_token = auth.create_access_token(data=token_data)
+    new_refresh_token = auth.create_refresh_token(data={"sub": str(user.id), "sid": user.session_token})
     csrf_token = generate_csrf_token()
 
     response = JSONResponse(
@@ -239,6 +249,23 @@ async def refresh(
     return response
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    refresh_token = request.cookies.get(REFRESH_TOKEN_COOKIE)
+    if refresh_token:
+        try:
+            payload = auth.decode_token(refresh_token, expected_type="refresh")
+            user_id_str = payload.get("sub")
+            if user_id_str:
+                result = await db.execute(select(models.User).where(models.User.id == user_id_str))
+                user = result.scalars().first()
+                if user:
+                    user.session_token = None
+                    await db.commit()
+        except HTTPException:
+            pass
     clear_auth_cookies(response)
     return {"detail": "Successfully logged out"}

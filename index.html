@@ -2209,6 +2209,24 @@
         }
       })();
     </script>
+    <script>
+      (function () {
+        try {
+          var playersEl = document.getElementById('hero-stat-players');
+          var questionsEl = document.getElementById('hero-stat-questions');
+          if (questionsEl) questionsEl.textContent = '200+';
+          var categoriesEl = document.getElementById('hero-stat-categories');
+          var modesEl = document.getElementById('hero-stat-modes');
+          if (categoriesEl) categoriesEl.textContent = '10+';
+          if (modesEl) modesEl.textContent = '5';
+          var raw = localStorage.getItem('footytrivia_cached_active_players');
+          var real = raw !== null ? parseInt(raw, 10) : NaN;
+          if (!isNaN(real) && real >= 0 && playersEl) {
+            playersEl.textContent = (real + 500).toLocaleString();
+          }
+        } catch (e) {}
+      })();
+    </script>
     <script src="questions-extra.js"></script>
     <script src="data.js"></script>
     <script src="app.js"></script>

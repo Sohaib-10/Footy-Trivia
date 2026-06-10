@@ -44,7 +44,9 @@ CREATE TABLE users (
     is_verified BOOLEAN DEFAULT FALSE,
     role VARCHAR(10) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    last_login TIMESTAMPTZ
+    last_login TIMESTAMPTZ,
+    session_token VARCHAR(36),
+    last_activity_at TIMESTAMP
 );
 
 -- Create index on email for quick auth queries

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from app.cookie_auth import ACCESS_TOKEN_COOKIE
@@ -43,6 +43,38 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
     to_encode.update({"exp": expire, "type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
+
+def new_session_token() -> str:
+    return str(uuid4())
+
+
+def inactivity_limit() -> timedelta:
+    return timedelta(hours=settings.SESSION_INACTIVITY_HOURS)
+
+
+async def validate_user_session(user: User, payload: dict, db: AsyncSession) -> None:
+    sid = payload.get("sid")
+    if not sid or not user.session_token or sid != user.session_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="session_replaced",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if user.last_activity_at:
+        elapsed = datetime.utcnow() - user.last_activity_at
+        if elapsed > inactivity_limit():
+            user.session_token = None
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="session_inactive",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+
+def touch_user_activity(user: User) -> None:
+    user.last_activity_at = datetime.utcnow()
+
 
 def decode_token(token: str, expected_type: str = "access") -> dict:
     try:
@@ -97,7 +129,10 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
     if not user.is_verified:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Email address is not verified")
-        
+
+    await validate_user_session(user, payload, db)
+    touch_user_activity(user)
+
     return user
 
 async def get_current_admin(current_user: User = Depends(get_current_user)) -> User:

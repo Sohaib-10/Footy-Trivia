@@ -3834,6 +3834,22 @@
       justify-content: center;
       flex-shrink: 0;
     }
+    .wc-award-badge--custom,
+    .wc-award-icon-placeholder--custom {
+      font-size: 0;
+      background: radial-gradient(circle at 32% 28%, rgba(255, 215, 0, 0.22), rgba(107, 78, 10, 0.12));
+      border-color: rgba(212, 175, 55, 0.45);
+      padding: 5px;
+    }
+    .wc-award-icon-placeholder--custom {
+      padding: 10px;
+    }
+    .wc-award-icon-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+    }
     .wc-award-header-info {
       text-align: left;
       flex: 1;

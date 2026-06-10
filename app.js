@@ -24,7 +24,11 @@
       const API_TIMEOUT_MS = 20000;
       const API_RETRY_DELAY_MS = 3000;
       const API_MAX_RETRIES = 2;
+      const SESSION_INACTIVITY_MS = 2 * 60 * 60 * 1000;
+      const SESSION_ACTIVITY_KEY = 'footytrivia_last_activity';
       let apiWakePromise = null;
+      let inactivityCheckTimer = null;
+      let sessionGuardsReady = false;
 
       function isNetworkError(error) {
         return error && (error.name === 'AbortError' || error.message === 'Failed to fetch');
@@ -102,6 +106,68 @@
         return apiWakePromise;
       }
 
+      function isSessionExpiryDetail(detail) {
+        return detail === 'session_replaced' || detail === 'session_inactive';
+      }
+
+      function sessionExpiryMessage(detail) {
+        if (detail === 'session_replaced') {
+          return 'You were logged out because your account was accessed on another device.';
+        }
+        if (detail === 'session_inactive') {
+          return 'You were logged out due to 2 hours of inactivity.';
+        }
+        return 'Your session has expired. Please log in again.';
+      }
+
+      function touchSessionActivity() {
+        localStorage.setItem(SESSION_ACTIVITY_KEY, String(Date.now()));
+      }
+
+      function clearSessionActivity() {
+        localStorage.removeItem(SESSION_ACTIVITY_KEY);
+      }
+
+      function isClientSessionInactive() {
+        const raw = localStorage.getItem(SESSION_ACTIVITY_KEY);
+        if (!raw) return false;
+        const last = Number(raw);
+        return Number.isFinite(last) && (Date.now() - last) >= SESSION_INACTIVITY_MS;
+      }
+
+      function forceLogout(reason, showMessage = true) {
+        if (!state.user) {
+          clearSessionActivity();
+          return;
+        }
+        state.user = null;
+        localStorage.removeItem('footytrivia_user');
+        localStorage.removeItem('footytrivia_token');
+        localStorage.removeItem('footytrivia_refresh_token');
+        clearSessionActivity();
+        updateAuthUI();
+        if (showMessage) {
+          showToast(sessionExpiryMessage(reason), 'info');
+        }
+      }
+
+      function setupSessionGuards() {
+        if (sessionGuardsReady) return;
+        sessionGuardsReady = true;
+        const markActive = () => {
+          if (state.user) touchSessionActivity();
+        };
+        ['mousedown', 'keydown', 'touchstart', 'scroll'].forEach((eventName) => {
+          document.addEventListener(eventName, markActive, { passive: true });
+        });
+        if (inactivityCheckTimer) clearInterval(inactivityCheckTimer);
+        inactivityCheckTimer = setInterval(() => {
+          if (state.user && isClientSessionInactive()) {
+            forceLogout('session_inactive');
+          }
+        }, 60000);
+      }
+
       async function apiRequest(endpoint, options = {}, timeoutMs = API_TIMEOUT_MS) {
         const url = `${API_BASE_URL}${endpoint}`;
         const prepared = await prepareApiOptions({ ...options, _apiEndpoint: endpoint });
@@ -110,8 +176,14 @@
           const response = await fetchWithTimeout(url, prepared, timeoutMs);
           if (!response.ok) {
             const err = await response.json().catch(() => ({ detail: 'API request failed' }));
+            const detail = typeof err.detail === 'string' ? err.detail : '';
+            if (response.status === 401 && isSessionExpiryDetail(detail)) {
+              forceLogout(detail);
+              throw new Error(sessionExpiryMessage(detail));
+            }
             throw new Error(err.detail || 'API request failed');
           }
+          if (state.user) touchSessionActivity();
           return await response.json();
         } catch (error) {
           if (isNetworkError(error)) {
@@ -2013,6 +2085,8 @@
         applyProfilePreferences(profile.preferences, userObj);
         localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
         state.user = userObj;
+        touchSessionActivity();
+        setupSessionGuards();
         updateAuthUI();
         refreshProfileStats().catch(() => {});
         hydrateWcPredictionsForUser().catch(() => {});
@@ -2044,6 +2118,8 @@
           }
           state.user = userObj;
           localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
+          touchSessionActivity();
+          setupSessionGuards();
           const legacyPrefs = {};
           if (!profile.preferences?.country && userObj.country) {
             legacyPrefs.country = { name: userObj.country, code: userObj.countryCode, flag: userObj.countryFlag };
@@ -2060,10 +2136,20 @@
           updatePredictorProfile();
         } catch (e) {
           console.warn('Session restore failed:', e);
-          localStorage.removeItem('footytrivia_token');
-          localStorage.removeItem('footytrivia_refresh_token');
-          localStorage.removeItem('footytrivia_user');
-          state.user = null;
+          const msg = e && e.message ? String(e.message) : '';
+          if (msg.includes('another device') || msg.includes('inactivity')) {
+            forceLogout(
+              msg.includes('another device') ? 'session_replaced' : 'session_inactive',
+              false
+            );
+            showToast(msg, 'info');
+          } else {
+            localStorage.removeItem('footytrivia_token');
+            localStorage.removeItem('footytrivia_refresh_token');
+            localStorage.removeItem('footytrivia_user');
+            clearSessionActivity();
+            state.user = null;
+          }
         }
       }
       function openModal(type) {
@@ -2350,10 +2436,7 @@
         try {
           await apiRequest('/api/auth/logout', { method: 'POST' });
         } catch (_) {}
-        state.user = null;
-        localStorage.removeItem('footytrivia_user');
-        localStorage.removeItem('footytrivia_token');
-        localStorage.removeItem('footytrivia_refresh_token');
+        forceLogout(null, false);
         updateAuthUI();
         const bracketTab = document.getElementById('wc-bracket');
         if (bracketTab && bracketTab.style.display !== 'none') {
@@ -2449,7 +2532,7 @@
         let favClubLogoUrl = state.user ? state.user.favClubLogo : state.guestFavClubLogo;
         if (favClubName) {
           if (favClubLabel) {
-            favClubLabel.innerHTML = `<div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.25rem"><img src="${favClubLogoUrl}" style="height:1.2rem;width:1.2rem;object-fit:contain;vertical-align:middle" onerror="this.src='https://crests.football-data.org/PL.png'"/> <span style="color:var(--text);font-weight:600">${favClubName}</span></div>`;
+            favClubLabel.innerHTML = `<div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.25rem"><img src="${favClubLogoUrl}" style="height:2rem;width:2rem;object-fit:contain;vertical-align:middle" onerror="this.src='https://crests.football-data.org/PL.png'"/> <span style="color:var(--text);font-weight:600">${favClubName}</span></div>`;
           }
           if (favClubBtn) favClubBtn.textContent = 'Change';
         } else {
@@ -2600,10 +2683,42 @@
         }
       }
 
+      const HERO_ACTIVE_PLAYERS_BOOST = 500;
+      const HERO_QUESTIONS_LABEL = '200+';
+      const HERO_CATEGORIES_LABEL = '10+';
+      const HERO_GAME_MODES_LABEL = '5';
+      const CACHED_ACTIVE_PLAYERS_KEY = 'footytrivia_cached_active_players';
+
       function formatActivePlayers(count) {
         const n = Number(count);
         if (!Number.isFinite(n) || n < 0) return '0';
         return n.toLocaleString();
+      }
+
+      function displayHeroActivePlayers(realCount) {
+        const real = Number(realCount);
+        const base = Number.isFinite(real) && real >= 0 ? real : 0;
+        return formatActivePlayers(base + HERO_ACTIVE_PLAYERS_BOOST);
+      }
+
+      function getCachedActivePlayers() {
+        try {
+          const raw = localStorage.getItem(CACHED_ACTIVE_PLAYERS_KEY);
+          if (raw === null) return null;
+          const n = Number(raw);
+          return Number.isFinite(n) && n >= 0 ? n : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function saveCachedActivePlayers(realCount) {
+        try {
+          const n = Number(realCount);
+          if (Number.isFinite(n) && n >= 0) {
+            localStorage.setItem(CACHED_ACTIVE_PLAYERS_KEY, String(n));
+          }
+        } catch (e) {}
       }
 
       function getLocalStatsFallback() {
@@ -2614,7 +2729,7 @@
           if (Array.isArray(pool)) totalQuestions += pool.length;
         });
         return {
-          active_players: 0,
+          active_players: getCachedActivePlayers() ?? 0,
           total_questions: totalQuestions || null,
           total_categories: categories.length || null,
           total_game_modes: 4,
@@ -2627,10 +2742,10 @@
         const questionsEl = document.getElementById('hero-stat-questions');
         const categoriesEl = document.getElementById('hero-stat-categories');
         const modesEl = document.getElementById('hero-stat-modes');
-        if (playersEl) playersEl.textContent = formatActivePlayers(fallback.active_players);
-        if (questionsEl && fallback.total_questions) questionsEl.textContent = `${fallback.total_questions}+`;
-        if (categoriesEl && fallback.total_categories) categoriesEl.textContent = fallback.total_categories;
-        if (modesEl) modesEl.textContent = fallback.total_game_modes;
+        if (playersEl) playersEl.textContent = displayHeroActivePlayers(fallback.active_players);
+        if (questionsEl) questionsEl.textContent = HERO_QUESTIONS_LABEL;
+        if (categoriesEl) categoriesEl.textContent = HERO_CATEGORIES_LABEL;
+        if (modesEl) modesEl.textContent = HERO_GAME_MODES_LABEL;
         const heroStats = document.querySelector('.hero-stats');
         if (heroStats) heroStats.classList.remove('is-loading');
       }
@@ -2645,10 +2760,11 @@
           const categoriesEl = document.getElementById('hero-stat-categories');
           const modesEl = document.getElementById('hero-stat-modes');
           
-          if (playersEl) playersEl.textContent = formatActivePlayers(stats.active_players);
-          if (questionsEl) questionsEl.textContent = `${stats.total_questions}+`;
-          if (categoriesEl) categoriesEl.textContent = stats.total_categories;
-          if (modesEl) modesEl.textContent = stats.total_game_modes;
+          saveCachedActivePlayers(stats.active_players);
+          if (playersEl) playersEl.textContent = displayHeroActivePlayers(stats.active_players);
+          if (questionsEl) questionsEl.textContent = HERO_QUESTIONS_LABEL;
+          if (categoriesEl) categoriesEl.textContent = HERO_CATEGORIES_LABEL;
+          if (modesEl) modesEl.textContent = HERO_GAME_MODES_LABEL;
 
           const heroStats = document.querySelector('.hero-stats');
           if (heroStats) {
@@ -2802,6 +2918,7 @@
         loadGuestPreferences();
         updateAuthUI();
         syncSoundUi();
+        setupSessionGuards();
         wakeApiServer();
         restoreSession()
           .then(() => {
@@ -4227,6 +4344,136 @@
       function updateAwardsDisplay() {
         renderAwardsGrid();
       }
+
+      const AWARD_ICON_RENDERERS = {
+        'golden-boot'(uid) {
+          return `<svg class="wc-award-icon-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="boot-body-${uid}" x1="8" y1="10" x2="40" y2="38">
+                <stop offset="0%" stop-color="#FFF4C4"/>
+                <stop offset="35%" stop-color="#FFD700"/>
+                <stop offset="100%" stop-color="#8B6914"/>
+              </linearGradient>
+              <linearGradient id="boot-sole-${uid}" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#5C4308"/>
+                <stop offset="100%" stop-color="#2E2204"/>
+              </linearGradient>
+            </defs>
+            <path d="M10 30C10 30 11 22 18 18C22 15.5 28 14 32 15.5C36 17 38 20 38 24C38 28 36 32 30 34L14 36C11 36.5 9 34 10 30Z" fill="url(#boot-body-${uid})" stroke="#A67C00" stroke-width="0.7"/>
+            <path d="M14 36L30 34C34 33.5 37 31 38 28L38 32C37 35 34 37 30 37.5L13 38.5C11 38.7 9.5 37.5 10 35.5L14 36Z" fill="url(#boot-sole-${uid})"/>
+            <path d="M18 20L20 28M22 19L23.5 27M26 18.5L27 26.5M29.5 19L30 27" stroke="#6B4E0A" stroke-width="1.1" stroke-linecap="round"/>
+            <circle cx="33" cy="22" r="2.2" fill="#3D2E06"/>
+            <circle cx="35.5" cy="25" r="2" fill="#3D2E06"/>
+            <circle cx="36" cy="28.5" r="1.8" fill="#3D2E06"/>
+            <ellipse cx="20" cy="19" rx="4" ry="2" fill="#FFFFFF" opacity="0.22"/>
+          </svg>`;
+        },
+        'golden-ball'(uid) {
+          return `<svg class="wc-award-icon-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <radialGradient id="gb-shine-${uid}" cx="32%" cy="26%" r="70%">
+                <stop offset="0%" stop-color="#FFF8D6"/>
+                <stop offset="30%" stop-color="#FFD700"/>
+                <stop offset="70%" stop-color="#C9A227"/>
+                <stop offset="100%" stop-color="#6B4E0A"/>
+              </radialGradient>
+              <linearGradient id="gb-panel-${uid}" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#9A7B1A"/>
+                <stop offset="100%" stop-color="#3D2E06"/>
+              </linearGradient>
+            </defs>
+            <circle cx="24" cy="24" r="20.5" fill="url(#gb-shine-${uid})" stroke="#B8860B" stroke-width="0.75"/>
+            <path d="M24 11.5L30.2 16.1L28.1 23.4L19.9 23.4L17.8 16.1L24 11.5Z" fill="url(#gb-panel-${uid})" opacity="0.9"/>
+            <path d="M24 34.5L17.8 29.9L19.9 22.6L28.1 22.6L30.2 29.9L24 34.5Z" fill="url(#gb-panel-${uid})" opacity="0.75"/>
+            <path d="M11.5 24L16.1 17.8L23.4 19.9V28.1L16.1 30.2L11.5 24Z" fill="url(#gb-panel-${uid})" opacity="0.7"/>
+            <path d="M36.5 24L30.2 30.2L28.1 23.4V19.9L30.2 17.8L36.5 24Z" fill="url(#gb-panel-${uid})" opacity="0.7"/>
+            <path d="M14.2 14.2L19.9 17.8L17.8 16.1L16.1 17.8L14.2 14.2Z" fill="url(#gb-panel-${uid})" opacity="0.55"/>
+            <path d="M33.8 14.2L30.2 17.8L28.1 16.1L30.2 14.2H33.8Z" fill="url(#gb-panel-${uid})" opacity="0.55"/>
+            <path d="M14.2 33.8L16.1 30.2L17.8 31.9L19.9 30.2L14.2 33.8Z" fill="url(#gb-panel-${uid})" opacity="0.55"/>
+            <path d="M33.8 33.8L28.1 30.2L30.2 31.9L33.8 33.8Z" fill="url(#gb-panel-${uid})" opacity="0.55"/>
+            <ellipse cx="17" cy="15.5" rx="6" ry="3.5" fill="#FFFFFF" opacity="0.28" transform="rotate(-25 17 15.5)"/>
+          </svg>`;
+        },
+        'golden-glove'(uid) {
+          return `<svg class="wc-award-icon-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="glove-body-${uid}" x1="10" y1="8" x2="38" y2="40">
+                <stop offset="0%" stop-color="#FFF4C4"/>
+                <stop offset="40%" stop-color="#FFD700"/>
+                <stop offset="100%" stop-color="#9A7B1A"/>
+              </linearGradient>
+              <linearGradient id="glove-palm-${uid}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#C9A227"/>
+                <stop offset="100%" stop-color="#5C4308"/>
+              </linearGradient>
+            </defs>
+            <path d="M14 38C12 38 10.5 36.5 11 34.5L13 28C13.5 26 15 24.5 17 24L18 18C18.5 15.5 20 14 22.5 14C24 14 25 14.8 25.5 16L26 14.5C26.3 13 27.5 12 29 12.2C30.5 12.4 31.5 13.5 31.5 15L32 13.5C32.2 12 33.5 11 35 11.2C36.5 11.4 37.5 12.5 37.3 14L37.8 12.8C38.2 11.5 39.5 10.8 40.8 11.2C42.2 11.6 43 13 42.5 14.5L40 24C39.5 26.5 37.5 28 35 28.5L20 36C17.5 37 15 38 14 38Z" fill="url(#glove-body-${uid})" stroke="#A67C00" stroke-width="0.7"/>
+            <path d="M17 24C19 24 21 25 22 27L20 36L15 35.5L17 24Z" fill="url(#glove-palm-${uid})" opacity="0.55"/>
+            <path d="M22.5 16L23 22M26 14.5L26.5 21M29.5 13L30 20.5M33 12.5L33.2 20M36.5 13L36 20.5" stroke="#6B4E0A" stroke-width="0.9" stroke-linecap="round"/>
+            <ellipse cx="28" cy="30" rx="5" ry="3" fill="#FFFFFF" opacity="0.18"/>
+          </svg>`;
+        },
+        'best-young'(uid) {
+          return `<svg class="wc-award-icon-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="star-main-${uid}" x1="24" y1="6" x2="24" y2="42">
+                <stop offset="0%" stop-color="#FFF9C4"/>
+                <stop offset="45%" stop-color="#FFD700"/>
+                <stop offset="100%" stop-color="#00B4D8"/>
+              </linearGradient>
+              <radialGradient id="star-glow-${uid}" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#FFD700" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#FFD700" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <circle cx="24" cy="24" r="18" fill="url(#star-glow-${uid})"/>
+            <path d="M24 8L27.2 18.2H38L29.4 24.8L32.6 35L24 28.4L15.4 35L18.6 24.8L10 18.2H20.8L24 8Z" fill="url(#star-main-${uid})" stroke="#B8860B" stroke-width="0.7" stroke-linejoin="round"/>
+            <path d="M24 13L25.8 19H32L27.1 23L28.9 29L24 25.5L19.1 29L20.9 23L16 19H22.2L24 13Z" fill="#FFF8DC" opacity="0.45"/>
+            <circle cx="34" cy="12" r="1.2" fill="#FFD700"/>
+            <circle cx="12" cy="16" r="0.9" fill="#00B4D8" opacity="0.8"/>
+            <circle cx="36" cy="30" r="0.8" fill="#FFD700" opacity="0.7"/>
+          </svg>`;
+        },
+        'world-champion'(uid) {
+          return `<svg class="wc-award-icon-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="trophy-gold-${uid}" x1="24" y1="6" x2="24" y2="42">
+                <stop offset="0%" stop-color="#FFF4C4"/>
+                <stop offset="40%" stop-color="#FFD700"/>
+                <stop offset="100%" stop-color="#9A7B1A"/>
+              </linearGradient>
+              <radialGradient id="trophy-globe-${uid}" cx="40%" cy="35%" r="60%">
+                <stop offset="0%" stop-color="#4FC3F7"/>
+                <stop offset="50%" stop-color="#1565C0"/>
+                <stop offset="100%" stop-color="#0D3B66"/>
+              </radialGradient>
+              <linearGradient id="trophy-base-${uid}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#C9A227"/>
+                <stop offset="100%" stop-color="#5C4308"/>
+              </linearGradient>
+            </defs>
+            <rect x="14" y="38" width="20" height="3.5" rx="1" fill="url(#trophy-base-${uid})"/>
+            <rect x="17" y="35" width="14" height="3" rx="0.8" fill="url(#trophy-base-${uid})" opacity="0.85"/>
+            <path d="M20 35V28H28V35" fill="url(#trophy-gold-${uid})" stroke="#A67C00" stroke-width="0.5"/>
+            <path d="M15 28C15 22 18 17 24 15C30 17 33 22 33 28H15Z" fill="url(#trophy-gold-${uid})" stroke="#A67C00" stroke-width="0.6"/>
+            <circle cx="24" cy="20" r="5.5" fill="url(#trophy-globe-${uid})" stroke="#FFD700" stroke-width="0.8"/>
+            <path d="M20 18.5C22 17.5 26 17.5 28 18.5M19 21C21.5 22.5 26.5 22.5 29 21" stroke="#81D4FA" stroke-width="0.7" stroke-linecap="round" opacity="0.7"/>
+            <path d="M16 26C14 24 13 21 14 18M32 26C34 24 35 21 34 18" stroke="url(#trophy-gold-${uid})" stroke-width="2.2" stroke-linecap="round"/>
+            <ellipse cx="21" cy="16" rx="2.5" ry="1.5" fill="#FFFFFF" opacity="0.25"/>
+          </svg>`;
+        },
+      };
+
+      function awardIconMarkup(award, uid) {
+        const renderer = award.iconType && AWARD_ICON_RENDERERS[award.iconType];
+        if (renderer) return renderer(uid);
+        return award.iconHtml || award.icon;
+      }
+
+      function awardIconClass(award, baseClass) {
+        return (award.iconHtml || award.iconType) ? `${baseClass} ${baseClass}--custom` : baseClass;
+      }
+
       function renderAwardsGrid() {
         const grid = document.getElementById('wc-awards-grid');
         if (!grid) return;
@@ -4235,7 +4482,7 @@
             key: 'golden-boot',
             title: 'Golden Boot',
             subtitle: 'Top Goalscorer',
-            icon: '⚽',
+            iconType: 'golden-boot',
             desc: 'Attacking players (forwards, strikers, wingers, attacking mids) participating in the tournament.',
             type: 'player'
           },
@@ -4243,7 +4490,7 @@
             key: 'golden-ball',
             title: 'Golden Ball',
             subtitle: 'Player of the Tournament',
-            icon: '🟡',
+            iconType: 'golden-ball',
             desc: 'Best player of the tournament, open to all players regardless of position.',
             type: 'player'
           },
@@ -4251,7 +4498,7 @@
             key: 'golden-glove',
             title: 'Golden Glove',
             subtitle: 'Best Goalkeeper',
-            icon: '🧤',
+            iconType: 'golden-glove',
             desc: 'Outstanding goalkeeper of the tournament, restricted to goalkeepers.',
             type: 'player'
           },
@@ -4259,7 +4506,7 @@
             key: 'best-young',
             title: 'Best Young Player',
             subtitle: 'U-22 Star of the Tournament',
-            icon: '🌟',
+            iconType: 'best-young',
             desc: 'Best performing young player under FIFA age requirements (age 22 or under).',
             type: 'player'
           },
@@ -4267,7 +4514,7 @@
             key: 'world-champion',
             title: 'World Champion',
             subtitle: 'Tournament Winner',
-            icon: '🏆',
+            iconType: 'world-champion',
             desc: 'Select the nation you predict will lift the FIFA World Cup 2026 trophy.',
             type: 'team'
           }
@@ -4324,13 +4571,13 @@
             } else {
               const name = typeof pred === 'string' ? pred : 'Selected';
               selectionHtml = `
-                <div class="wc-award-icon-placeholder">⚽</div>
+                <div class="${awardIconClass(award, 'wc-award-icon-placeholder')}">${awardIconMarkup(award, award.key + '-sel')}</div>
                 <p style="font-size:0.85rem;color:var(--text);font-weight:600;margin-bottom:0.5rem">${name}</p>
               `;
             }
           } else {
             selectionHtml = `
-              <div class="wc-award-icon-placeholder">${award.icon}</div>
+              <div class="${awardIconClass(award, 'wc-award-icon-placeholder')}">${awardIconMarkup(award, award.key + '-ph')}</div>
               <p style="font-size:0.75rem; color:var(--text2); margin-bottom:1.5rem; line-height:1.4;">${award.desc}</p>
             `;
           }
@@ -4339,7 +4586,7 @@
           return `
             <div class="${cardClass}">
               <div style="display:flex; align-items:center; gap:0.75rem; width:100%; margin-bottom:1.25rem;">
-                <div class="wc-award-badge">${award.icon}</div>
+                <div class="${awardIconClass(award, 'wc-award-badge')}">${awardIconMarkup(award, award.key + '-badge')}</div>
                 <div class="wc-award-header-info">
                   <span class="wc-award-title-sm">${award.title}</span>
                   <span class="wc-award-sub-sm">${award.subtitle}</span>

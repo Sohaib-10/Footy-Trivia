@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = Field(default="HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=720)
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7)
+    SESSION_INACTIVITY_HOURS: int = Field(default=2)
 
     # Supabase Settings
     SUPABASE_URL: str = Field(default="https://placeholder.supabase.co")

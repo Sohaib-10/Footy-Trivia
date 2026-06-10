@@ -2,6 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.routers import auth, users, leaderboard, quiz, questions, teams, countries, achievements, storage_router, profiles, stats, battle, wc
 from app.database import engine, Base
 from app import models  # noqa: F401  (ensures all tables are registered on Base.metadata)
@@ -17,6 +18,12 @@ async def lifespan(app: FastAPI):
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await conn.execute(text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS session_token VARCHAR(36)"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP"
+            ))
     except Exception:
         logger.exception("Failed to ensure database tables on startup")
     yield

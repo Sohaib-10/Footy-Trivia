@@ -55,6 +55,8 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(10), default="user", nullable=False)
     created_at: Mapped[datetime] = mapped_column(default=func.now())
     last_login: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    session_token: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    last_activity_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
 
     __table_args__ = (
         CheckConstraint("role IN ('user', 'admin')", name="check_user_role"),
