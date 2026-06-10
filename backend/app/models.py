@@ -127,6 +127,8 @@ class QuizSession(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     difficulty: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     category: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    topic: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    verify_key: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     challenge_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     total_questions: Mapped[int] = mapped_column(Integer, nullable=False)
     score: Mapped[int] = mapped_column(Integer, default=0)

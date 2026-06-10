@@ -8,6 +8,9 @@ from typing import List
 from uuid import UUID
 from app.database import get_db
 from app import models, schemas, auth
+from app.quiz_verify import make_answer_hash, new_verify_key
+
+DIFFICULTY_POINTS = {"easy": 10, "medium": 20, "hard": 30}
 
 router = APIRouter(prefix="/api/quiz", tags=["quiz"])
 
@@ -59,10 +62,13 @@ async def start_quiz(
             detail="No questions found matching the selected criteria"
         )
 
+    verify_key = new_verify_key()
     session = models.QuizSession(
         user_id=current_user.id,
         difficulty=setup.difficulty,
         category=setup.category,
+        topic=setup.topic,
+        verify_key=verify_key,
         challenge_type=setup.challenge_type,
         total_questions=len(questions),
         score=0,
@@ -81,10 +87,19 @@ async def start_quiz(
     await db.commit()
     await db.refresh(session)
 
-    return {
-        "session": session,
-        "questions": questions
-    }
+    quiz_questions = []
+    for question in questions:
+        base = schemas.QuestionPublicRead.model_validate(question)
+        quiz_questions.append(schemas.QuestionQuizStartRead(
+            **base.model_dump(),
+            answer_hash=make_answer_hash(verify_key, question.id, question.correct_option),
+        ))
+
+    return schemas.QuizSessionStartResponse(
+        session=session,
+        verify_key=verify_key,
+        questions=quiz_questions,
+    )
 
 @router.post("/answer", response_model=schemas.QuizAnswerResponse)
 async def submit_answer(
@@ -133,10 +148,8 @@ async def submit_answer(
         selected_option = ans_data.selected_option.upper()
         is_correct = selected_option == question.correct_option.upper()
 
-    points = 0
+    points = DIFFICULTY_POINTS.get(question.difficulty.lower(), 10) if is_correct else 0
     if is_correct:
-        difficulty_multipliers = {"easy": 10, "medium": 20, "hard": 30}
-        points = difficulty_multipliers.get(question.difficulty.lower(), 10)
         session.score += points
 
     answered_at = datetime.utcnow()
@@ -149,50 +162,6 @@ async def submit_answer(
         answered_at=answered_at,
     )
     db.add(new_answer)
-
-    progress = (
-        await db.execute(
-            select(models.UserProgress).where(models.UserProgress.user_id == current_user.id)
-        )
-    ).scalars().first()
-    if not progress:
-        progress = models.UserProgress(user_id=current_user.id)
-        db.add(progress)
-
-    progress.total_questions_answered += 1
-    if is_correct:
-        progress.total_correct += 1
-        progress.current_streak += 1
-        if progress.current_streak > progress.longest_streak:
-            progress.longest_streak = progress.current_streak
-        progress.total_points += points
-    else:
-        progress.total_incorrect += 1
-        progress.current_streak = 0
-
-    progress.last_played_at = answered_at
-
-    leaderboard = (
-        await db.execute(
-            select(models.Leaderboard).where(models.Leaderboard.user_id == current_user.id)
-        )
-    ).scalars().first()
-    if not leaderboard:
-        leaderboard = models.Leaderboard(user_id=current_user.id)
-        db.add(leaderboard)
-
-    leaderboard.total_points = progress.total_points
-    leaderboard.weekly_points += points
-    leaderboard.monthly_points += points
-
-    if not leaderboard.country_id:
-        profile = (
-            await db.execute(
-                select(models.Profile).where(models.Profile.user_id == current_user.id)
-            )
-        ).scalars().first()
-        if profile and profile.country_id:
-            leaderboard.country_id = profile.country_id
 
     try:
         await db.flush()
@@ -224,6 +193,67 @@ async def submit_answer(
         session_score=session_score,
     )
 
+async def apply_session_progress(session: models.QuizSession, db: AsyncSession) -> int:
+    rows = (
+        await db.execute(
+            select(models.SessionAnswer, models.Question)
+            .join(models.Question, models.Question.id == models.SessionAnswer.question_id)
+            .where(models.SessionAnswer.session_id == session.id)
+            .order_by(models.SessionAnswer.answered_at)
+        )
+    ).all()
+
+    progress = (
+        await db.execute(
+            select(models.UserProgress).where(models.UserProgress.user_id == session.user_id)
+        )
+    ).scalars().first()
+    if not progress:
+        progress = models.UserProgress(user_id=session.user_id)
+        db.add(progress)
+
+    leaderboard = (
+        await db.execute(
+            select(models.Leaderboard).where(models.Leaderboard.user_id == session.user_id)
+        )
+    ).scalars().first()
+    if not leaderboard:
+        leaderboard = models.Leaderboard(user_id=session.user_id)
+        db.add(leaderboard)
+
+    session_points = 0
+    for answer, question in rows:
+        progress.total_questions_answered += 1
+        if answer.is_correct:
+            pts = DIFFICULTY_POINTS.get(question.difficulty.lower(), 10)
+            session_points += pts
+            progress.total_correct += 1
+            progress.current_streak += 1
+            if progress.current_streak > progress.longest_streak:
+                progress.longest_streak = progress.current_streak
+        else:
+            progress.total_incorrect += 1
+            progress.current_streak = 0
+
+    progress.total_points += session_points
+    progress.last_played_at = datetime.utcnow()
+    leaderboard.total_points = progress.total_points
+    leaderboard.weekly_points += session_points
+    leaderboard.monthly_points += session_points
+
+    if not leaderboard.country_id:
+        profile = (
+            await db.execute(
+                select(models.Profile).where(models.Profile.user_id == session.user_id)
+            )
+        ).scalars().first()
+        if profile and profile.country_id:
+            leaderboard.country_id = profile.country_id
+
+    session.score = session_points
+    return session_points
+
+
 @router.post("/complete/{session_id}", response_model=schemas.QuizSessionRead)
 async def complete_quiz(
     session_id: UUID,
@@ -251,6 +281,8 @@ async def complete_quiz(
             status_code=400,
             detail="Complete all questions before finishing the quiz",
         )
+
+    await apply_session_progress(session, db)
 
     session.is_completed = True
     session.ended_at = datetime.utcnow()

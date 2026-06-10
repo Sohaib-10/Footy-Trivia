@@ -250,7 +250,7 @@
       }
       let state = {
         currentPage: 'home',
-        quiz: { active: false, questions: [], idx: 0, score: 0, correct: 0, streak: 0, bestStreak: 0, hintPenalty: 1, timer: null, timeLeft: 15, mode: 'solo', diff: 'easy', hintsUsed: [], serverMode: false, sessionId: null, submitting: false, answersSubmitted: 0 },
+        quiz: { active: false, questions: [], idx: 0, score: 0, correct: 0, streak: 0, bestStreak: 0, hintPenalty: 1, timer: null, timeLeft: 15, mode: 'solo', diff: 'easy', hintsUsed: [], serverMode: false, sessionId: null, verifyKey: null, pendingSyncs: [], submitting: false, answersSubmitted: 0 },
         user: null,
         transfer: { playerIdx: 0, guesses: [], maxGuesses: 5, revealed: false, hintsRevealed: 1 },
         theme: 'dark',
@@ -643,6 +643,7 @@
 
       // ──────────────────────────  a• a• a• a• a• a•  QUIZ ENGINE a• a• a• a• a• a• a• 
       const QUIZ_QUESTIONS_PER_ROUND = 10;
+      const SERVER_QUIZ_POINTS = { easy: 10, medium: 20, hard: 30 };
       const QUIZ_RECENT_STORAGE_KEY = 'footytrivia_recent_quiz_questions';
 
       const QUIZ_CATEGORY_EXPANSIONS = {
@@ -779,7 +780,54 @@
           diff: q.difficulty,
           q: q.question_text,
           opts: [q.option_a, q.option_b, q.option_c, q.option_d],
+          answerHash: q.answer_hash || null,
+          correctOption: null,
+          ans: null,
         };
+      }
+
+      async function makeQuizAnswerHash(verifyKey, questionId, option) {
+        const enc = new TextEncoder();
+        const key = await crypto.subtle.importKey(
+          'raw',
+          enc.encode(verifyKey),
+          { name: 'HMAC', hash: 'SHA-256' },
+          false,
+          ['sign'],
+        );
+        const message = `${questionId}:${String(option).toUpperCase()}`;
+        const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
+        return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('');
+      }
+
+      async function resolveQuizCorrectOptions(verifyKey, questions) {
+        return Promise.all(questions.map(async (question) => {
+          if (!verifyKey || !question.answerHash) return question;
+          for (const letter of ['A', 'B', 'C', 'D']) {
+            const hash = await makeQuizAnswerHash(verifyKey, question.id, letter);
+            if (hash === question.answerHash) {
+              question.correctOption = letter;
+              question.ans = 'ABCD'.indexOf(letter);
+              break;
+            }
+          }
+          return question;
+        }));
+      }
+
+      function queueQuizAnswerSync(selectedOption, timeTakenSeconds, timedOut = false) {
+        const sync = submitQuizAnswer(selectedOption, timeTakenSeconds, timedOut).catch((err) => {
+          console.warn('Quiz answer sync failed', err);
+        });
+        state.quiz.pendingSyncs.push(sync);
+        return sync;
+      }
+
+      async function flushQuizAnswerSyncs() {
+        const pending = state.quiz.pendingSyncs || [];
+        if (!pending.length) return;
+        await Promise.allSettled(pending);
+        state.quiz.pendingSyncs = [];
       }
 
       let quizKeepAliveTimer = null;
@@ -821,10 +869,14 @@
               body: JSON.stringify(mapQuizStartParams(category)),
             });
             hidePleaseWait();
-            const questions = (data.questions || []).map(normalizeApiQuestion);
+            const verifyKey = data.verify_key || null;
+            let questions = (data.questions || []).map(normalizeApiQuestion);
             if (!questions.length) {
               showToast('No questions available for this category.', 'warning');
               return;
+            }
+            if (verifyKey) {
+              questions = await resolveQuizCorrectOptions(verifyKey, questions);
             }
             if (questions.length < QUIZ_QUESTIONS_PER_ROUND) {
               showToast(`This category has ${questions.length} questions right now.`, 'info');
@@ -834,6 +886,8 @@
               active: true,
               serverMode: true,
               sessionId: data.session.id,
+              verifyKey,
+              pendingSyncs: [],
               questions,
               idx: 0,
               score: data.session.score || 0,
@@ -879,6 +933,8 @@
           active: true,
           serverMode: false,
           sessionId: null,
+          verifyKey: null,
+          pendingSyncs: [],
           questions: picked,
           idx: 0,
           score: 0,
@@ -956,41 +1012,35 @@
 
         if (q.serverMode) {
           q.submitting = true;
-          markPendingAnswer(idx);
           const selectedOption = String.fromCharCode(65 + idx);
-          try {
-            const result = await submitQuizAnswer(selectedOption, timeTaken);
-            const correct = !!result.answer?.is_correct;
-            const pts = result.points_earned || 0;
-            q.score = result.session_score ?? q.score;
-            q.answersSubmitted++;
-            revealAnswerResult(idx, result.correct_option, correct);
-            if (correct) {
-              q.correct++;
-              q.streak++;
-              if (q.streak > q.bestStreak) q.bestStreak = q.streak;
-            } else {
-              q.streak = 0;
-            }
-            document.getElementById('q-score').textContent = `${q.score} PTS`;
-            showFeedback(correct, pts, q.streak);
-            const advanceDelay = correct ? 1000 : 1300;
-            if (!correct && state.selectedMode === 'hardcore') {
-              setTimeout(() => { hideFeedback(); endQuiz(); }, advanceDelay);
-              q.submitting = false;
-              return;
-            }
-            setTimeout(() => {
-              hideFeedback();
-              q.idx++;
-              q.submitting = false;
-              renderQuestion();
-            }, advanceDelay);
-          } catch (err) {
-            q.submitting = false;
-            showToast(err.message || 'Failed to submit answer', 'error');
-            renderQuestion();
+          const correctOption = question.correctOption || 'A';
+          const correct = selectedOption === correctOption;
+          const pts = correct ? (SERVER_QUIZ_POINTS[question.diff] || 10) : 0;
+          if (correct) {
+            q.score += pts;
+            q.correct++;
+            q.streak++;
+            if (q.streak > q.bestStreak) q.bestStreak = q.streak;
+          } else {
+            q.streak = 0;
           }
+          q.answersSubmitted++;
+          revealAnswerResult(idx, correctOption, correct);
+          document.getElementById('q-score').textContent = `${q.score} PTS`;
+          showFeedback(correct, pts, q.streak);
+          queueQuizAnswerSync(selectedOption, timeTaken);
+          const advanceDelay = correct ? 1000 : 1300;
+          if (!correct && state.selectedMode === 'hardcore') {
+            setTimeout(() => { hideFeedback(); endQuiz(); }, advanceDelay);
+            q.submitting = false;
+            return;
+          }
+          setTimeout(() => {
+            hideFeedback();
+            q.idx++;
+            q.submitting = false;
+            renderQuestion();
+          }, advanceDelay);
           return;
         }
 
@@ -1108,29 +1158,24 @@
 
         if (q.serverMode) {
           q.submitting = true;
-          try {
-            const result = await submitQuizAnswer(null, TIMER_MAX, true);
-            q.score = result.session_score ?? q.score;
-            q.answersSubmitted++;
-            revealAnswerResult(-1, result.correct_option, false);
-            q.streak = 0;
-            showFeedback(false, 0, 0);
-            if (state.selectedMode === 'hardcore') {
-              setTimeout(() => { hideFeedback(); endQuiz(); }, 1300);
-              q.submitting = false;
-              return;
-            }
-            setTimeout(() => {
-              hideFeedback();
-              q.idx++;
-              q.submitting = false;
-              renderQuestion();
-            }, 1300);
-          } catch (err) {
+          const question = q.questions[q.idx];
+          const correctOption = question.correctOption || 'A';
+          q.answersSubmitted++;
+          revealAnswerResult(-1, correctOption, false);
+          q.streak = 0;
+          showFeedback(false, 0, 0);
+          queueQuizAnswerSync(null, TIMER_MAX, true);
+          if (state.selectedMode === 'hardcore') {
+            setTimeout(() => { hideFeedback(); endQuiz(); }, 1300);
             q.submitting = false;
-            showToast(err.message || 'Failed to record timeout', 'error');
-            endQuiz();
+            return;
           }
+          setTimeout(() => {
+            hideFeedback();
+            q.idx++;
+            q.submitting = false;
+            renderQuestion();
+          }, 1300);
           return;
         }
 
@@ -1159,10 +1204,14 @@
         let score = q.score;
         let correct = q.correct;
 
-        if (q.serverMode && q.sessionId && q.answersSubmitted >= total) {
+        if (q.serverMode && q.sessionId) {
           try {
-            const session = await apiRequest(`/api/quiz/complete/${q.sessionId}`, { method: 'POST' });
-            score = session.score ?? score;
+            await flushQuizAnswerSyncs();
+            if (q.answersSubmitted >= total) {
+              const session = await apiRequest(`/api/quiz/complete/${q.sessionId}`, { method: 'POST' });
+              score = session.score ?? score;
+              correct = q.correct;
+            }
           } catch (err) {
             showToast(err.message || 'Quiz finished locally but could not be saved to leaderboard.', 'warning');
           }

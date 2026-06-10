@@ -324,6 +324,10 @@ class QuestionPublicRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class QuestionQuizStartRead(QuestionPublicRead):
+    answer_hash: str
+
 # ============================================================================
 # QUIZ SESSION SCHEMAS
 # ============================================================================
@@ -349,7 +353,8 @@ class QuizSessionRead(BaseModel):
 
 class QuizSessionStartResponse(BaseModel):
     session: QuizSessionRead
-    questions: List[QuestionPublicRead]
+    verify_key: str
+    questions: List[QuestionQuizStartRead]
 
 # ============================================================================
 # SESSION ANSWER SCHEMAS
