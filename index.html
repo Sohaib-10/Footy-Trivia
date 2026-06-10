@@ -21,10 +21,6 @@
     href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Barlow:wght@300;400;500;600;700&family=Montserrat:wght@700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <!-- Firebase SDK (v9 compat mode) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -651,7 +647,7 @@
 
           <div style="display:flex;gap:0.5rem">
 
-            <input type="text" id="join-room-code" placeholder="6-CHAR CODE" class="form-input"
+            <input type="text" id="join-room-code" placeholder="6-CHAR CODE" class="form-input" maxlength="6" pattern="[A-Za-z0-9]{6}"
               style="text-align:center;text-transform:none;font-weight:700">
 
             <button class="btn btn-ghost"
@@ -1814,7 +1810,7 @@
           <div class="bp-champion-row">
             <div class="bp-champion" id="bp-champion-box">
               <div class="bp-champion-label">Predicted World Cup Champion</div>
-              <div class="bp-champion-flag" id="bp-champ-flag">&#127942;</div>
+              <div class="bp-champion-flag" id="bp-champ-flag"><img src="world-cup-trophy.png" alt="" class="wc-trophy-icon bp-champion-trophy" draggable="false"></div>
               <div class="bp-champion-name" id="bp-champ-name" style="color:var(--text3); font-weight: 800; text-transform: uppercase;">SELECT YOUR CHAMPION</div>
             </div>
           </div>
@@ -2195,20 +2191,7 @@
 
 
     <!-- App Configurations & Modules -->
-    <script>
-      window.ENV = window.ENV || {};
-      window.ENV.SPORTSDB_API_URL = window.ENV.SPORTSDB_API_URL || 'https://www.thesportsdb.com/api/v1/json/3/searchplayers.php';
-      (function () {
-        var isLocal = location.hostname === 'localhost'
-          || location.hostname === '127.0.0.1'
-          || location.protocol === 'file:';
-        if (isLocal) {
-          document.write('<script src="config.js"><\/script>');
-        } else {
-          window.ENV.API_BASE_URL = 'https://footytrivia-api.onrender.com';
-        }
-      })();
-    </script>
+    <script src="config.js"></script>
     <script>
       (function () {
         try {

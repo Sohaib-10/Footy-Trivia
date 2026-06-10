@@ -3,7 +3,6 @@
       // LEADERBOARD_DATA loaded from data.js
       // CATEGORIES_DATA loaded from data.js
       // TRANSFER_PLAYERS loaded from data.js
-      const PRODUCTION_API_URL = 'https://footytrivia-api.onrender.com';
       const LOCAL_API_URL = 'http://localhost:8002';
 
       function resolveApiBaseUrl() {
@@ -11,13 +10,10 @@
           || location.hostname === '127.0.0.1'
           || location.protocol === 'file:';
         const fromEnv = window.ENV && window.ENV.API_BASE_URL;
-        if (fromEnv) {
-          const envIsLocal = /localhost|127\.0\.0\.1/i.test(fromEnv);
-          // Never use a localhost API URL on the live site (bad config.js deploy).
-          if (!isLocalHost && envIsLocal) return PRODUCTION_API_URL;
-          return fromEnv;
-        }
-        return isLocalHost ? LOCAL_API_URL : PRODUCTION_API_URL;
+        if (fromEnv) return fromEnv;
+        if (isLocalHost) return LOCAL_API_URL;
+        console.error('API_BASE_URL is not configured. Set it via config.js or the API_BASE_URL deployment env var.');
+        return '';
       }
 
       const API_BASE_URL = resolveApiBaseUrl();
@@ -75,10 +71,6 @@
         const prepared = { ...options, credentials: options.credentials || 'include' };
         const method = (prepared.method || 'GET').toUpperCase();
         if (!prepared.headers) prepared.headers = {};
-        const token = localStorage.getItem('footytrivia_token');
-        if (token && !prepared.headers['Authorization']) {
-          prepared.headers['Authorization'] = `Bearer ${token}`;
-        }
         const csrfExempt = [
           '/api/auth/login',
           '/api/auth/register',
@@ -1155,9 +1147,9 @@
         return `
             <div class="lb-row" style="${highlightStyle}">
               <div class="lb-rank ${rankClass}">${rankLabel}</div>
-              <div class="lb-avatar" style="background:var(--surface2)">${p.username ? p.username[0].toUpperCase() : '?'}</div>
+              <div class="lb-avatar" style="background:var(--surface2)">${escapeHtml(p.username ? p.username[0].toUpperCase() : '?')}</div>
               <div class="lb-info">
-                <div class="lb-name">${p.username || 'Guest'}${youBadge}
+                <div class="lb-name">${escapeHtml(p.username || 'Guest')}${youBadge}
                   <span style="font-size:0.65rem;background:${tierColor};color:#000;padding:0.1rem 0.35rem;border-radius:4px;margin-left:0.5rem;font-weight:700">${tierName}</span>
                 </div>
                 <div class="lb-meta">${getLeaderboardFlagByCountryId(p.country_id)} &nbsp; Rank: ${rankLabel}</div>
@@ -1208,7 +1200,7 @@
           let html = '';
           cached.entries.slice(0, 5).forEach((p, i) => {
             const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-            html += `<div class="lb-row"><div class="lb-rank ${rankClass}">${p.rank || i + 1}</div><div class="lb-info"><div class="lb-name">${p.username || 'Guest'}</div></div><div class="lb-score">${(p.total_points || 0).toLocaleString()}</div></div>`;
+            html += `<div class="lb-row"><div class="lb-rank ${rankClass}">${p.rank || i + 1}</div><div class="lb-info"><div class="lb-name">${escapeHtml(p.username || 'Guest')}</div></div><div class="lb-score">${(p.total_points || 0).toLocaleString()}</div></div>`;
           });
           lbPreview.innerHTML = html;
         } else {
@@ -1219,7 +1211,7 @@
           let html = '';
           data.slice(0, 5).forEach((p, i) => {
             const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-            html += `<div class="lb-row"><div class="lb-rank ${rankClass}">${p.rank || i + 1}</div><div class="lb-info"><div class="lb-name">${p.username || 'Guest'}</div></div><div class="lb-score">${(p.total_points || 0).toLocaleString()}</div></div>`;
+            html += `<div class="lb-row"><div class="lb-rank ${rankClass}">${p.rank || i + 1}</div><div class="lb-info"><div class="lb-name">${escapeHtml(p.username || 'Guest')}</div></div><div class="lb-score">${(p.total_points || 0).toLocaleString()}</div></div>`;
           });
           lbPreview.innerHTML = html;
           saveLbCache('all_time', data, null);
@@ -1265,7 +1257,7 @@
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
         const icons = { success: '🏆', error: '❌', info: '⚡' };
-        toast.innerHTML = `<span>${icons[type] || '⚡'}</span> <span>${msg}</span>`;
+        toast.innerHTML = `<span>${icons[type] || '⚡'}</span> <span>${escapeHtml(msg)}</span>`;
         container.appendChild(toast);
         setTimeout(() => {
           toast.style.opacity = '0';
@@ -1283,7 +1275,7 @@
         container.classList.add('auth-wait-active');
         authWaitToast = document.createElement('div');
         authWaitToast.className = 'toast info auth-wait-toast';
-        authWaitToast.innerHTML = `<span>⏳</span> <span>${msg}</span>`;
+        authWaitToast.innerHTML = `<span>⏳</span> <span>${escapeHtml(msg)}</span>`;
         container.appendChild(authWaitToast);
       }
 
@@ -1305,10 +1297,84 @@
         setTimeout(remove, remaining);
       }
 
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function safeImageUrl(url, fallback = '') {
+        try {
+          const parsed = new URL(String(url || '').trim());
+          if (parsed.protocol !== 'https:') return fallback;
+          return parsed.href;
+        } catch (e) {
+          return fallback;
+        }
+      }
+
+      const INPUT_LIMITS = {
+        email: 254,
+        password: 128,
+        username: 50,
+        roomCode: 6,
+      };
+      const CONTROL_CHAR_RE = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/;
+      const USERNAME_RE = /^[a-zA-Z0-9_]+$/;
+      const ROOM_CODE_RE = /^[A-Z0-9]{6}$/;
+
+      function rejectControlChars(value, label) {
+        if (CONTROL_CHAR_RE.test(value) || value.includes('\0')) {
+          throw new Error(`${label} contains invalid characters`);
+        }
+      }
+
+      function validateEmailInput(value) {
+        const email = String(value || '').trim();
+        rejectControlChars(email, 'Email');
+        if (!email || email.length > INPUT_LIMITS.email) {
+          throw new Error('Enter a valid email address');
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          throw new Error('Enter a valid email address');
+        }
+        return email;
+      }
+
+      function validateUsernameInput(value) {
+        const username = String(value || '').trim();
+        rejectControlChars(username, 'Username');
+        if (username.length < 3 || username.length > INPUT_LIMITS.username || !USERNAME_RE.test(username)) {
+          throw new Error('Username must be 3-50 characters and use only letters, numbers, or underscores');
+        }
+        return username;
+      }
+
+      function validatePasswordInput(value, label = 'Password') {
+        const password = String(value || '');
+        rejectControlChars(password, label);
+        if (password.length < 8 || password.length > INPUT_LIMITS.password) {
+          throw new Error(`${label} must be 8-128 characters`);
+        }
+        return password;
+      }
+
+      function validateRoomCodeInput(value) {
+        const code = String(value || '').trim().toUpperCase();
+        rejectControlChars(code, 'Room code');
+        if (!ROOM_CODE_RE.test(code)) {
+          throw new Error('Room code must be exactly 6 letters or numbers');
+        }
+        return code;
+      }
+
       function authPasswordField(id, placeholder, extraAttrs = '') {
         return `
             <div class="password-field-wrap">
-              <input type="password" id="${id}" class="form-input" required placeholder="${placeholder}" ${extraAttrs}>
+              <input type="password" id="${id}" class="form-input" required placeholder="${placeholder}" maxlength="${INPUT_LIMITS.password}" ${extraAttrs}>
               <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('${id}', this)" aria-label="Show password" title="Show password">👁</button>
             </div>`;
       }
@@ -2163,11 +2229,11 @@
           <form onsubmit="mockLogin(event)">
             <div class="form-group">
               <label class="form-label">EMAIL ADDRESS</label>
-              <input type="email" id="auth-email" class="form-input" required placeholder="you@example.com">
+              <input type="email" id="auth-email" class="form-input" required maxlength="${INPUT_LIMITS.email}" placeholder="you@example.com">
             </div>
             <div class="form-group">
               <label class="form-label">PASSWORD</label>
-              ${authPasswordField('auth-password', '••••••••')}
+              ${authPasswordField('auth-password', '••••••••', 'minlength="8"')}
             </div>
             <div style="text-align:right;margin-top:0.35rem">
               <a onclick="openModal('forgot')" style="font-size:0.8rem;cursor:pointer">Forgot password?</a>
@@ -2186,7 +2252,7 @@
           <form onsubmit="mockForgotPassword(event)">
             <div class="form-group">
               <label class="form-label">EMAIL ADDRESS</label>
-              <input type="email" id="auth-email" class="form-input" required placeholder="you@example.com">
+              <input type="email" id="auth-email" class="form-input" required maxlength="${INPUT_LIMITS.email}" placeholder="you@example.com">
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center">Send Reset Link</button>
           </form>
@@ -2219,7 +2285,7 @@
           <form onsubmit="mockResendVerification(event)">
             <div class="form-group">
               <label class="form-label">EMAIL ADDRESS</label>
-              <input type="email" id="auth-email" class="form-input" required placeholder="you@example.com">
+              <input type="email" id="auth-email" class="form-input" required maxlength="${INPUT_LIMITS.email}" placeholder="you@example.com">
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center">Resend Email</button>
           </form>
@@ -2234,11 +2300,11 @@
           <form onsubmit="mockRegister(event)">
             <div class="form-group">
               <label class="form-label">USERNAME</label>
-              <input type="text" id="auth-username" class="form-input" required placeholder="footballer123">
+              <input type="text" id="auth-username" class="form-input" required minlength="3" maxlength="${INPUT_LIMITS.username}" pattern="[A-Za-z0-9_]+" placeholder="footballer123">
             </div>
             <div class="form-group">
               <label class="form-label">EMAIL ADDRESS</label>
-              <input type="email" id="auth-email" class="form-input" required placeholder="you@example.com">
+              <input type="email" id="auth-email" class="form-input" required maxlength="${INPUT_LIMITS.email}" placeholder="you@example.com">
             </div>
             <div class="form-group">
               <label class="form-label">PASSWORD</label>
@@ -2272,10 +2338,15 @@
       }
       async function mockRegister(e) {
         e.preventDefault();
-        const username = document.getElementById('auth-username').value.trim();
-        const email = document.getElementById('auth-email').value.trim();
-        const password = document.getElementById('auth-password').value;
-        if (!username || !email || !password) return;
+        let username, email, password;
+        try {
+          username = validateUsernameInput(document.getElementById('auth-username').value);
+          email = validateEmailInput(document.getElementById('auth-email').value);
+          password = validatePasswordInput(document.getElementById('auth-password').value);
+        } catch (err) {
+          showToast(err.message, 'error');
+          return;
+        }
 
         showPleaseWait();
         setAuthSubmitting(e.target, true);
@@ -2307,9 +2378,14 @@
 
       async function mockLogin(e) {
         e.preventDefault();
-        const email = document.getElementById('auth-email').value.trim();
-        const password = document.getElementById('auth-password').value;
-        if (!email || !password) return;
+        let email, password;
+        try {
+          email = validateEmailInput(document.getElementById('auth-email').value);
+          password = validatePasswordInput(document.getElementById('auth-password').value);
+        } catch (err) {
+          showToast(err.message, 'error');
+          return;
+        }
 
         showPleaseWait();
         setAuthSubmitting(e.target, true);
@@ -2328,8 +2404,13 @@
 
       async function mockForgotPassword(e) {
         e.preventDefault();
-        const email = document.getElementById('auth-email').value.trim();
-        if (!email) return;
+        let email;
+        try {
+          email = validateEmailInput(document.getElementById('auth-email').value);
+        } catch (err) {
+          showToast(err.message, 'error');
+          return;
+        }
         try {
           const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
             method: 'POST',
@@ -2357,9 +2438,16 @@
 
       async function mockResetPassword(e) {
         e.preventDefault();
-        const token = document.getElementById('auth-reset-token').value;
-        const new_password = document.getElementById('auth-new-password').value;
-        if (!token || !new_password) return;
+        const token = String(document.getElementById('auth-reset-token').value || '').trim();
+        let new_password;
+        try {
+          if (!token || token.length > 2048) throw new Error('Invalid reset token');
+          rejectControlChars(token, 'Reset token');
+          new_password = validatePasswordInput(document.getElementById('auth-new-password').value, 'New password');
+        } catch (err) {
+          showToast(err.message, 'error');
+          return;
+        }
         try {
           const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
             method: 'POST',
@@ -2380,8 +2468,13 @@
 
       async function mockResendVerification(e) {
         e.preventDefault();
-        const email = document.getElementById('auth-email').value.trim();
-        if (!email) return;
+        let email;
+        try {
+          email = validateEmailInput(document.getElementById('auth-email').value);
+        } catch (err) {
+          showToast(err.message, 'error');
+          return;
+        }
         try {
           const res = await fetch(`${API_BASE_URL}/api/auth/resend-verification`, {
             method: 'POST',
@@ -2398,14 +2491,23 @@
         }
       }
 
+      function readAuthTokensFromUrl(urlParams) {
+        const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
+        const hashParams = new URLSearchParams(hash);
+        return {
+          verifyToken: urlParams.get('verify_token'),
+          resetToken: hashParams.get('reset_token') || urlParams.get('reset_token'),
+        };
+      }
+
       async function handleAuthUrlParams(urlParams) {
-        const verifyToken = urlParams.get('verify_token');
-        const resetToken = urlParams.get('reset_token');
+        const { verifyToken, resetToken } = readAuthTokensFromUrl(urlParams);
         const cleanUrl = () => {
           const url = new URL(window.location);
           url.searchParams.delete('verify_token');
           url.searchParams.delete('reset_token');
-          window.history.replaceState({}, document.title, url.toString());
+          url.hash = '';
+          window.history.replaceState({}, document.title, url.pathname + url.search);
         };
         if (verifyToken) {
           try {
@@ -2457,7 +2559,7 @@
           const user = state.user;
           if (navAuthWrap) {
             navAuthWrap.innerHTML = `
-            <span style="font-family:var(--font-ui);font-size:0.85rem;color:var(--text2);margin-right:0.5rem">👤 ${user.username}</span>
+            <span style="font-family:var(--font-ui);font-size:0.85rem;color:var(--text2);margin-right:0.5rem">👤 ${escapeHtml(user.username)}</span>
             <button class="btn btn-ghost" onclick="logout()">Log out</button>
           `;
           }
@@ -2532,7 +2634,7 @@
         let favClubLogoUrl = state.user ? state.user.favClubLogo : state.guestFavClubLogo;
         if (favClubName) {
           if (favClubLabel) {
-            favClubLabel.innerHTML = `<div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.25rem"><img src="${favClubLogoUrl}" style="height:2rem;width:2rem;object-fit:contain;vertical-align:middle" onerror="this.src='https://crests.football-data.org/PL.png'"/> <span style="color:var(--text);font-weight:600">${favClubName}</span></div>`;
+            favClubLabel.innerHTML = `<div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.25rem"><img src="${safeImageUrl(favClubLogoUrl, 'https://crests.football-data.org/PL.png')}" style="height:2rem;width:2rem;object-fit:contain;vertical-align:middle" onerror="this.src='https://crests.football-data.org/PL.png'"/> <span style="color:var(--text);font-weight:600">${escapeHtml(favClubName)}</span></div>`;
           }
           if (favClubBtn) favClubBtn.textContent = 'Change';
         } else {
@@ -2546,7 +2648,7 @@
         let favWcLogoUrl = state.user ? state.user.favWcLogo : state.guestFavWcLogo;
         if (favWcName) {
           if (favWcLabel) {
-            favWcLabel.innerHTML = `<div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.25rem"><img src="${favWcLogoUrl}" style="height:1.2rem;width:1.8rem;object-fit:cover;border-radius:2px;vertical-align:middle;box-shadow:0 1px 2px rgba(0,0,0,0.2)"/> <span style="color:var(--text);font-weight:600">${favWcName}</span></div>`;
+            favWcLabel.innerHTML = `<div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.25rem"><img src="${safeImageUrl(favWcLogoUrl)}" style="height:1.2rem;width:1.8rem;object-fit:cover;border-radius:2px;vertical-align:middle;box-shadow:0 1px 2px rgba(0,0,0,0.2)"/> <span style="color:var(--text);font-weight:600">${escapeHtml(favWcName)}</span></div>`;
           }
           if (favWcBtn) favWcBtn.textContent = 'Change';
         } else {
@@ -2573,28 +2675,9 @@
           showToast(`🎉 Level Up! You reached Level ${user.level}!`, 'success');
         }
 
+        localStorage.setItem('footytrivia_user', JSON.stringify(user));
         if (state.user) {
-          try {
-            await apiRequest('/api/users/me/progress/sync', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                points_earned: score,
-                correct,
-                incorrect,
-                questions_answered: total,
-                longest_streak: state.quiz.bestStreak,
-                current_streak: 0,
-                quizzes_played: 1
-              })
-            });
-            await refreshProfileStats();
-          } catch (e) {
-            console.warn('Failed to sync quiz progress to server:', e);
-            localStorage.setItem('footytrivia_user', JSON.stringify(user));
-          }
-        } else {
-          localStorage.setItem('footytrivia_user', JSON.stringify(user));
+          refreshProfileStats().catch(() => {});
         }
         updateAuthUI();
       }
@@ -2908,13 +2991,6 @@
           state.guestCountryFlag = localStorage.getItem('footytrivia_guest_country_flag');
         }
 
-        try {
-          const cachedUser = localStorage.getItem('footytrivia_user');
-          if (cachedUser) {
-            state.user = JSON.parse(cachedUser);
-          }
-        } catch (e) {}
-
         loadGuestPreferences();
         updateAuthUI();
         syncSoundUi();
@@ -2925,7 +3001,10 @@
             if (!state.user) loadGuestPreferences();
             updateAuthUI();
           })
-          .catch(() => updateAuthUI());
+          .catch(() => {
+            state.user = null;
+            updateAuthUI();
+          });
         // Auto-join battle lobby if code is in URL
         const urlParams = new URLSearchParams(window.location.search);
         handleAuthUrlParams(urlParams);
@@ -3007,9 +3086,9 @@
           callback(playerPhotoCache[cleanName]);
           return;
         }
-        // Fetch asynchronously from free open API
-        const apiBaseUrl = (window.ENV && window.ENV.SPORTSDB_API_URL) || 'https://www.thesportsdb.com/api/v1/json/3/searchplayers.php';
-        fetch(`${apiBaseUrl}?p=${encodeURIComponent(cleanName)}`)
+        fetch(`${API_BASE_URL}/api/players/search?name=${encodeURIComponent(cleanName)}`, {
+          credentials: 'include',
+        })
           .then(res => {
             if (!res.ok) throw new Error('Network response error');
             return res.json();
@@ -4346,72 +4425,14 @@
       }
 
       const AWARD_ICON_RENDERERS = {
-        'golden-boot'(uid) {
-          return `<svg class="wc-award-icon-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs>
-              <linearGradient id="boot-body-${uid}" x1="8" y1="10" x2="40" y2="38">
-                <stop offset="0%" stop-color="#FFF4C4"/>
-                <stop offset="35%" stop-color="#FFD700"/>
-                <stop offset="100%" stop-color="#8B6914"/>
-              </linearGradient>
-              <linearGradient id="boot-sole-${uid}" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#5C4308"/>
-                <stop offset="100%" stop-color="#2E2204"/>
-              </linearGradient>
-            </defs>
-            <path d="M10 30C10 30 11 22 18 18C22 15.5 28 14 32 15.5C36 17 38 20 38 24C38 28 36 32 30 34L14 36C11 36.5 9 34 10 30Z" fill="url(#boot-body-${uid})" stroke="#A67C00" stroke-width="0.7"/>
-            <path d="M14 36L30 34C34 33.5 37 31 38 28L38 32C37 35 34 37 30 37.5L13 38.5C11 38.7 9.5 37.5 10 35.5L14 36Z" fill="url(#boot-sole-${uid})"/>
-            <path d="M18 20L20 28M22 19L23.5 27M26 18.5L27 26.5M29.5 19L30 27" stroke="#6B4E0A" stroke-width="1.1" stroke-linecap="round"/>
-            <circle cx="33" cy="22" r="2.2" fill="#3D2E06"/>
-            <circle cx="35.5" cy="25" r="2" fill="#3D2E06"/>
-            <circle cx="36" cy="28.5" r="1.8" fill="#3D2E06"/>
-            <ellipse cx="20" cy="19" rx="4" ry="2" fill="#FFFFFF" opacity="0.22"/>
-          </svg>`;
+        'golden-boot'() {
+          return '<img src="golden-boot.png" alt="" class="wc-award-icon-img wc-golden-boot-img" draggable="false">';
         },
-        'golden-ball'(uid) {
-          return `<svg class="wc-award-icon-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs>
-              <radialGradient id="gb-shine-${uid}" cx="32%" cy="26%" r="70%">
-                <stop offset="0%" stop-color="#FFF8D6"/>
-                <stop offset="30%" stop-color="#FFD700"/>
-                <stop offset="70%" stop-color="#C9A227"/>
-                <stop offset="100%" stop-color="#6B4E0A"/>
-              </radialGradient>
-              <linearGradient id="gb-panel-${uid}" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#9A7B1A"/>
-                <stop offset="100%" stop-color="#3D2E06"/>
-              </linearGradient>
-            </defs>
-            <circle cx="24" cy="24" r="20.5" fill="url(#gb-shine-${uid})" stroke="#B8860B" stroke-width="0.75"/>
-            <path d="M24 11.5L30.2 16.1L28.1 23.4L19.9 23.4L17.8 16.1L24 11.5Z" fill="url(#gb-panel-${uid})" opacity="0.9"/>
-            <path d="M24 34.5L17.8 29.9L19.9 22.6L28.1 22.6L30.2 29.9L24 34.5Z" fill="url(#gb-panel-${uid})" opacity="0.75"/>
-            <path d="M11.5 24L16.1 17.8L23.4 19.9V28.1L16.1 30.2L11.5 24Z" fill="url(#gb-panel-${uid})" opacity="0.7"/>
-            <path d="M36.5 24L30.2 30.2L28.1 23.4V19.9L30.2 17.8L36.5 24Z" fill="url(#gb-panel-${uid})" opacity="0.7"/>
-            <path d="M14.2 14.2L19.9 17.8L17.8 16.1L16.1 17.8L14.2 14.2Z" fill="url(#gb-panel-${uid})" opacity="0.55"/>
-            <path d="M33.8 14.2L30.2 17.8L28.1 16.1L30.2 14.2H33.8Z" fill="url(#gb-panel-${uid})" opacity="0.55"/>
-            <path d="M14.2 33.8L16.1 30.2L17.8 31.9L19.9 30.2L14.2 33.8Z" fill="url(#gb-panel-${uid})" opacity="0.55"/>
-            <path d="M33.8 33.8L28.1 30.2L30.2 31.9L33.8 33.8Z" fill="url(#gb-panel-${uid})" opacity="0.55"/>
-            <ellipse cx="17" cy="15.5" rx="6" ry="3.5" fill="#FFFFFF" opacity="0.28" transform="rotate(-25 17 15.5)"/>
-          </svg>`;
+        'golden-ball'() {
+          return '<img src="golden-ball.png" alt="" class="wc-award-icon-img wc-golden-ball-img" draggable="false">';
         },
-        'golden-glove'(uid) {
-          return `<svg class="wc-award-icon-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs>
-              <linearGradient id="glove-body-${uid}" x1="10" y1="8" x2="38" y2="40">
-                <stop offset="0%" stop-color="#FFF4C4"/>
-                <stop offset="40%" stop-color="#FFD700"/>
-                <stop offset="100%" stop-color="#9A7B1A"/>
-              </linearGradient>
-              <linearGradient id="glove-palm-${uid}" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#C9A227"/>
-                <stop offset="100%" stop-color="#5C4308"/>
-              </linearGradient>
-            </defs>
-            <path d="M14 38C12 38 10.5 36.5 11 34.5L13 28C13.5 26 15 24.5 17 24L18 18C18.5 15.5 20 14 22.5 14C24 14 25 14.8 25.5 16L26 14.5C26.3 13 27.5 12 29 12.2C30.5 12.4 31.5 13.5 31.5 15L32 13.5C32.2 12 33.5 11 35 11.2C36.5 11.4 37.5 12.5 37.3 14L37.8 12.8C38.2 11.5 39.5 10.8 40.8 11.2C42.2 11.6 43 13 42.5 14.5L40 24C39.5 26.5 37.5 28 35 28.5L20 36C17.5 37 15 38 14 38Z" fill="url(#glove-body-${uid})" stroke="#A67C00" stroke-width="0.7"/>
-            <path d="M17 24C19 24 21 25 22 27L20 36L15 35.5L17 24Z" fill="url(#glove-palm-${uid})" opacity="0.55"/>
-            <path d="M22.5 16L23 22M26 14.5L26.5 21M29.5 13L30 20.5M33 12.5L33.2 20M36.5 13L36 20.5" stroke="#6B4E0A" stroke-width="0.9" stroke-linecap="round"/>
-            <ellipse cx="28" cy="30" rx="5" ry="3" fill="#FFFFFF" opacity="0.18"/>
-          </svg>`;
+        'golden-glove'() {
+          return '<img src="golden-glove.png" alt="" class="wc-award-icon-img wc-golden-glove-img" draggable="false">';
         },
         'best-young'(uid) {
           return `<svg class="wc-award-icon-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -4434,33 +4455,8 @@
             <circle cx="36" cy="30" r="0.8" fill="#FFD700" opacity="0.7"/>
           </svg>`;
         },
-        'world-champion'(uid) {
-          return `<svg class="wc-award-icon-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs>
-              <linearGradient id="trophy-gold-${uid}" x1="24" y1="6" x2="24" y2="42">
-                <stop offset="0%" stop-color="#FFF4C4"/>
-                <stop offset="40%" stop-color="#FFD700"/>
-                <stop offset="100%" stop-color="#9A7B1A"/>
-              </linearGradient>
-              <radialGradient id="trophy-globe-${uid}" cx="40%" cy="35%" r="60%">
-                <stop offset="0%" stop-color="#4FC3F7"/>
-                <stop offset="50%" stop-color="#1565C0"/>
-                <stop offset="100%" stop-color="#0D3B66"/>
-              </radialGradient>
-              <linearGradient id="trophy-base-${uid}" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#C9A227"/>
-                <stop offset="100%" stop-color="#5C4308"/>
-              </linearGradient>
-            </defs>
-            <rect x="14" y="38" width="20" height="3.5" rx="1" fill="url(#trophy-base-${uid})"/>
-            <rect x="17" y="35" width="14" height="3" rx="0.8" fill="url(#trophy-base-${uid})" opacity="0.85"/>
-            <path d="M20 35V28H28V35" fill="url(#trophy-gold-${uid})" stroke="#A67C00" stroke-width="0.5"/>
-            <path d="M15 28C15 22 18 17 24 15C30 17 33 22 33 28H15Z" fill="url(#trophy-gold-${uid})" stroke="#A67C00" stroke-width="0.6"/>
-            <circle cx="24" cy="20" r="5.5" fill="url(#trophy-globe-${uid})" stroke="#FFD700" stroke-width="0.8"/>
-            <path d="M20 18.5C22 17.5 26 17.5 28 18.5M19 21C21.5 22.5 26.5 22.5 29 21" stroke="#81D4FA" stroke-width="0.7" stroke-linecap="round" opacity="0.7"/>
-            <path d="M16 26C14 24 13 21 14 18M32 26C34 24 35 21 34 18" stroke="url(#trophy-gold-${uid})" stroke-width="2.2" stroke-linecap="round"/>
-            <ellipse cx="21" cy="16" rx="2.5" ry="1.5" fill="#FFFFFF" opacity="0.25"/>
-          </svg>`;
+        'world-champion'() {
+          return wcTrophyIconMarkup('wc-award-icon-img wc-world-cup-trophy-img');
         },
       };
 
@@ -5719,7 +5715,7 @@
           } else {
             champBox.classList.remove('crowned');
             champBox.className = 'bp-champion';
-            champFlag.innerHTML = '\u{1F3C6}';
+            champFlag.innerHTML = wcTrophyIconMarkup('bp-champion-trophy');
             champName.textContent = 'SELECT YOUR CHAMPION';
             champName.style.color = 'var(--text3)';
           }
@@ -7102,6 +7098,7 @@
 
       // ──────────────────────────  BATTLE SYSTEM REALTIME MATCHMAKING ──────────────────────────
       let ablyClient = null;
+      let activeBattleRoomCode = null;
       let battleChannel = null;
       let battleRoom = null; // { room_code, role, host_id, guest_id }
       let battleState = {
@@ -7154,8 +7151,10 @@
       }
 
       async function joinRoom(code) {
-        if (!code || code.length !== 6) {
-          showToast('Please enter a valid 6-character room code', 'warning');
+        try {
+          code = validateRoomCodeInput(code);
+        } catch (err) {
+          showToast(err.message, 'warning');
           return;
         }
         
@@ -7235,28 +7234,31 @@
           battleChannel = null;
         }
         
-        if (!ablyClient) {
-          const ablyOptions = (window.ENV && window.ENV.ABLY_API_KEY)
-            ? { key: window.ENV.ABLY_API_KEY, clientId: String(state.user.id) }
-            : {
-                authCallback: (tokenParams, callback) => {
-                  ensureCsrfToken()
-                    .then((csrf) => fetch(`${API_BASE_URL}/api/battle/token`, {
-                      credentials: 'include',
-                      headers: { 'X-CSRF-Token': csrf },
-                    }))
-                    .then((res) => {
-                      if (!res.ok) throw new Error('Ably auth failed');
-                      return res.json();
-                    })
-                    .then((data) => callback(null, data))
-                    .catch((err) => callback(err, null));
-                },
-                clientId: String(state.user.id),
-              };
-          ablyClient = new Ably.Realtime(ablyOptions);
+        if (ablyClient && activeBattleRoomCode !== code) {
+          try { ablyClient.close(); } catch (e) {}
+          ablyClient = null;
+          battleChannel = null;
         }
-        
+        if (!ablyClient) {
+          activeBattleRoomCode = code;
+          ablyClient = new Ably.Realtime({
+            authCallback: (_tokenParams, callback) => {
+              ensureCsrfToken()
+                .then((csrf) => fetch(`${API_BASE_URL}/api/battle/token?room_code=${encodeURIComponent(code)}`, {
+                  credentials: 'include',
+                  headers: { 'X-CSRF-Token': csrf },
+                }))
+                .then((res) => {
+                  if (!res.ok) throw new Error('Ably auth failed');
+                  return res.json();
+                })
+                .then((data) => callback(null, data))
+                .catch((err) => callback(err, null));
+            },
+            clientId: String(state.user.id),
+          });
+        }
+
         battleChannel = ablyClient.channels.get(`room:${code}`);
         
         battleChannel.subscribe((msg) => {
@@ -7351,7 +7353,7 @@
             <div class="lobby-player-card">
               <div class="player-ready-dot ${isReady ? 'ready' : ''}"></div>
               <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">👑</div>
-              <div style="font-family: var(--font-ui); font-weight: 700; font-size: 0.85rem;">${battleState.host.username}</div>
+              <div style="font-family: var(--font-ui); font-weight: 700; font-size: 0.85rem;">${escapeHtml(battleState.host.username)}</div>
               <div style="font-size: 0.7rem; color: var(--text3); margin-top: 0.25rem;">Host (${isReady ? 'Ready' : 'Not Ready'})</div>
             </div>
           `;
@@ -7363,7 +7365,7 @@
             <div class="lobby-player-card">
               <div class="player-ready-dot ${isReady ? 'ready' : ''}"></div>
               <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">👤</div>
-              <div style="font-family: var(--font-ui); font-weight: 700; font-size: 0.85rem;">${battleState.guest.username}</div>
+              <div style="font-family: var(--font-ui); font-weight: 700; font-size: 0.85rem;">${escapeHtml(battleState.guest.username)}</div>
               <div style="font-size: 0.7rem; color: var(--text3); margin-top: 0.25rem;">Guest (${isReady ? 'Ready' : 'Not Ready'})</div>
             </div>
           `;
