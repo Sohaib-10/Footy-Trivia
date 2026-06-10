@@ -42,6 +42,7 @@
       --logo-glow: drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.95))
         drop-shadow(0 0 1px rgba(255, 255, 255, 0.7))
         drop-shadow(0 0 2px rgba(255, 255, 255, 0.28));
+      --logo-glow-minimal: drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.32));
       --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
       --shadow2: 0 4px 16px rgba(0, 0, 0, 0.6);
       --glow: none;
@@ -75,6 +76,7 @@
       --orange: #ea580c;
       --logo-brand: #003d29;
       --logo-glow: none;
+      --logo-glow-minimal: none;
       --glow: none;
       --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
       --shadow2: 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -544,10 +546,10 @@
       width: auto;
       object-fit: contain;
       transition: transform var(--transition), opacity var(--transition);
-      filter: var(--logo-glow);
+      filter: var(--logo-glow-minimal);
     }
 
-    /* Logo keeps original dark-green brand colour in all themes */
+    /* Hero logo keeps the full highlight; nav/footer use minimal glow only. */
 
     .nav-logo:hover .nav-logo-img {
       transform: scale(1.05);
@@ -558,7 +560,7 @@
       height: 56px;
       width: auto;
       object-fit: contain;
-      filter: var(--logo-glow);
+      filter: var(--logo-glow-minimal);
     }
 
     .nav-logo-icon {
