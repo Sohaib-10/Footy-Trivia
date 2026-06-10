@@ -703,6 +703,10 @@
       color: var(--text);
     }
 
+    .theme-toggle svg {
+      display: block;
+    }
+
     /* ── PAGES ── */
     .page {
       display: none;
@@ -3236,7 +3240,8 @@
         display: flex;
       }
 
-      .nav-actions .theme-toggle {
+      .nav-actions .theme-toggle,
+      .nav-actions #sound-toggle-btn {
         display: flex;
       }
 

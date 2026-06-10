@@ -61,6 +61,13 @@
 
     <div class="nav-actions">
 
+      <button class="theme-toggle" id="sound-toggle-btn" onclick="toggleSound()" title="Mute sound effects" aria-label="Toggle sound effects">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        </svg>
+      </button>
       <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle theme">&#9790;</button>
       <div id="nav-auth-wrap" style="display:flex;gap:.5rem;align-items:center">
         <button class="btn btn-ghost" onclick="openModal('login')">Log in</button>
@@ -2163,25 +2170,7 @@
         <img src="logo_hd.png" alt="Footy-Trivia Logo" class="footer-logo-img">
       </div>
 
-      <div class="footer-sub">The Ultimate Football Trivia Arena — Test Your Knowledge. Prove Your Passion.</div>
-
-      <div class="footer-links">
-
-        <a class="footer-link" href="#" onclick="showPage('home')">Home</a>
-
-        <a class="footer-link" href="#" onclick="showPage('categories')">Categories</a>
-
-        <a class="footer-link" href="#" onclick="showPage('play')">Play</a>
-
-        <a class="footer-link" href="#" onclick="showPage('transfer')">Transfer Guesser</a>
-
-        <a class="footer-link" href="#" onclick="showPage('leaderboard')">Leaderboard</a>
-
-        <a class="footer-link" href="#">About</a>
-
-        <a class="footer-link" href="#">Privacy</a>
-
-      </div>
+      <div class="footer-sub">The Ultimate Football Trivia Arena • Test Your Knowledge • Prove Your Passion</div>
 
       <div class="footer-copy">© 2026 Footy-Trivia. Built for Footy Enthusiasts Worldwide. ⚽</div>
 
