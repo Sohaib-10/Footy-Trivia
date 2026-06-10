@@ -3307,7 +3307,6 @@
       // Seed photo database for top superstars to load instantly
       const seedPlayerPhotos = {
         'Kylian Mbappe': 'https://r2.thesportsdb.com/images/media/player/cutout/h9u9vz1733653583.png',
-        'Kylian Mbappé': 'https://r2.thesportsdb.com/images/media/player/cutout/h9u9vz1733653583.png',
         'Lionel Messi': 'https://r2.thesportsdb.com/images/media/player/cutout/e0i2051750317027.png',
         'Cristiano Ronaldo': 'https://r2.thesportsdb.com/images/media/player/cutout/a19jje1761592498.png',
         'Jude Bellingham': 'https://r2.thesportsdb.com/images/media/player/cutout/trk5271750271712.png',
@@ -3317,52 +3316,161 @@
         'Bukayo Saka': 'https://r2.thesportsdb.com/images/media/player/cutout/xfwok41769331816.png',
         'Cole Palmer': 'https://r2.thesportsdb.com/images/media/player/cutout/fn0pzc1757010119.png',
         'Kevin De Bruyne': 'https://r2.thesportsdb.com/images/media/player/cutout/o4flia1764089447.png',
-        'Phil Foden': 'https://r2.thesportsdb.com/images/media/player/cutout/lbn4sx1769182620.png'
+        'Phil Foden': 'https://r2.thesportsdb.com/images/media/player/cutout/lbn4sx1769182620.png',
       };
-      let playerPhotoCache = JSON.parse(localStorage.getItem('wc_player_photo_cache_v2')) || {};
-      
-      // Ensure seed photos are in the cache
+      const SPORTSDB_SEARCH_URL = (window.ENV && window.ENV.SPORTSDB_API_URL)
+        || 'https://www.thesportsdb.com/api/v1/json/3/searchplayers.php';
+      const PLAYER_PHOTO_IMG_ATTRS = 'style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;" referrerpolicy="no-referrer" onload="this.style.display=\'block\'; this.previousElementSibling.style.display=\'none\';" onerror="this.style.display=\'none\'; this.previousElementSibling.style.display=\'flex\';"';
+
+      function normalizePlayerName(name) {
+        return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      }
+
+      function playerPhotoCacheKey(name) {
+        return normalizePlayerName(name).toLowerCase();
+      }
+
+      function normalizePlayerPhotoCache(rawCache) {
+        const normalized = {};
+        Object.entries(rawCache || {}).forEach(([name, url]) => {
+          if (!url) return;
+          const safeUrl = safeImageUrl(url);
+          if (safeUrl) normalized[playerPhotoCacheKey(name)] = safeUrl;
+        });
+        return normalized;
+      }
+
+      let playerPhotoCache = normalizePlayerPhotoCache(
+        JSON.parse(localStorage.getItem('wc_player_photo_cache_v2') || '{}')
+      );
+      const playerPhotoPending = new Set();
+
       let cacheUpdated = false;
       for (const [name, url] of Object.entries(seedPlayerPhotos)) {
-        if (!playerPhotoCache[name]) {
-          playerPhotoCache[name] = url;
-          cacheUpdated = true;
+        const key = playerPhotoCacheKey(name);
+        if (!playerPhotoCache[key]) {
+          const safeUrl = safeImageUrl(url);
+          if (safeUrl) {
+            playerPhotoCache[key] = safeUrl;
+            cacheUpdated = true;
+          }
         }
       }
       if (cacheUpdated) {
         try {
           localStorage.setItem('wc_player_photo_cache_v2', JSON.stringify(playerPhotoCache));
-        } catch(e) {}
+        } catch (e) {}
       }
+
+      function buildPlayerSearchVariants(playerName) {
+        const trimmed = String(playerName || '').trim();
+        const normalized = normalizePlayerName(trimmed);
+        const parts = normalized.split(/\s+/).filter(Boolean);
+        const variants = [trimmed, normalized];
+        if (parts.length >= 2) {
+          variants.push(parts.slice(-2).join(' '));
+          variants.push(parts[parts.length - 1]);
+        }
+        return [...new Set(variants.filter(Boolean))];
+      }
+
+      function pickBestSoccerPlayer(results, searchName) {
+        if (!Array.isArray(results) || !results.length) return null;
+        const soccerPlayers = results.filter(item => item.strSport === 'Soccer');
+        const pool = soccerPlayers.length ? soccerPlayers : results;
+        const target = normalizePlayerName(searchName).toLowerCase();
+        const exact = pool.find(item => normalizePlayerName(item.strPlayer || '').toLowerCase() === target);
+        if (exact) return exact;
+        const partial = pool.find(item => {
+          const playerName = normalizePlayerName(item.strPlayer || '').toLowerCase();
+          return playerName.includes(target) || target.includes(playerName);
+        });
+        return partial || pool[0];
+      }
+
+      function extractPlayerPhotoUrl(data, searchName) {
+        const result = pickBestSoccerPlayer(data && data.player, searchName);
+        if (!result) return '';
+        return result.strCutout || result.strThumb || result.strFanart1 || '';
+      }
+
+      function persistPlayerPhotoCache() {
+        try {
+          localStorage.setItem('wc_player_photo_cache_v2', JSON.stringify(playerPhotoCache));
+        } catch (e) {}
+      }
+
+      function cachePlayerPhoto(playerName, photoUrl) {
+        const safeUrl = safeImageUrl(photoUrl);
+        if (!safeUrl) return '';
+        const key = playerPhotoCacheKey(playerName);
+        playerPhotoCache[key] = safeUrl;
+        persistPlayerPhotoCache();
+        return safeUrl;
+      }
+
+      async function fetchPlayerPhotoFromBackend(searchName) {
+        const res = await fetch(
+          `${API_BASE_URL}/api/players/search?name=${encodeURIComponent(searchName)}`,
+          { credentials: 'include' }
+        );
+        if (!res.ok) throw new Error('Player search unavailable');
+        const data = await res.json();
+        return extractPlayerPhotoUrl(data, searchName);
+      }
+
+      async function fetchPlayerPhotoFromSportsDb(searchName) {
+        const res = await fetch(`${SPORTSDB_SEARCH_URL}?p=${encodeURIComponent(searchName)}`);
+        if (!res.ok) throw new Error('SportsDB search failed');
+        const data = await res.json();
+        return extractPlayerPhotoUrl(data, searchName);
+      }
+
+      async function resolvePlayerPhotoUrl(playerName) {
+        const variants = buildPlayerSearchVariants(playerName);
+        for (const variant of variants) {
+          try {
+            const backendUrl = await fetchPlayerPhotoFromBackend(variant);
+            if (backendUrl) return backendUrl;
+          } catch (e) {}
+          try {
+            const sportsDbUrl = await fetchPlayerPhotoFromSportsDb(variant);
+            if (sportsDbUrl) return sportsDbUrl;
+          } catch (e) {}
+        }
+        return '';
+      }
+
       function getPlayerPhoto(playerName, callback) {
-        const cleanName = playerName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-        if (playerPhotoCache[cleanName] !== undefined) {
-          callback(safeImageUrl(playerPhotoCache[cleanName]));
+        const cacheKey = playerPhotoCacheKey(playerName);
+        const cached = playerPhotoCache[cacheKey];
+        if (cached) {
+          callback(cached);
           return;
         }
-        fetch(`${API_BASE_URL}/api/players/search?name=${encodeURIComponent(cleanName)}`, {
-          credentials: 'include',
-        })
-          .then(res => {
-            if (!res.ok) throw new Error('Network response error');
-            return res.json();
-          })
-          .then(data => {
-            let photoUrl = '';
-            if (data && data.player && data.player.length > 0) {
-              const result = data.player.find(item => item.strSport === 'Soccer') || data.player[0];
-              photoUrl = result.strCutout || result.strThumb || '';
+        if (playerPhotoPending.has(cacheKey)) {
+          const waitForPhoto = () => {
+            if (playerPhotoCache[cacheKey]) {
+              callback(playerPhotoCache[cacheKey]);
+              return;
             }
-            const safeUrl = safeImageUrl(photoUrl);
-            playerPhotoCache[cleanName] = safeUrl;
-            try {
-              localStorage.setItem('wc_player_photo_cache_v2', JSON.stringify(playerPhotoCache));
-            } catch(e) {}
+            if (!playerPhotoPending.has(cacheKey)) {
+              callback('');
+              return;
+            }
+            setTimeout(waitForPhoto, 120);
+          };
+          waitForPhoto();
+          return;
+        }
+        playerPhotoPending.add(cacheKey);
+        resolvePlayerPhotoUrl(playerName)
+          .then((photoUrl) => {
+            const safeUrl = photoUrl ? cachePlayerPhoto(playerName, photoUrl) : '';
             callback(safeUrl);
           })
-          .catch(err => {
-            callback('');
-          });
+          .catch(() => callback(''))
+          .finally(() => playerPhotoPending.delete(cacheKey));
       }
       function safeParseStorage(key, fallback) {
         try {
@@ -4568,7 +4676,7 @@
                 <div class="wc-card-avatar-frame" style="background:${grad}">
                   <div style="width:100%; height:100%; border-radius:50%; overflow:hidden; position:absolute; top:0; left:0; display:flex; align-items:center; justify-content:center;">
                     <span class="wc-card-avatar-initials">${initials}</span>
-                    <img class="wc-card-avatar-img" data-player="${p.name}" src="" style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;" onload="this.style.display='block'; this.previousElementSibling.style.display='none';">
+                    <img class="wc-card-avatar-img" data-player="${p.name}" src="" ${PLAYER_PHOTO_IMG_ATTRS}>
                   </div>
                   <div class="wc-card-avatar-pos">${p.pos[0]}</div>
                 </div>
@@ -4669,12 +4777,40 @@
         localStorage.setItem('wc_award_predictions', JSON.stringify(awardPredictions));
         updateAwardsDisplay();
         closeSelectorModal();
+        showToast(`Selected ${name} for ${currentModalAwardTitle}. Click Submit Player Predictions to save.`, 'success');
+      }
+
+      async function submitAwardPredictions() {
+        if (!requireLoginForPredictions()) return;
+        if (!Object.keys(awardPredictions).length) {
+          showToast('Select at least one player or award prediction first.', 'info');
+          return;
+        }
+        localStorage.setItem('wc_award_predictions', JSON.stringify(awardPredictions));
+        const saved = await syncWcPredictionsToApi();
+        updatePredictorProfile();
+        if (saved) {
+          showToast('Player and award predictions saved!', 'success');
+        }
+      }
+
+      async function resetAwardPredictions() {
+        if (!requireLoginForPredictions()) return;
+        if (!Object.keys(awardPredictions).length) {
+          showToast('No player or award predictions to reset.', 'info');
+          return;
+        }
+        if (!confirm('Reset all your player and award predictions?')) return;
+        awardPredictions = {};
+        localStorage.setItem('wc_award_predictions', JSON.stringify(awardPredictions));
+        updateAwardsDisplay();
         updatePredictorProfile();
         const saved = await syncWcPredictionsToApi();
         if (saved) {
-          showToast(`Prediction for ${currentModalAwardTitle} saved!`, 'success');
+          showToast('Player and award predictions reset.', 'success');
         }
       }
+
       function updateAwardsDisplay() {
         renderAwardsGrid();
       }
@@ -4790,7 +4926,7 @@
                   <div class="wc-selected-player-badge" style="background:${grad}; position:relative;">
                     <div style="width:100%; height:100%; border-radius:50%; overflow:hidden; position:absolute; top:0; left:0; display:flex; align-items:center; justify-content:center;">
                       <span class="wc-selected-player-initials">${initials}</span>
-                      <img class="wc-selected-player-img" data-player="${pred.name}" src="" style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;" onload="this.style.display='block'; this.previousElementSibling.style.display='none';">
+                      <img class="wc-selected-player-img" data-player="${pred.name}" src="" ${PLAYER_PHOTO_IMG_ATTRS}>
                     </div>
                   </div>
                   <div class="wc-selected-player-details">

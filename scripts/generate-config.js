@@ -26,6 +26,7 @@ const safeUrl = validateApiBaseUrl(apiBaseUrl);
 const content = `// Auto-generated at build time — do not commit (see config.js.example)
 window.ENV = window.ENV || {};
 window.ENV.API_BASE_URL = ${JSON.stringify(safeUrl)};
+window.ENV.SPORTSDB_API_URL = 'https://www.thesportsdb.com/api/v1/json/3/searchplayers.php';
 `;
 
 fs.writeFileSync(outputPath, content, 'utf8');
