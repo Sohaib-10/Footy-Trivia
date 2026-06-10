@@ -39,9 +39,9 @@
 
       --orange: #f97316;
       --logo-brand: #003d29;
-      --logo-glow: drop-shadow(0 0 1px rgba(255, 255, 255, 0.9))
-        drop-shadow(0 0 4px rgba(255, 255, 255, 0.55))
-        drop-shadow(0 0 10px rgba(255, 255, 255, 0.25));
+      --logo-glow: drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.95))
+        drop-shadow(0 0 1px rgba(255, 255, 255, 0.7))
+        drop-shadow(0 0 2px rgba(255, 255, 255, 0.28));
       --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
       --shadow2: 0 4px 16px rgba(0, 0, 0, 0.6);
       --glow: none;
@@ -540,7 +540,7 @@
     }
 
     .nav-logo-img {
-      height: 56px;
+      height: 64px;
       width: auto;
       object-fit: contain;
       transition: transform var(--transition), opacity var(--transition);
@@ -555,7 +555,7 @@
     }
 
     .footer-logo-img {
-      height: 50px;
+      height: 56px;
       width: auto;
       object-fit: contain;
       filter: var(--logo-glow);
@@ -838,7 +838,7 @@
     }
 
     .hero-logo-img {
-      height: 178px;
+      height: 210px;
       width: auto;
       max-width: 94%;
       object-fit: contain;
@@ -863,7 +863,7 @@
 
     @media (max-width: 640px) {
       .hero-logo-img {
-        height: 132px;
+        height: 156px;
       }
       .hero-logo {
         margin-bottom: 1.5rem;
