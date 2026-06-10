@@ -1659,6 +1659,24 @@
       opacity: .55;
     }
 
+    .option.pending {
+      opacity: 1;
+      border-color: var(--gold) !important;
+      background: rgba(212, 175, 55, 0.12) !important;
+      animation: pendingPulse 0.9s ease-in-out infinite;
+    }
+
+    .option.pending .option-letter {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+    }
+
+    @keyframes pendingPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.2); }
+      50% { box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.18); }
+    }
+
     @keyframes correctPop {
       0% {
         transform: scale(1)

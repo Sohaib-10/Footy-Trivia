@@ -21,6 +21,7 @@
         ? location.origin
         : 'https://footy-trivia.vercel.app';
       const API_TIMEOUT_MS = 20000;
+      const QUIZ_ANSWER_TIMEOUT_MS = 8000;
       const API_RETRY_DELAY_MS = 3000;
       const API_MAX_RETRIES = 2;
       const SESSION_INACTIVITY_MS = 2 * 60 * 60 * 1000;
@@ -688,11 +689,27 @@
         };
       }
 
+      let quizKeepAliveTimer = null;
+
+      function startQuizKeepAlive() {
+        stopQuizKeepAlive();
+        wakeApiServer();
+        quizKeepAliveTimer = setInterval(() => wakeApiServer(), 45000);
+      }
+
+      function stopQuizKeepAlive() {
+        if (quizKeepAliveTimer) {
+          clearInterval(quizKeepAliveTimer);
+          quizKeepAliveTimer = null;
+        }
+      }
+
       function beginQuizUi() {
         showPage('play');
         document.getElementById('mode-select').classList.add('hidden');
         document.getElementById('results-screen').classList.add('hidden');
         document.getElementById('quiz-interface').classList.remove('hidden');
+        if (state.quiz.serverMode) startQuizKeepAlive();
         renderQuestion();
       }
 
@@ -792,6 +809,13 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
+        }, QUIZ_ANSWER_TIMEOUT_MS);
+      }
+
+      function markPendingAnswer(idx) {
+        document.querySelectorAll('.option').forEach((option, i) => {
+          option.classList.add('disabled');
+          if (i === idx) option.classList.add('pending');
         });
       }
 
@@ -833,6 +857,7 @@
 
         if (q.serverMode) {
           q.submitting = true;
+          markPendingAnswer(idx);
           const selectedOption = String.fromCharCode(65 + idx);
           try {
             const result = await submitQuizAnswer(selectedOption, timeTaken);
@@ -850,8 +875,9 @@
             }
             document.getElementById('q-score').textContent = `${q.score} PTS`;
             showFeedback(correct, pts, q.streak);
+            const advanceDelay = correct ? 1000 : 1300;
             if (!correct && state.selectedMode === 'hardcore') {
-              setTimeout(() => { hideFeedback(); endQuiz(); }, 2200);
+              setTimeout(() => { hideFeedback(); endQuiz(); }, advanceDelay);
               q.submitting = false;
               return;
             }
@@ -860,11 +886,11 @@
               q.idx++;
               q.submitting = false;
               renderQuestion();
-            }, correct ? 1800 : 2200);
+            }, advanceDelay);
           } catch (err) {
             q.submitting = false;
             showToast(err.message || 'Failed to submit answer', 'error');
-            startTimer();
+            renderQuestion();
           }
           return;
         }
@@ -896,7 +922,7 @@
           hideFeedback();
           q.idx++;
           renderQuestion();
-        }, correct ? 1800 : 2200);
+        }, correct ? 1000 : 1300);
       }
       function showFeedback(correct, pts, streak) {
         if (correct) playCorrectSound();
@@ -991,7 +1017,7 @@
             q.streak = 0;
             showFeedback(false, 0, 0);
             if (state.selectedMode === 'hardcore') {
-              setTimeout(() => { hideFeedback(); endQuiz(); }, 2000);
+              setTimeout(() => { hideFeedback(); endQuiz(); }, 1300);
               q.submitting = false;
               return;
             }
@@ -1000,7 +1026,7 @@
               q.idx++;
               q.submitting = false;
               renderQuestion();
-            }, 2000);
+            }, 1300);
           } catch (err) {
             q.submitting = false;
             showToast(err.message || 'Failed to record timeout', 'error');
@@ -1014,17 +1040,18 @@
         q.streak = 0;
         showFeedback(false, 0, 0);
         if (state.selectedMode === 'hardcore') {
-          setTimeout(() => { hideFeedback(); endQuiz(); }, 2000);
+          setTimeout(() => { hideFeedback(); endQuiz(); }, 1300);
           return;
         }
         setTimeout(() => {
           hideFeedback();
           q.idx++;
           renderQuestion();
-        }, 2000);
+        }, 1300);
       }
 
       async function endQuiz() {
+        stopQuizKeepAlive();
         clearInterval(state.quiz.timer);
         document.getElementById('quiz-interface').classList.add('hidden');
         document.getElementById('results-screen').classList.remove('hidden');

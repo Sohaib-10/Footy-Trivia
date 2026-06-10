@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func, desc
+from sqlalchemy import and_, func, desc
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from typing import List
@@ -89,47 +89,39 @@ async def submit_answer(
     current_user: models.User = Depends(auth.get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    session_query = select(models.QuizSession).where(
-        models.QuizSession.id == ans_data.session_id,
-        models.QuizSession.user_id == current_user.id
+    answer_count_subq = (
+        select(func.count(models.SessionAnswer.id))
+        .where(models.SessionAnswer.session_id == ans_data.session_id)
+        .scalar_subquery()
     )
-    session_result = await db.execute(session_query)
-    session = session_result.scalars().first()
+    session_row = (
+        await db.execute(
+            select(models.QuizSession, models.Question, answer_count_subq)
+            .join(
+                models.QuizSessionQuestion,
+                and_(
+                    models.QuizSessionQuestion.session_id == models.QuizSession.id,
+                    models.QuizSessionQuestion.question_id == ans_data.question_id,
+                ),
+            )
+            .join(models.Question, models.Question.id == models.QuizSessionQuestion.question_id)
+            .where(
+                models.QuizSession.id == ans_data.session_id,
+                models.QuizSession.user_id == current_user.id,
+            )
+        )
+    ).first()
 
-    if not session:
-        raise HTTPException(status_code=404, detail="Quiz session not found")
+    if not session_row:
+        raise HTTPException(status_code=404, detail="Quiz session or question not found")
+
+    session, question, answer_count = session_row
+    answer_count = answer_count or 0
+
     if session.is_completed:
         raise HTTPException(status_code=400, detail="Quiz session already completed")
-
-    assigned_query = select(models.QuizSessionQuestion).where(
-        models.QuizSessionQuestion.session_id == session.id,
-        models.QuizSessionQuestion.question_id == ans_data.question_id,
-    )
-    assigned_result = await db.execute(assigned_query)
-    if not assigned_result.scalars().first():
-        raise HTTPException(status_code=400, detail="Question is not part of this quiz session")
-
-    answer_count_query = select(func.count(models.SessionAnswer.id)).where(
-        models.SessionAnswer.session_id == session.id
-    )
-    answer_count = (await db.execute(answer_count_query)).scalar() or 0
     if answer_count >= session.total_questions:
         raise HTTPException(status_code=400, detail="All questions for this session have been answered")
-
-    q_query = select(models.Question).where(models.Question.id == ans_data.question_id)
-    q_result = await db.execute(q_query)
-    question = q_result.scalars().first()
-
-    if not question:
-        raise HTTPException(status_code=404, detail="Question not found")
-
-    ans_check_query = select(models.SessionAnswer).where(
-        models.SessionAnswer.session_id == session.id,
-        models.SessionAnswer.question_id == question.id
-    )
-    ans_check_res = await db.execute(ans_check_query)
-    if ans_check_res.scalars().first():
-        raise HTTPException(status_code=400, detail="Answer already submitted for this question")
 
     if ans_data.timed_out:
         is_correct = False
@@ -144,18 +136,22 @@ async def submit_answer(
         points = difficulty_multipliers.get(question.difficulty.lower(), 10)
         session.score += points
 
+    answered_at = datetime.utcnow()
     new_answer = models.SessionAnswer(
         session_id=session.id,
         question_id=question.id,
         selected_option=selected_option,
         is_correct=is_correct,
-        time_taken_seconds=ans_data.time_taken_seconds
+        time_taken_seconds=ans_data.time_taken_seconds,
+        answered_at=answered_at,
     )
     db.add(new_answer)
 
-    prog_query = select(models.UserProgress).where(models.UserProgress.user_id == current_user.id)
-    prog_result = await db.execute(prog_query)
-    progress = prog_result.scalars().first()
+    progress = (
+        await db.execute(
+            select(models.UserProgress).where(models.UserProgress.user_id == current_user.id)
+        )
+    ).scalars().first()
     if not progress:
         progress = models.UserProgress(user_id=current_user.id)
         db.add(progress)
@@ -171,11 +167,13 @@ async def submit_answer(
         progress.total_incorrect += 1
         progress.current_streak = 0
 
-    progress.last_played_at = datetime.utcnow()
+    progress.last_played_at = answered_at
 
-    lb_query = select(models.Leaderboard).where(models.Leaderboard.user_id == current_user.id)
-    lb_result = await db.execute(lb_query)
-    leaderboard = lb_result.scalars().first()
+    leaderboard = (
+        await db.execute(
+            select(models.Leaderboard).where(models.Leaderboard.user_id == current_user.id)
+        )
+    ).scalars().first()
     if not leaderboard:
         leaderboard = models.Leaderboard(user_id=current_user.id)
         db.add(leaderboard)
@@ -184,24 +182,43 @@ async def submit_answer(
     leaderboard.weekly_points += points
     leaderboard.monthly_points += points
 
-    profile_query = select(models.Profile).where(models.Profile.user_id == current_user.id)
-    profile_result = await db.execute(profile_query)
-    profile = profile_result.scalars().first()
-    if profile and profile.country_id:
-        leaderboard.country_id = profile.country_id
+    if not leaderboard.country_id:
+        profile = (
+            await db.execute(
+                select(models.Profile).where(models.Profile.user_id == current_user.id)
+            )
+        ).scalars().first()
+        if profile and profile.country_id:
+            leaderboard.country_id = profile.country_id
+
+    try:
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Answer already submitted for this question")
+
+    answer_id = new_answer.id
+    session_score = session.score
 
     try:
         await db.commit()
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=400, detail="Answer already submitted for this question")
-    await db.refresh(new_answer)
-    await db.refresh(session)
+
     return schemas.QuizAnswerResponse(
-        answer=new_answer,
+        answer=schemas.SessionAnswerRead(
+            id=answer_id,
+            session_id=session.id,
+            question_id=question.id,
+            selected_option=selected_option,
+            is_correct=is_correct,
+            time_taken_seconds=ans_data.time_taken_seconds,
+            answered_at=answered_at,
+        ),
         correct_option=question.correct_option.upper(),
         points_earned=points,
-        session_score=session.score,
+        session_score=session_score,
     )
 
 @router.post("/complete/{session_id}", response_model=schemas.QuizSessionRead)
