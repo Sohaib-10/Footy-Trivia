@@ -53,13 +53,32 @@ async def _issue_password_reset_email(user: models.User, db: AsyncSession) -> No
     await send_password_reset_email(user.email, _password_reset_link(token))
 
 
+async def _start_user_session(user: models.User, db: AsyncSession) -> tuple[str, str, str]:
+    session_token = auth.new_session_token()
+    now = datetime.utcnow()
+    user.session_token = session_token
+    user.last_activity_at = now
+    user.last_login = now
+    await db.commit()
+
+    token_data = {"sub": str(user.id), "role": user.role, "sid": session_token}
+    access_token = auth.create_access_token(data=token_data)
+    refresh_token = auth.create_refresh_token(data={"sub": str(user.id), "sid": session_token})
+    csrf_token = generate_csrf_token()
+    return access_token, refresh_token, csrf_token
+
+
+def _attach_auth_cookies(response: Response, access_token: str, refresh_token: str, csrf_token: str) -> None:
+    set_auth_cookies(response, access_token, refresh_token, csrf_token)
+
+
 @router.get("/csrf", response_model=schemas.CsrfTokenResponse)
 async def issue_csrf_token(response: Response):
     csrf_token = generate_csrf_token()
     set_csrf_cookie(response, csrf_token)
     return {"csrf_token": csrf_token}
 
-@router.post("/register", response_model=schemas.UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
     email = user_data.email.lower()
     query = select(models.User).where(
@@ -80,7 +99,7 @@ async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get
         email=email,
         username=user_data.username,
         password_hash=hashed_pwd,
-        is_verified=False
+        is_verified=True,
     )
     db.add(new_user)
     await db.flush()
@@ -96,7 +115,12 @@ async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get
         await db.commit()
     except Exception:
         logger.exception("Failed to send welcome verification email to %s", new_user.email)
-    return new_user
+
+    access_token, refresh_token, csrf_token = await _start_user_session(new_user, db)
+    user_payload = schemas.UserRead.model_validate(new_user).model_dump(mode="json")
+    response = JSONResponse(status_code=status.HTTP_201_CREATED, content=user_payload)
+    _attach_auth_cookies(response, access_token, refresh_token, csrf_token)
+    return response
 
 @router.post("/verify-email")
 async def verify_email(body: schemas.EmailTokenRequest, db: AsyncSession = Depends(get_db)):
@@ -205,20 +229,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
             detail="Please verify your email address before logging in.",
         )
 
-    session_token = auth.new_session_token()
-    now = datetime.utcnow()
-    user.session_token = session_token
-    user.last_activity_at = now
-    user.last_login = now
-    await db.commit()
-
-    token_data = {"sub": str(user.id), "role": user.role, "sid": session_token}
-    access_token = auth.create_access_token(data=token_data)
-    refresh_token = auth.create_refresh_token(data={"sub": str(user.id), "sid": session_token})
-    csrf_token = generate_csrf_token()
-
+    access_token, refresh_token, csrf_token = await _start_user_session(user, db)
     response = JSONResponse(content={"detail": "Login successful", "token_type": "bearer"})
-    set_auth_cookies(response, access_token, refresh_token, csrf_token)
+    _attach_auth_cookies(response, access_token, refresh_token, csrf_token)
     return response
 
 @router.post("/refresh", response_model=schemas.AuthSuccessResponse)

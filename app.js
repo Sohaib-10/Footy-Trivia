@@ -2673,6 +2673,30 @@
         }
       }
 
+      async function finishAuthSession(email) {
+        localStorage.removeItem('footytrivia_token');
+        localStorage.removeItem('footytrivia_refresh_token');
+        clearCsrfTokenCache();
+
+        const [, profile, progress] = await Promise.all([
+          ensureCsrfToken({ forceRefresh: true }).catch(() => null),
+          apiRequest('/api/users/me'),
+          apiRequest('/api/users/me/progress').catch(() => ({})),
+        ]);
+
+        const userObj = buildUserFromApi(profile, progress, email);
+        applyProfilePreferences(profile.preferences, userObj);
+        persistUserCache(userObj);
+        state.user = userObj;
+        touchSessionActivity();
+        setupSessionGuards();
+        updateAuthUI();
+        refreshProfileStats().catch(() => {});
+        hydrateWcPredictionsForUser().catch(() => {});
+        updatePredictorProfile();
+        return state.user;
+      }
+
       async function completeLogin(email, password) {
         await wakeApiServer();
         const formData = new URLSearchParams();
@@ -2707,27 +2731,7 @@
         }
 
         await tokenRes.json();
-        localStorage.removeItem('footytrivia_token');
-        localStorage.removeItem('footytrivia_refresh_token');
-        clearCsrfTokenCache();
-
-        const [, profile, progress] = await Promise.all([
-          ensureCsrfToken({ forceRefresh: true }).catch(() => null),
-          apiRequest('/api/users/me'),
-          apiRequest('/api/users/me/progress').catch(() => ({})),
-        ]);
-
-        const userObj = buildUserFromApi(profile, progress, email);
-        applyProfilePreferences(profile.preferences, userObj);
-        persistUserCache(userObj);
-        state.user = userObj;
-        touchSessionActivity();
-        setupSessionGuards();
-        updateAuthUI();
-        refreshProfileStats().catch(() => {});
-        hydrateWcPredictionsForUser().catch(() => {});
-        updatePredictorProfile();
-        return state.user;
+        return finishAuthSession(email);
       }
 
       async function restoreSession() {
@@ -2922,8 +2926,9 @@
           return;
         }
 
-        showPleaseWait();
-        setAuthSubmitting(e.target, true);
+        const form = e.currentTarget || e.target;
+        showPleaseWait('Creating your account…');
+        setAuthSubmitting(form, true);
         try {
           await wakeApiServer();
           const registerRes = await fetchWithTimeout(`${API_BASE_URL}/api/auth/register`, {
@@ -2938,7 +2943,12 @@
             throw new Error(authErrorMessage(err.detail, 'Registration failed'));
           }
 
-          await completeLogin(email, password);
+          await registerRes.json().catch(() => null);
+          try {
+            await finishAuthSession(email);
+          } catch (sessionErr) {
+            await completeLogin(email, password);
+          }
           closeModal();
           showToast(`Welcome, ${username}! Your account is ready.`, 'success');
         } catch (err) {
@@ -2946,7 +2956,7 @@
           showToast(err.message || (isNetworkError(err) ? networkErrorMessage() : 'Registration failed'), 'error');
         } finally {
           hidePleaseWait();
-          setAuthSubmitting(e.target, false);
+          setAuthSubmitting(form, false);
         }
       }
 
