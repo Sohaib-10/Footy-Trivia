@@ -82,8 +82,7 @@
       background: radial-gradient(ellipse 70% 60% at 50% 40%, rgba(0, 0, 0, 0.02) 0%, transparent 70%);
     }
 
-    /* On the light theme the original dark-green logo reads well, so skip the
-       dark-theme brightening (keep only the hero drop-shadow). */
+    /* Light theme: keep the natural dark-green logo; hero keeps a soft shadow only. */
     [data-theme="light"] .nav-logo-img,
     [data-theme="light"] .footer-logo-img {
       filter: none;
@@ -541,11 +540,10 @@
       width: auto;
       object-fit: contain;
       transition: transform var(--transition), opacity var(--transition);
-      /* Brighten the dark-green logo so it reads on the dark theme */
-      filter: brightness(3.6) saturate(1.3);
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
     }
 
-    /* Logo keeps original dark-green color in all themes */
+    /* Logo keeps original dark-green brand colour in all themes */
 
     .nav-logo:hover .nav-logo-img {
       transform: scale(1.05);
@@ -556,8 +554,7 @@
       height: 44px;
       width: auto;
       object-fit: contain;
-      /* Brighten the dark-green logo so it reads on the dark theme */
-      filter: brightness(3.6) saturate(1.3);
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
     }
 
     .nav-logo-icon {
@@ -843,7 +840,7 @@
       object-fit: contain;
       image-rendering: auto;
       -ms-interpolation-mode: bicubic;
-      filter: brightness(3.6) saturate(1.3) drop-shadow(0 4px 14px rgba(0, 0, 0, 0.45));
+      filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.45));
       transform: translateZ(0);
       backface-visibility: hidden;
       animation: heroLogoIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;

@@ -5,6 +5,7 @@ from PIL import Image
 
 SRC = "logo_source.png"
 OUT = "logo_hd.png"
+BRAND_RGB = np.array([0, 61, 41], dtype=np.float32)  # #003d29 — site --logo-brand
 
 img = Image.open(SRC).convert("RGB")
 arr = np.asarray(img).astype(np.float32)
@@ -23,6 +24,10 @@ a = np.clip(alpha, 1e-4, 1.0)[..., None]
 fg = (arr - (1.0 - a) * 255.0) / a
 fg = np.clip(fg, 0, 255)
 
-out = np.dstack([fg, np.clip(alpha * 255.0, 0, 255)]).astype(np.uint8)
+# Keep the original dark-green brand colour on every visible pixel.
+alpha_u8 = np.clip(alpha * 255.0, 0, 255)
+out_rgb = np.broadcast_to(BRAND_RGB, fg.shape).copy()
+
+out = np.dstack([out_rgb, alpha_u8]).astype(np.uint8)
 Image.fromarray(out, mode="RGBA").save(OUT, optimize=True)
 print(f"Saved transparent logo: {OUT}  size={img.size}")
