@@ -1794,20 +1794,21 @@
       let authWaitShownAt = 0;
       const AUTH_WAIT_MIN_MS = 800;
 
-      function showToast(msg, type = 'info') {
+      function showToast(msg, type = 'info', durationMs = 3000) {
         const container = document.getElementById('toast-container');
         if (!container) return;
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        const icons = { success: '🏆', error: '❌', info: '⚡' };
+        const icons = { success: '🏆', error: '❌', warning: '⚠️', info: '⚡' };
         toast.innerHTML = `<span>${icons[type] || '⚡'}</span> <span>${escapeHtml(msg)}</span>`;
         container.appendChild(toast);
+        const hideAfter = Math.max(3000, durationMs || 3000);
         setTimeout(() => {
           toast.style.opacity = '0';
           toast.style.transform = 'translateX(20px)';
           toast.style.transition = 'all .3s';
           setTimeout(() => toast.remove(), 300);
-        }, 3000);
+        }, hideAfter);
       }
 
       function showPleaseWait(msg = 'Please wait…') {
@@ -3013,6 +3014,7 @@
             const message = await readApiErrorMessage(registerRes, 'Registration failed');
             const fieldId = authFieldForError(message);
             setAuthFormError(message, fieldId);
+            showToast(message, registerRes.status === 409 ? 'warning' : 'error', 5500);
             return;
           }
 
@@ -3039,6 +3041,7 @@
           setAuthFormStatus('');
           const message = err.message || (isNetworkError(err) ? networkErrorMessage() : 'Registration failed');
           setAuthFormError(message, authFieldForError(message));
+          showToast(message, 'error', 5500);
         } finally {
           hidePleaseWait(true);
           setAuthFormStatus('');
