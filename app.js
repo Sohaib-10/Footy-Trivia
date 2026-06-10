@@ -1953,6 +1953,7 @@
 
       function setupAuthModal() {
         setAuthFormError('');
+        setAuthFormStatus('');
         const form = document.querySelector('#modal-content form');
         if (!form) return;
         const passwordInput = form.querySelector('#auth-password, #auth-new-password');
@@ -2625,12 +2626,24 @@
           el.textContent = message || '';
           el.classList.toggle('hidden', !message);
         }
+        if (message) setAuthFormStatus('');
         document.querySelectorAll('#modal-content .form-input.auth-field-error').forEach((input) => {
           input.classList.remove('auth-field-error');
         });
         if (fieldId) {
           const input = document.getElementById(fieldId);
           if (input) input.classList.add('auth-field-error');
+        }
+        if (message && el) {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+
+      function setAuthFormStatus(message) {
+        const el = document.getElementById('auth-form-status');
+        if (el) {
+          el.textContent = message || '';
+          el.classList.toggle('hidden', !message);
         }
       }
 
@@ -2924,7 +2937,6 @@
           <h2 class="modal-title">Create Account</h2>
           <div class="modal-sub">Join the ultimate football trivia arena today.</div>
           <form onsubmit="mockRegister(event)">
-            <div id="auth-form-error" class="auth-form-error hidden" role="alert"></div>
             <div class="form-group">
               <label class="form-label">USERNAME</label>
               <input type="text" id="auth-username" class="form-input" required minlength="3" maxlength="${INPUT_LIMITS.username}" pattern="[A-Za-z0-9_]+" placeholder="footballer123">
@@ -2937,7 +2949,9 @@
               <label class="form-label">PASSWORD</label>
               ${authPasswordField('auth-password', 'At least 8 characters', 'minlength="8"')}
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center">Sign Up</button>
+            <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center">Sign Up</button>
+            <div id="auth-form-status" class="auth-form-status hidden" aria-live="polite"></div>
+            <div id="auth-form-error" class="auth-form-error hidden" role="alert"></div>
           </form>
           <div class="modal-footer">
             Already have an account? <a onclick="openModal('login')">Log In</a>
@@ -2976,8 +2990,9 @@
         }
 
         const form = e.currentTarget || e.target;
+        hidePleaseWait(true);
         setAuthFormError('');
-        showPleaseWait('Creating your account…');
+        setAuthFormStatus('Creating your account…');
         setAuthSubmitting(form, true);
         try {
           await wakeApiServer();
@@ -2986,25 +3001,24 @@
             registerRes = await postRegisterRequest(username, email, password);
           } catch (networkErr) {
             if (!isNetworkError(networkErr)) throw networkErr;
+            setAuthFormStatus('Connecting to server…');
             await wakeApiServer();
             await new Promise((resolve) => setTimeout(resolve, 1500));
             registerRes = await postRegisterRequest(username, email, password);
           }
 
           if (!registerRes.ok) {
+            hidePleaseWait(true);
+            setAuthFormStatus('');
             const message = await readApiErrorMessage(registerRes, 'Registration failed');
             const fieldId = authFieldForError(message);
             setAuthFormError(message, fieldId);
-            if (registerRes.status === 409) {
-              showToast(message, 'warning');
-            } else {
-              showToast(message, 'error');
-            }
             return;
           }
 
           await registerRes.json().catch(() => null);
           setAuthFormError('');
+          setAuthFormStatus('');
           try {
             await finishAuthSession(email);
           } catch (sessionErr) {
@@ -3021,11 +3035,13 @@
           showToast(`Welcome, ${username}! Check your inbox for a verification email — you can play right away.`, 'success');
         } catch (err) {
           console.error(err);
+          hidePleaseWait(true);
+          setAuthFormStatus('');
           const message = err.message || (isNetworkError(err) ? networkErrorMessage() : 'Registration failed');
-          setAuthFormError(message);
-          showToast(message, 'error');
+          setAuthFormError(message, authFieldForError(message));
         } finally {
-          hidePleaseWait();
+          hidePleaseWait(true);
+          setAuthFormStatus('');
           setAuthSubmitting(form, false);
         }
       }
