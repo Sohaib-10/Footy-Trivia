@@ -3519,25 +3519,6 @@
           if (llRank && stats.league_players['la-liga']) llRank.textContent = `${stats.league_players['la-liga'].toLocaleString()} players`;
           if (uclRank && stats.league_players['ucl']) uclRank.textContent = `${stats.league_players['ucl'].toLocaleString()} players`;
           if (wcRank && stats.league_players['world-cup']) wcRank.textContent = `${stats.league_players['world-cup'].toLocaleString()} players`;
-          
-          // Update Top Countries list on the leaderboard page
-          const countriesList = document.getElementById('top-countries-list');
-          if (countriesList && stats.top_countries) {
-            let html = '';
-            stats.top_countries.forEach((c, idx) => {
-              html += `
-                <div class="card" style="padding:1rem;display:flex;align-items:center;gap:1rem">
-                  ${countryFlagImg(c.code, c.name)}
-                  <div style="flex:1">
-                    <div style="font-family:var(--font-ui);font-weight:700;font-size:.9rem">${escapeHtml(c.name)}</div>
-                    <div style="font-size:.75rem;color:var(--text3)">${c.active_count.toLocaleString()} active</div>
-                  </div>
-                  <div style="font-family:var(--font-display);font-size: 1rem;color:${idx === 0 ? 'var(--gold)' : 'var(--text3)'}">#${idx + 1}</div>
-                </div>
-              `;
-            });
-            countriesList.innerHTML = html;
-          }
         } catch (err) {
           console.error('Failed to load database stats:', err);
           applyLocalHeroStats();
