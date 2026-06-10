@@ -14,6 +14,7 @@ CSRF_EXEMPT_PATHS: Set[str] = {
     "/api/auth/login",
     "/api/auth/register",
     "/api/auth/csrf",
+    "/api/auth/refresh",
     "/api/auth/forgot-password",
     "/api/auth/resend-verification",
     "/api/auth/verify-email",

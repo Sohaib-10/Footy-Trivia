@@ -51,42 +51,44 @@
 
       let csrfTokenPromise = null;
       let csrfTokenCache = null;
-      async function ensureCsrfToken() {
-        const cached = csrfTokenCache || getCsrfTokenFromCookie();
-        if (cached) {
-          csrfTokenCache = cached;
-          return cached;
-        }
+
+      function clearCsrfTokenCache() {
+        csrfTokenCache = null;
+      }
+
+      async function fetchCsrfToken() {
+        const res = await fetchWithTimeout(`${API_BASE_URL}/api/auth/csrf`, {
+          credentials: 'include',
+        }, 15000);
+        if (!res.ok) throw new Error('Failed to fetch CSRF token');
+        const data = await res.json();
+        const token = data && data.csrf_token;
+        if (!token) throw new Error('Failed to fetch CSRF token');
+        csrfTokenCache = token;
+        return token;
+      }
+
+      async function ensureCsrfToken(options = {}) {
+        const forceRefresh = options.forceRefresh === true;
+        if (forceRefresh) clearCsrfTokenCache();
+        if (csrfTokenCache) return csrfTokenCache;
         if (!csrfTokenPromise) {
-          csrfTokenPromise = fetchWithTimeout(`${API_BASE_URL}/api/auth/csrf`, {
-            credentials: 'include',
-          }, 15000)
-            .then(async (res) => {
-              if (!res.ok) throw new Error('Failed to fetch CSRF token');
-              const data = await res.json();
-              const token = data.csrf_token || getCsrfTokenFromCookie();
-              if (token) csrfTokenCache = token;
-              return token;
-            })
-            .finally(() => { csrfTokenPromise = null; });
+          csrfTokenPromise = fetchCsrfToken().finally(() => { csrfTokenPromise = null; });
         }
         return csrfTokenPromise;
       }
 
       async function tryRefreshSession() {
         try {
-          const csrf = await ensureCsrfToken().catch(() => null);
-          const headers = { 'Content-Type': 'application/json' };
-          if (csrf) headers['X-CSRF-Token'] = csrf;
           const res = await fetchWithTimeout(`${API_BASE_URL}/api/auth/refresh`, {
             method: 'POST',
             credentials: 'include',
-            headers,
+            headers: { 'Content-Type': 'application/json' },
             body: '{}',
           }, 15000);
           if (!res.ok) return false;
-          csrfTokenCache = null;
-          await ensureCsrfToken().catch(() => null);
+          clearCsrfTokenCache();
+          await ensureCsrfToken({ forceRefresh: true }).catch(() => null);
           return true;
         } catch (e) {
           return false;
@@ -101,6 +103,7 @@
           '/api/auth/login',
           '/api/auth/register',
           '/api/auth/csrf',
+          '/api/auth/refresh',
           '/api/auth/forgot-password',
           '/api/auth/resend-verification',
           '/api/auth/verify-email',
@@ -162,7 +165,7 @@
         localStorage.removeItem('footytrivia_user');
         localStorage.removeItem('footytrivia_token');
         localStorage.removeItem('footytrivia_refresh_token');
-        csrfTokenCache = null;
+        clearCsrfTokenCache();
         clearSessionActivity();
         updateAuthUI();
         if (showMessage) {
@@ -189,13 +192,22 @@
 
       async function apiRequest(endpoint, options = {}, timeoutMs = API_TIMEOUT_MS) {
         const url = `${API_BASE_URL}${endpoint}`;
-        const prepared = await prepareApiOptions({ ...options, _apiEndpoint: endpoint });
+        const requestOptions = { ...options };
+        const prepared = await prepareApiOptions({ ...requestOptions, _apiEndpoint: endpoint });
         
         try {
           const response = await fetchWithTimeout(url, prepared, timeoutMs);
           if (!response.ok) {
             const err = await response.json().catch(() => ({ detail: 'API request failed' }));
             const detail = typeof err.detail === 'string' ? err.detail : '';
+            if (
+              response.status === 403
+              && detail === 'CSRF validation failed'
+              && !requestOptions._csrfRetried
+            ) {
+              clearCsrfTokenCache();
+              return apiRequest(endpoint, { ...requestOptions, _csrfRetried: true }, timeoutMs);
+            }
             if (response.status === 401 && isSessionExpiryDetail(detail)) {
               forceLogout(detail);
               throw new Error(sessionExpiryMessage(detail));
@@ -2438,9 +2450,10 @@
         await tokenRes.json();
         localStorage.removeItem('footytrivia_token');
         localStorage.removeItem('footytrivia_refresh_token');
+        clearCsrfTokenCache();
 
         const [, profile, progress] = await Promise.all([
-          ensureCsrfToken().catch(() => null),
+          ensureCsrfToken({ forceRefresh: true }).catch(() => null),
           apiRequest('/api/users/me'),
           apiRequest('/api/users/me/progress').catch(() => ({})),
         ]);
@@ -3900,6 +3913,9 @@
         const { silent = false, retried = false } = options;
         if (!state.user) return false;
         try {
+          if (!silent) {
+            await ensureCsrfToken({ forceRefresh: true });
+          }
           const me = await apiRequest('/api/wc/predictions/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3913,6 +3929,11 @@
           return true;
         } catch (err) {
           const msg = err && err.message ? String(err.message) : '';
+          if (!retried && msg.includes('CSRF validation failed')) {
+            clearCsrfTokenCache();
+            await ensureCsrfToken({ forceRefresh: true });
+            return syncWcPredictionsToApi({ silent, retried: true });
+          }
           if (!retried && msg.includes('Could not validate credentials')) {
             const refreshed = await tryRefreshSession();
             if (refreshed) {
