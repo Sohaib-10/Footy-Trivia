@@ -1952,6 +1952,7 @@
       }
 
       function setupAuthModal() {
+        setAuthFormError('');
         const form = document.querySelector('#modal-content form');
         if (!form) return;
         const passwordInput = form.querySelector('#auth-password, #auth-new-password');
@@ -2591,8 +2592,55 @@
       function authErrorMessage(detail, fallback) {
         if (!detail) return fallback;
         if (typeof detail === 'string') return detail;
-        if (Array.isArray(detail)) return detail.map(d => d.msg || String(d)).join('. ');
+        if (Array.isArray(detail)) {
+          return detail.map((d) => d.msg || d.message || String(d)).filter(Boolean).join('. ') || fallback;
+        }
+        if (typeof detail === 'object' && detail.message) return String(detail.message);
         return fallback;
+      }
+
+      async function readApiErrorMessage(res, fallback) {
+        try {
+          const data = await res.json();
+          return authErrorMessage(data?.detail, fallback);
+        } catch (e) {
+          if (res.status >= 500) return 'Server error — please try again in a moment.';
+          if (res.status === 409) return 'That email or username is already in use.';
+          if (res.status === 400 || res.status === 422) return fallback;
+          return `${fallback} (error ${res.status || 'unknown'})`;
+        }
+      }
+
+      function authFieldForError(message) {
+        const text = String(message || '').toLowerCase();
+        if (text.includes('email')) return 'auth-email';
+        if (text.includes('username')) return 'auth-username';
+        if (text.includes('password')) return 'auth-password';
+        return null;
+      }
+
+      function setAuthFormError(message, fieldId = null) {
+        const el = document.getElementById('auth-form-error');
+        if (el) {
+          el.textContent = message || '';
+          el.classList.toggle('hidden', !message);
+        }
+        document.querySelectorAll('#modal-content .form-input.auth-field-error').forEach((input) => {
+          input.classList.remove('auth-field-error');
+        });
+        if (fieldId) {
+          const input = document.getElementById(fieldId);
+          if (input) input.classList.add('auth-field-error');
+        }
+      }
+
+      async function postRegisterRequest(username, email, password) {
+        return fetchWithTimeout(`${API_BASE_URL}/api/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password }),
+          credentials: 'include',
+        }, 35000);
       }
 
       function persistUserCache(user) {
@@ -2876,6 +2924,7 @@
           <h2 class="modal-title">Create Account</h2>
           <div class="modal-sub">Join the ultimate football trivia arena today.</div>
           <form onsubmit="mockRegister(event)">
+            <div id="auth-form-error" class="auth-form-error hidden" role="alert"></div>
             <div class="form-group">
               <label class="form-label">USERNAME</label>
               <input type="text" id="auth-username" class="form-input" required minlength="3" maxlength="${INPUT_LIMITS.username}" pattern="[A-Za-z0-9_]+" placeholder="footballer123">
@@ -2927,33 +2976,54 @@
         }
 
         const form = e.currentTarget || e.target;
+        setAuthFormError('');
         showPleaseWait('Creating your account…');
         setAuthSubmitting(form, true);
         try {
           await wakeApiServer();
-          const registerRes = await fetchWithTimeout(`${API_BASE_URL}/api/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email, password }),
-            credentials: 'include',
-          }, 20000);
+          let registerRes;
+          try {
+            registerRes = await postRegisterRequest(username, email, password);
+          } catch (networkErr) {
+            if (!isNetworkError(networkErr)) throw networkErr;
+            await wakeApiServer();
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            registerRes = await postRegisterRequest(username, email, password);
+          }
 
           if (!registerRes.ok) {
-            const err = await registerRes.json().catch(() => ({ detail: 'Registration failed' }));
-            throw new Error(authErrorMessage(err.detail, 'Registration failed'));
+            const message = await readApiErrorMessage(registerRes, 'Registration failed');
+            const fieldId = authFieldForError(message);
+            setAuthFormError(message, fieldId);
+            if (registerRes.status === 409) {
+              showToast(message, 'warning');
+            } else {
+              showToast(message, 'error');
+            }
+            return;
           }
 
           await registerRes.json().catch(() => null);
+          setAuthFormError('');
           try {
             await finishAuthSession(email);
           } catch (sessionErr) {
-            await completeLogin(email, password);
+            try {
+              await completeLogin(email, password);
+            } catch (loginErr) {
+              closeModal();
+              showToast('Account created! Please log in with your email and password.', 'success');
+              openModal('login');
+              return;
+            }
           }
           closeModal();
           showToast(`Welcome, ${username}! Your account is ready.`, 'success');
         } catch (err) {
           console.error(err);
-          showToast(err.message || (isNetworkError(err) ? networkErrorMessage() : 'Registration failed'), 'error');
+          const message = err.message || (isNetworkError(err) ? networkErrorMessage() : 'Registration failed');
+          setAuthFormError(message);
+          showToast(message, 'error');
         } finally {
           hidePleaseWait();
           setAuthSubmitting(form, false);

@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import or_, func
+from sqlalchemy.exc import IntegrityError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -81,17 +82,27 @@ async def issue_csrf_token(response: Response):
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
     email = user_data.email.lower()
-    query = select(models.User).where(
-        or_(
-            func.lower(models.User.email) == email,
-            models.User.username == user_data.username
+
+    email_taken = (
+        await db.execute(
+            select(models.User.id).where(func.lower(models.User.email) == email).limit(1)
         )
-    )
-    result = await db.execute(query)
-    if result.scalars().first():
+    ).scalars().first()
+    if email_taken:
         raise HTTPException(
-            status_code=400,
-            detail="Registration failed. Email or username may already be in use.",
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This email address is already registered. Try logging in instead.",
+        )
+
+    username_taken = (
+        await db.execute(
+            select(models.User.id).where(models.User.username == user_data.username).limit(1)
+        )
+    ).scalars().first()
+    if username_taken:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This username is already taken. Please choose another.",
         )
 
     hashed_pwd = auth.hash_password(user_data.password)
@@ -108,7 +119,24 @@ async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get
     db.add(models.UserProgress(user_id=new_user.id))
     db.add(models.Leaderboard(user_id=new_user.id))
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        email_taken = (
+            await db.execute(
+                select(models.User.id).where(func.lower(models.User.email) == email).limit(1)
+            )
+        ).scalars().first()
+        if email_taken:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This email address is already registered. Try logging in instead.",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This username is already taken. Please choose another.",
+        )
     await db.refresh(new_user)
     try:
         await _issue_verify_email(new_user, db)
