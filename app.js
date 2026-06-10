@@ -3781,6 +3781,16 @@
         }
       }
 
+      function bracketStorageHasCompleteWinners() {
+        const stored = getBracketPayloadFromStorage();
+        return stored.length === 31 && stored.every(m => m && m.winner);
+      }
+
+      function isBracketSubmittedPersisted() {
+        if (localStorage.getItem(BRACKET_SUBMITTED_KEY) !== '1') return false;
+        return bracketStorageHasCompleteWinners();
+      }
+
       function collectWcPredictionPayload() {
         let bracket = [];
         let champion = null;
@@ -3797,6 +3807,9 @@
           }
           bracketSubmitted = window.bracketPredictor.isBracketSubmitted();
         }
+        if (!bracketSubmitted) {
+          bracketSubmitted = isBracketSubmittedPersisted();
+        }
         const storedBracket = getBracketPayloadFromStorage();
         const memoryHasWinners = bracket.some(m => m && m.winner);
         const storageHasWinners = storedBracket.some(m => m && m.winner);
@@ -3810,9 +3823,6 @@
           if (finalEntry && finalEntry.winner) {
             champion = finalEntry[finalEntry.winner] || null;
           }
-        }
-        if (!bracketSubmitted && localStorage.getItem(BRACKET_SUBMITTED_KEY) === '1' && bracket.length === 31) {
-          bracketSubmitted = bracket.every(m => m && m.winner);
         }
         const awards = {};
         Object.entries(awardPredictions).forEach(([key, val]) => {
@@ -3868,6 +3878,8 @@
         }
         if (data.bracket_submitted) {
           localStorage.setItem(BRACKET_SUBMITTED_KEY, '1');
+        } else if (data.bracket && data.bracket.length === 31 && data.bracket.every(m => m && m.winner)) {
+          localStorage.setItem(BRACKET_SUBMITTED_KEY, '1');
         }
         if (window.bracketPredictor) {
           window.bracketPredictor.restoreBracketState();
@@ -3908,6 +3920,10 @@
           console.error('WC prediction load failed:', err);
           if (localHasData) {
             await syncWcPredictionsToApi({ silent: true });
+          }
+        } finally {
+          if (window.bracketPredictor) {
+            window.bracketPredictor.restoreBracketState({ render: !!bracketInitialized });
           }
         }
       }
@@ -5215,11 +5231,8 @@
 
         isBracketSubmitted() {
           if (localStorage.getItem(this.submittedKey) !== '1') return false;
-          if (!this.isBracketComplete()) {
-            this.clearBracketSubmitted();
-            return false;
-          }
-          return true;
+          if (this.isBracketComplete()) return true;
+          return bracketStorageHasCompleteWinners();
         }
 
         markBracketSubmitted() {
@@ -5400,7 +5413,6 @@
         }
 
         loadSavedBracket() {
-          if (!arePredictionsComplete()) return;
           const saved = localStorage.getItem(this.storageKey);
           if (!saved) return;
           try {
@@ -5454,6 +5466,9 @@
           const isSubmitted = arePredictionsComplete();
 
           if (!isSubmitted) {
+            if (bracketStorageHasCompleteWinners()) {
+              return;
+            }
             this.matches.forEach(m => {
               m.home = null;
               m.away = null;
@@ -7731,6 +7746,7 @@
 
       const bracketPredictor = new BracketPredictor();
       window.bracketPredictor = bracketPredictor;
+      bracketPredictor.restoreBracketState({ render: false });
       let bracketInitialized = false;
       function syncWcMobileNavSub(tabId) {
         const onWc = state.currentPage === 'worldcup';
