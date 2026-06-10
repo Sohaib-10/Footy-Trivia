@@ -50,9 +50,13 @@
       }
 
       let csrfTokenPromise = null;
+      let csrfTokenCache = null;
       async function ensureCsrfToken() {
-        const cached = getCsrfTokenFromCookie();
-        if (cached) return cached;
+        const cached = csrfTokenCache || getCsrfTokenFromCookie();
+        if (cached) {
+          csrfTokenCache = cached;
+          return cached;
+        }
         if (!csrfTokenPromise) {
           csrfTokenPromise = fetchWithTimeout(`${API_BASE_URL}/api/auth/csrf`, {
             credentials: 'include',
@@ -60,11 +64,33 @@
             .then(async (res) => {
               if (!res.ok) throw new Error('Failed to fetch CSRF token');
               const data = await res.json();
-              return data.csrf_token || getCsrfTokenFromCookie();
+              const token = data.csrf_token || getCsrfTokenFromCookie();
+              if (token) csrfTokenCache = token;
+              return token;
             })
             .finally(() => { csrfTokenPromise = null; });
         }
         return csrfTokenPromise;
+      }
+
+      async function tryRefreshSession() {
+        try {
+          const csrf = await ensureCsrfToken().catch(() => null);
+          const headers = { 'Content-Type': 'application/json' };
+          if (csrf) headers['X-CSRF-Token'] = csrf;
+          const res = await fetchWithTimeout(`${API_BASE_URL}/api/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+            headers,
+            body: '{}',
+          }, 15000);
+          if (!res.ok) return false;
+          csrfTokenCache = null;
+          await ensureCsrfToken().catch(() => null);
+          return true;
+        } catch (e) {
+          return false;
+        }
       }
 
       async function prepareApiOptions(options = {}) {
@@ -136,6 +162,7 @@
         localStorage.removeItem('footytrivia_user');
         localStorage.removeItem('footytrivia_token');
         localStorage.removeItem('footytrivia_refresh_token');
+        csrfTokenCache = null;
         clearSessionActivity();
         updateAuthUI();
         if (showMessage) {
@@ -172,6 +199,9 @@
             if (response.status === 401 && isSessionExpiryDetail(detail)) {
               forceLogout(detail);
               throw new Error(sessionExpiryMessage(detail));
+            }
+            if (response.status === 401 && detail === 'Could not validate credentials') {
+              throw new Error(detail);
             }
             throw new Error(err.detail || 'API request failed');
           }
@@ -3788,7 +3818,7 @@
       function scheduleWcSync() {
         if (!state.user) return;
         clearTimeout(wcSyncTimer);
-        wcSyncTimer = setTimeout(() => syncWcPredictionsToApi(), 1000);
+        wcSyncTimer = setTimeout(() => syncWcPredictionsToApi({ silent: true }), 1000);
       }
 
       function applyWcPredictionsFromApi(data) {
@@ -3867,7 +3897,7 @@
       }
 
       async function syncWcPredictionsToApi(options = {}) {
-        const { silent = false } = options;
+        const { silent = false, retried = false } = options;
         if (!state.user) return false;
         try {
           const me = await apiRequest('/api/wc/predictions/sync', {
@@ -3882,9 +3912,21 @@
           localStorage.setItem(WC_PREDICTIONS_SYNCED_AT_KEY, String(Date.now()));
           return true;
         } catch (err) {
+          const msg = err && err.message ? String(err.message) : '';
+          if (!retried && msg.includes('Could not validate credentials')) {
+            const refreshed = await tryRefreshSession();
+            if (refreshed) {
+              return syncWcPredictionsToApi({ silent, retried: true });
+            }
+            forceLogout(null, false);
+            if (!silent) {
+              showToast('Your session has expired. Please log in again.', 'error');
+            }
+            return false;
+          }
           console.error('WC prediction sync failed:', err);
           if (!silent) {
-            showToast(err.message || 'Could not save predictions to your account. Please try again.', 'error');
+            showToast(msg || 'Could not save predictions to your account. Please try again.', 'error');
           }
           return false;
         }
@@ -5320,7 +5362,6 @@
             winner: m.winner
           }));
           localStorage.setItem(this.storageKey, JSON.stringify(data));
-          scheduleWcSync();
         }
 
         findTeamByName(name) {
