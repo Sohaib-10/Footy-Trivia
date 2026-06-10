@@ -10,6 +10,7 @@ from app.database import get_db
 from app import models, schemas, auth
 from app.dependencies import CountryCodePath, LeaderboardPeriodQuery
 from app.cookie_auth import ACCESS_TOKEN_COOKIE
+from app.leaderboard_country import resolve_leaderboard_country_code
 
 router = APIRouter(prefix="/api/leaderboard", tags=["leaderboard"])
 
@@ -90,6 +91,8 @@ async def get_ranked_leaderboard(
             models.Leaderboard.weekly_points.label("weekly_points"),
             models.Leaderboard.monthly_points.label("monthly_points"),
             models.Leaderboard.country_id.label("country_id"),
+            models.Country.code.label("country_db_code"),
+            models.Profile.preferences.label("profile_preferences"),
             models.Leaderboard.updated_at.label("updated_at"),
             models.UserProgress.total_correct.label("total_correct"),
             models.UserProgress.total_questions_answered.label("total_questions"),
@@ -98,6 +101,8 @@ async def get_ranked_leaderboard(
         .select_from(models.Leaderboard)
         .join(models.User, models.Leaderboard.user_id == models.User.id)
         .outerjoin(models.UserProgress, models.User.id == models.UserProgress.user_id)
+        .outerjoin(models.Country, models.Leaderboard.country_id == models.Country.id)
+        .outerjoin(models.Profile, models.Profile.user_id == models.Leaderboard.user_id)
         .subquery()
     )
 
@@ -119,6 +124,10 @@ async def get_ranked_leaderboard(
             weekly_points=row.weekly_points,
             monthly_points=row.monthly_points,
             country_id=row.country_id,
+            country_code=resolve_leaderboard_country_code(
+                row.country_db_code,
+                row.profile_preferences,
+            ),
             updated_at=row.updated_at,
             accuracy=_accuracy(row.total_correct, row.total_questions),
         )

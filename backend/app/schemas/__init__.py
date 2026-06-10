@@ -426,6 +426,7 @@ class LeaderboardRead(BaseModel):
     weekly_points: int
     monthly_points: int
     country_id: Optional[int]
+    country_code: Optional[str] = None
     updated_at: datetime
     accuracy: Optional[str] = "0%"
 

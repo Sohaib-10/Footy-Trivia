@@ -236,7 +236,8 @@ INSERT INTO countries (name, code, flag_url, confederation) VALUES
 ('France', 'FRA', 'https://flagcdn.com/w320/fr.png', 'UEFA'),
 ('Brazil', 'BRA', 'https://flagcdn.com/w320/br.png', 'CONMEBOL'),
 ('Argentina', 'ARG', 'https://flagcdn.com/w320/ar.png', 'CONMEBOL'),
-('Italy', 'ITA', 'https://flagcdn.com/w320/it.png', 'UEFA');
+('Italy', 'ITA', 'https://flagcdn.com/w320/it.png', 'UEFA'),
+('Pakistan', 'PAK', 'https://flagcdn.com/pk.svg', 'AFC');
 
 -- 2. Seed Teams
 INSERT INTO teams (name, logo_url, country_id, type, founded_year, stadium) VALUES

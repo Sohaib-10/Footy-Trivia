@@ -6,6 +6,11 @@ from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app import models, schemas, auth
 from app.dependencies import UsernamePath
+from app.leaderboard_country import (
+    country_code_from_preferences,
+    ensure_extra_countries,
+    find_country_id_by_code,
+)
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -58,6 +63,22 @@ async def update_profile(
         updates["preferences"] = {**current_prefs, **updates["preferences"]}
     for field, value in updates.items():
         setattr(profile, field, value)
+
+    if "preferences" in updates:
+        await ensure_extra_countries(db)
+        country_id = await find_country_id_by_code(
+            db,
+            country_code_from_preferences(profile.preferences),
+        )
+        if country_id:
+            profile.country_id = country_id
+            leaderboard = (
+                await db.execute(
+                    select(models.Leaderboard).where(models.Leaderboard.user_id == current_user.id)
+                )
+            ).scalars().first()
+            if leaderboard and not leaderboard.country_id:
+                leaderboard.country_id = country_id
 
     await db.commit()
     await db.refresh(profile)

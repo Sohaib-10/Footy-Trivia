@@ -1544,13 +1544,11 @@
         return country;
       }
 
-      function getLeaderboardFlagByCountryId(countryId) {
-        const mapping = { 1: 'gb', 2: 'es', 3: 'de', 4: 'fr', 5: 'br', 6: 'ar', 7: 'it' };
-        const code = mapping[countryId];
-        if (code) {
-          return `<img src="https://flagcdn.com/${code}.svg" style="width:18px; height:12px; border-radius:2px; object-fit:cover; vertical-align:middle; margin-right:4px; box-shadow:0 1px 2px rgba(0,0,0,0.25);">`;
-        }
-        return '';
+      function getLeaderboardFlag(entry) {
+        const code = entry && (entry.country_code || entry.countryCode);
+        if (!code) return '';
+        const flagStyle = 'width:18px; height:12px; border-radius:2px; object-fit:cover; vertical-align:middle; margin-right:4px; box-shadow:0 1px 2px rgba(0,0,0,0.25);';
+        return countryFlagImg(code, '', flagStyle);
       }
       // DB stores 3-letter country codes (ENG, ESP, BRA...), but flagcdn needs
       // 2-letter ISO codes. Map the common football nations; UK home nations use
@@ -1569,7 +1567,8 @@
         rsa: 'za', zaf: 'za', cro: 'hr', hrv: 'hr', srb: 'rs', sui: 'ch',
         che: 'ch', swe: 'se', nor: 'no', den: 'dk', dnk: 'dk', pol: 'pl',
         ukr: 'ua', tur: 'tr', gre: 'gr', grc: 'gr', aut: 'at', cze: 'cz',
-        rou: 'ro', rus: 'ru', hun: 'hu', irl: 'ie'
+        rou: 'ro', rus: 'ru', hun: 'hu', irl: 'ie',
+        pak: 'pk', ind: 'in', bgd: 'bd', mys: 'my', idn: 'id', phl: 'ph', sgp: 'sg',
       };
 
       function toFlagcdnCode(code) {
@@ -1695,7 +1694,7 @@
                 <div class="lb-name">${escapeHtml(p.username || 'Guest')}${youBadge}
                   <span style="font-size:0.65rem;background:${tierColor};color:#000;padding:0.1rem 0.35rem;border-radius:4px;margin-left:0.5rem;font-weight:700">${tierName}</span>
                 </div>
-                <div class="lb-meta">${getLeaderboardFlagByCountryId(p.country_id)} &nbsp; Rank: ${rankLabel}</div>
+                <div class="lb-meta">${getLeaderboardFlag(p)} &nbsp; Rank: ${rankLabel}</div>
               </div>
               <div class="lb-score">${(scoreToDisplay || 0).toLocaleString()}</div>
             </div>`;

@@ -276,8 +276,8 @@ async def apply_session_progress(session: models.QuizSession, db: AsyncSession) 
                 select(models.Profile).where(models.Profile.user_id == session.user_id)
             )
         ).scalars().first()
-        if profile and profile.country_id:
-            leaderboard.country_id = profile.country_id
+        from app.leaderboard_country import sync_leaderboard_country_from_profile
+        await sync_leaderboard_country_from_profile(db, leaderboard, profile)
 
     session.score = session_points
     return session_points

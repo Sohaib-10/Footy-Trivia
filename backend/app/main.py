@@ -10,6 +10,7 @@ from app.database import engine, Base, async_session
 from app import models  # noqa: F401  (ensures all tables are registered on Base.metadata)
 from app.config import settings
 from app.question_seed import ensure_question_bank
+from app.leaderboard_country import backfill_user_countries
 from app.middleware.csrf import CsrfMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.request_limits import RequestSizeLimitMiddleware
@@ -64,9 +65,10 @@ async def lifespan(app: FastAPI):
     try:
         async with async_session() as db:
             await ensure_question_bank(db)
+            await backfill_user_countries(db)
             await db.commit()
     except Exception:
-        logger.exception("Failed to seed quiz question bank")
+        logger.exception("Failed to seed quiz question bank or leaderboard countries")
 
     yield
 
