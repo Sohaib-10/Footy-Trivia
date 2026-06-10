@@ -32,8 +32,8 @@ async def create_question(
 
 @router.put("/{id}", response_model=schemas.QuestionRead)
 async def update_question(
-    id: int = Path(..., ge=1),
     q_data: schemas.QuestionUpdate,
+    id: int = Path(..., ge=1),
     admin: models.User = Depends(auth.get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
