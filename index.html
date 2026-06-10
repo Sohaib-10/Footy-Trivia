@@ -1097,6 +1097,14 @@
 
           <div class="results-card">
 
+            <div id="results-loading" class="results-loading hidden">
+              <div class="results-loading-spinner" aria-hidden="true"></div>
+              <p class="results-loading-title">Saving your results…</p>
+              <p class="results-loading-msg">Please wait while we fetch data from the Database.</p>
+            </div>
+
+            <div id="results-content">
+
             <div class="results-ring">
 
               <svg width="140" height="140" viewBox="0 0 140 140">
@@ -1153,13 +1161,15 @@
 
             </div>
 
-            <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-top:1.5rem">
+            <div id="results-actions" style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-top:1.5rem">
 
-              <button class="btn btn-primary" onclick="restartQuiz()">⚡ Play Again</button>
+              <button class="btn btn-primary" id="results-mode-select-btn" onclick="restartQuiz()">Mode Select</button>
 
               <button class="btn btn-ghost" onclick="showPage('categories')">Browse Categories</button>
 
               <button class="btn btn-ghost" onclick="showPage('leaderboard')">🏆 Leaderboard</button>
+
+            </div>
 
             </div>
 

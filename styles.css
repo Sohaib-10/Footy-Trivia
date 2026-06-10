@@ -1892,6 +1892,54 @@
       margin-top: .2rem;
     }
 
+    .results-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: .75rem;
+      padding: 2.5rem 1rem;
+      min-height: 280px;
+    }
+
+    .results-loading.hidden {
+      display: none;
+    }
+
+    .results-loading-spinner {
+      width: 42px;
+      height: 42px;
+      border: 3px solid var(--border2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: resultsSpin .8s linear infinite;
+    }
+
+    @keyframes resultsSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    .results-loading-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .results-loading-msg {
+      color: var(--text2);
+      font-size: .92rem;
+      margin: 0;
+      max-width: 22rem;
+      line-height: 1.5;
+    }
+
+    #results-content.results-content-hidden {
+      display: none;
+    }
+
     /* ── LEAGUE SECTION ── */
     .league-section {
       margin-bottom: 2.75rem;

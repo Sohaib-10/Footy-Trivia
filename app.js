@@ -1264,17 +1264,51 @@
         }, advanceDelay);
       }
 
+      function setResultsLoading(loading) {
+        const loadingEl = document.getElementById('results-loading');
+        const contentEl = document.getElementById('results-content');
+        const actionsEl = document.getElementById('results-actions');
+        if (loadingEl) loadingEl.classList.toggle('hidden', !loading);
+        if (contentEl) contentEl.classList.toggle('results-content-hidden', loading);
+        if (actionsEl) {
+          actionsEl.querySelectorAll('button').forEach((btn) => { btn.disabled = loading; });
+        }
+      }
+
+      function renderQuizResults({ score, correct, total, bestStreak }) {
+        const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+        const titles = ['Keep Practicing!', 'Not Bad!', 'Good Game!', 'Great Performance!', 'Excellent!', 'Unstoppable! 🔥'];
+        const titleIdx = Math.floor(pct / 20);
+        document.getElementById('results-pct').textContent = pct + '%';
+        document.getElementById('results-title').textContent = titles[Math.min(titleIdx, 5)];
+        document.getElementById('results-msg').textContent = `${correct}/${total} correct answers`;
+        document.getElementById('r-correct').textContent = correct;
+        document.getElementById('r-points').textContent = score;
+        document.getElementById('r-best-streak').textContent = bestStreak;
+        const arc = document.getElementById('results-arc');
+        if (arc) {
+          arc.style.strokeDashoffset = '377';
+          setTimeout(() => {
+            arc.style.strokeDashoffset = String(377 * (1 - pct / 100));
+          }, 80);
+        }
+      }
+
       async function endQuiz() {
         stopQuizKeepAlive();
         clearInterval(state.quiz.timer);
         document.getElementById('quiz-interface').classList.add('hidden');
         document.getElementById('results-screen').classList.remove('hidden');
+
         const q = state.quiz;
         const total = q.questions.length;
         let score = q.score;
         let correct = q.correct;
+        const needsDbSync = q.serverMode && q.sessionId;
 
-        if (q.serverMode && q.sessionId) {
+        setResultsLoading(needsDbSync);
+
+        if (needsDbSync) {
           try {
             await flushQuizAnswerSyncs();
             if (q.answersSubmitted >= total) {
@@ -1290,24 +1324,13 @@
           }
         }
 
-        const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
-        const titles = ['Keep Practicing!', 'Not Bad!', 'Good Game!', 'Great Performance!', 'Excellent!', 'Unstoppable! 🔥'];
-        const titleIdx = Math.floor(pct / 20);
-        document.getElementById('results-pct').textContent = pct + '%';
-        document.getElementById('results-title').textContent = titles[Math.min(titleIdx, 5)];
-        document.getElementById('results-msg').textContent = `${correct}/${total} correct answers`;
-        document.getElementById('r-correct').textContent = correct;
-        document.getElementById('r-points').textContent = score;
-        document.getElementById('r-best-streak').textContent = q.bestStreak;
+        setResultsLoading(false);
+        renderQuizResults({ score, correct, total, bestStreak: q.bestStreak });
         q.score = score;
         saveQuizResult(q.category, score, correct, total, TIMER_MAX - state.quiz.timeLeft);
         if (!q.serverMode || q.answersSubmitted >= total) {
           markCategoryCompleted(q.category);
         }
-        setTimeout(() => {
-          const arc = document.getElementById('results-arc');
-          if (arc) arc.style.strokeDashoffset = 377 * (1 - pct / 100);
-        }, 100);
         showToast(`🏆 Game over! ${correct}/${total} correct`, 'success');
       }
       function exitQuiz() {
@@ -1317,6 +1340,7 @@
         document.getElementById('mode-select').classList.remove('hidden');
       }
       function restartQuiz() {
+        setResultsLoading(false);
         document.getElementById('results-screen').classList.add('hidden');
         document.getElementById('mode-select').classList.remove('hidden');
         syncModeCardSelection();
