@@ -6,9 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from app.routers import auth, users, leaderboard, quiz, questions, teams, countries, achievements, storage_router, profiles, stats, battle, wc, players
-from app.database import engine, Base
+from app.database import engine, Base, async_session
 from app import models  # noqa: F401  (ensures all tables are registered on Base.metadata)
 from app.config import settings
+from app.question_seed import ensure_question_bank
 from app.middleware.csrf import CsrfMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.request_limits import RequestSizeLimitMiddleware
@@ -45,8 +46,19 @@ async def lifespan(app: FastAPI):
             await conn.execute(text(
                 "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS preferences JSONB NOT NULL DEFAULT '{}'::jsonb"
             ))
+            await conn.execute(text(
+                "ALTER TABLE questions ADD COLUMN IF NOT EXISTS source_topic VARCHAR(50)"
+            ))
     except Exception:
         logger.exception("Failed to ensure database tables on startup")
+
+    try:
+        async with async_session() as db:
+            await ensure_question_bank(db)
+            await db.commit()
+    except Exception:
+        logger.exception("Failed to seed quiz question bank")
+
     yield
 
 

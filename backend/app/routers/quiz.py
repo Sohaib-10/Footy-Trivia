@@ -40,10 +40,13 @@ async def start_quiz(
 
     query = select(models.Question)
 
+    if setup.topic:
+        query = query.where(models.Question.source_topic == setup.topic)
+    elif setup.category:
+        query = query.where(models.Question.category == setup.category)
+
     if setup.difficulty != "mixed":
         query = query.where(models.Question.difficulty == setup.difficulty)
-    if setup.category:
-        query = query.where(models.Question.category == setup.category)
 
     query = query.order_by(func.random()).limit(setup.total_questions)
 

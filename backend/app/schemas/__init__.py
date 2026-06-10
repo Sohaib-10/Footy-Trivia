@@ -330,6 +330,7 @@ class QuestionPublicRead(BaseModel):
 class QuizSessionStart(BaseModel):
     difficulty: str = Field("mixed", pattern="^(easy|medium|hard|mixed)$")
     category: Optional[str] = Field(None, pattern="^(transfers|history|world_cup|clubs|players|general)$")
+    topic: Optional[str] = Field(None, max_length=50)
     total_questions: int = Field(10, ge=1, le=50)
     challenge_type: Optional[str] = Field(None, pattern="^daily$")
 

@@ -642,6 +642,20 @@
       }
 
       // ──────────────────────────  a• a• a• a• a• a•  QUIZ ENGINE a• a• a• a• a• a• a• 
+      const QUIZ_QUESTIONS_PER_ROUND = 10;
+      const QUIZ_RECENT_STORAGE_KEY = 'footytrivia_recent_quiz_questions';
+
+      const QUIZ_CATEGORY_EXPANSIONS = {
+        'man-utd': { parents: ['premier-league'], keywords: ['manchester united', 'man united', 'man utd', 'old trafford', 'wayne rooney', 'sir alex', 'ferguson', 'solskjaer', 'beckham', 'giggs'] },
+        'man-city': { parents: ['premier-league'], keywords: ['manchester city', 'man city', 'etihad', 'aguero', 'guardiola', 'de bruyne', 'haaland'] },
+        'chelsea': { parents: ['premier-league'], keywords: ['chelsea', 'stamford bridge', 'drogba', 'lampard', 'mourinho'] },
+        'arsenal': { parents: ['premier-league'], keywords: ['arsenal', 'emirates', 'wenger', 'henry', 'invincibles'] },
+        'liverpool': { parents: ['premier-league'], keywords: ['liverpool', 'anfield', 'klopp', 'salah', 'gerrard', 'you\'ll never walk alone'] },
+        'real-madrid': { parents: ['la-liga', 'ucl'], keywords: ['real madrid', 'bernabeu', 'blancos', 'benzema', 'modric', 'zidane'] },
+        'barcelona': { parents: ['la-liga', 'ucl'], keywords: ['barcelona', 'barca', 'camp nou', 'messi', 'guardiola', 'la masia'] },
+        'atletico': { parents: ['la-liga'], keywords: ['atletico', 'atleti', 'simeone', 'colchoneros', 'metropolitano'] },
+      };
+
       const QUIZ_API_CATEGORY_MAP = {
         'world-cup': 'world_cup',
         'ucl': 'clubs',
@@ -665,6 +679,81 @@
         'general': 'general',
       };
 
+      function shuffleArray(items) {
+        const arr = items.slice();
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+
+      function getQuizRecentMap() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(QUIZ_RECENT_STORAGE_KEY) || '{}');
+          return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function rememberQuizQuestions(category, questions) {
+        const recent = getQuizRecentMap();
+        const keys = (questions || []).map(q => q.q).filter(Boolean);
+        const merged = [...keys, ...(recent[category] || [])].filter((q, i, arr) => arr.indexOf(q) === i).slice(0, 40);
+        recent[category] = merged;
+        localStorage.setItem(QUIZ_RECENT_STORAGE_KEY, JSON.stringify(recent));
+      }
+
+      function questionMatchesKeywords(question, keywords) {
+        if (!keywords || !keywords.length) return false;
+        const haystack = `${question.q || ''} ${question.cat || ''}`.toLowerCase();
+        return keywords.some((kw) => haystack.includes(String(kw).toLowerCase()));
+      }
+
+      function buildQuizQuestionPool(category) {
+        const primary = (QUESTIONS[category] || []).slice();
+        const expansion = QUIZ_CATEGORY_EXPANSIONS[category];
+        const related = [];
+        if (expansion && expansion.parents) {
+          expansion.parents.forEach((parentKey) => {
+            const parentPool = QUESTIONS[parentKey] || [];
+            parentPool.forEach((q) => {
+              if (questionMatchesKeywords(q, expansion.keywords)) related.push(q);
+            });
+          });
+        }
+        const seen = new Set();
+        return primary.concat(related).filter((q) => {
+          const key = q.q;
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
+
+      function filterQuizPoolByDifficulty(pool, difficulty) {
+        if (!difficulty || difficulty === 'mixed') return pool;
+        const filtered = pool.filter((q) => q.diff === difficulty);
+        return filtered.length >= QUIZ_QUESTIONS_PER_ROUND ? filtered : pool;
+      }
+
+      function pickQuizQuestions(category, difficulty = 'mixed', count = QUIZ_QUESTIONS_PER_ROUND) {
+        let pool = filterQuizPoolByDifficulty(buildQuizQuestionPool(category), difficulty);
+        if (!pool.length) {
+          pool = filterQuizPoolByDifficulty(QUESTIONS[category] || QUESTIONS.general || [], difficulty);
+        }
+        if (!pool.length) return [];
+
+        const recent = new Set(getQuizRecentMap()[category] || []);
+        const fresh = pool.filter((q) => !recent.has(q.q));
+        const stale = pool.filter((q) => recent.has(q.q));
+        const ordered = shuffleArray(fresh.length >= count ? fresh : fresh.concat(shuffleArray(stale)));
+        const picked = ordered.slice(0, Math.min(count, ordered.length));
+        rememberQuizQuestions(category, picked);
+        return picked;
+      }
+
       function mapQuizStartParams(frontendCategory) {
         const mapped = Object.prototype.hasOwnProperty.call(QUIZ_API_CATEGORY_MAP, frontendCategory)
           ? QUIZ_API_CATEGORY_MAP[frontendCategory]
@@ -673,7 +762,11 @@
         if (frontendCategory === 'daily') difficulty = 'mixed';
         if (difficulty === 'legendary') difficulty = 'hard';
         if (!['easy', 'medium', 'hard', 'mixed'].includes(difficulty)) difficulty = 'mixed';
-        const payload = { difficulty, total_questions: 10 };
+        const payload = {
+          difficulty,
+          total_questions: QUIZ_QUESTIONS_PER_ROUND,
+          topic: frontendCategory,
+        };
         if (mapped) payload.category = mapped;
         if (frontendCategory === 'daily') payload.challenge_type = 'daily';
         return payload;
@@ -733,6 +826,9 @@
               showToast('No questions available for this category.', 'warning');
               return;
             }
+            if (questions.length < QUIZ_QUESTIONS_PER_ROUND) {
+              showToast(`This category has ${questions.length} questions right now.`, 'info');
+            }
             state.quiz = {
               ...state.quiz,
               active: true,
@@ -773,14 +869,17 @@
           openModal('login');
           return;
         }
-        const pool = QUESTIONS[category] || QUESTIONS['general'] || [];
-        const shuffled = [...pool].sort(() => Math.random() - .5).slice(0, Math.min(10, pool.length));
+        const picked = pickQuizQuestions(category, state.selectedDiff || 'mixed', QUIZ_QUESTIONS_PER_ROUND);
+        if (!picked.length) {
+          showToast('No questions available for this category.', 'warning');
+          return;
+        }
         state.quiz = {
           ...state.quiz,
           active: true,
           serverMode: false,
           sessionId: null,
-          questions: shuffled,
+          questions: picked,
           idx: 0,
           score: 0,
           correct: 0,

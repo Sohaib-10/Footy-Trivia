@@ -104,6 +104,7 @@ class Question(Base):
     correct_option: Mapped[str] = mapped_column(CHAR(1), nullable=False)
     difficulty: Mapped[str] = mapped_column(String(10), nullable=False)
     category: Mapped[str] = mapped_column(String(30), nullable=False)
+    source_topic: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     team_id: Mapped[Optional[int]] = mapped_column(ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
     country_id: Mapped[Optional[int]] = mapped_column(ForeignKey("countries.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=func.now())
