@@ -3304,7 +3304,18 @@
       // WC_GROUPS loaded from data.js
       // WC_PLAYERS loaded from data.js
       // WC_FIXTURES loaded from data.js
-      // Seed photo database for top superstars to load instantly
+      // Verified SportsDB player IDs for mononyms / ambiguous names (search alone returns wrong players).
+      const playerPhotoIds = {
+        pedri: '34172243',
+        rodri: '34163415',
+        gavi: '34193417',
+        'kaoru mitoma': '34179731',
+        'alexis mac allister': '34170133',
+        'antoine griezmann': '34159231',
+        'bernardo silva': '34152742',
+        'kai havertz': '34169226',
+        'dani olmo': '34168363',
+      };
       const seedPlayerPhotos = {
         'Kylian Mbappe': 'https://r2.thesportsdb.com/images/media/player/cutout/h9u9vz1733653583.png',
         'Lionel Messi': 'https://r2.thesportsdb.com/images/media/player/cutout/e0i2051750317027.png',
@@ -3317,10 +3328,13 @@
         'Cole Palmer': 'https://r2.thesportsdb.com/images/media/player/cutout/fn0pzc1757010119.png',
         'Kevin De Bruyne': 'https://r2.thesportsdb.com/images/media/player/cutout/o4flia1764089447.png',
         'Phil Foden': 'https://r2.thesportsdb.com/images/media/player/cutout/lbn4sx1769182620.png',
+        'Pedri': 'https://r2.thesportsdb.com/images/media/player/cutout/82xtuu1726509836.png',
       };
       const SPORTSDB_SEARCH_URL = (window.ENV && window.ENV.SPORTSDB_API_URL)
         || 'https://www.thesportsdb.com/api/v1/json/3/searchplayers.php';
-      const PLAYER_PHOTO_IMG_ATTRS = 'style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;" referrerpolicy="no-referrer" onload="this.style.display=\'block\'; this.previousElementSibling.style.display=\'none\';" onerror="this.style.display=\'none\'; this.previousElementSibling.style.display=\'flex\';"';
+      const SPORTSDB_LOOKUP_URL = 'https://www.thesportsdb.com/api/v1/json/3/lookupplayer.php';
+      const PLAYER_PHOTO_CACHE_KEY = 'wc_player_photo_cache_v3';
+      const PLAYER_PHOTO_IMG_ATTRS = 'style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;" referrerpolicy="no-referrer" onload="this.style.display=\'block\'; this.previousElementSibling.style.display=\'none\';" onerror="this.style.display=\'none\'; this.previousElementSibling.style.display=\'flex\'; if(window.invalidatePlayerPhoto) window.invalidatePlayerPhoto(this.dataset.player);"';
 
       function normalizePlayerName(name) {
         return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -3328,6 +3342,28 @@
 
       function playerPhotoCacheKey(name) {
         return normalizePlayerName(name).toLowerCase();
+      }
+
+      function normalizeClubName(club) {
+        return normalizePlayerName(club).toLowerCase()
+          .replace(/\b(fc|afc|cf|sc|ac)\b/g, '')
+          .replace(/[^a-z0-9\s]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      function clubMatches(resultTeam, expectedClub) {
+        if (!expectedClub || !resultTeam) return false;
+        const expected = normalizeClubName(expectedClub);
+        const actual = normalizeClubName(resultTeam);
+        if (!expected || !actual) return false;
+        if (actual.includes(expected) || expected.includes(actual)) return true;
+        return expected.split(' ').filter(w => w.length > 3).some(word => actual.includes(word));
+      }
+
+      function getPlayerPhotoContext(playerName) {
+        const key = playerPhotoCacheKey(playerName);
+        return wcPlayers().find(p => playerPhotoCacheKey(p.name) === key) || null;
       }
 
       function normalizePlayerPhotoCache(rawCache) {
@@ -3341,64 +3377,104 @@
       }
 
       let playerPhotoCache = normalizePlayerPhotoCache(
-        JSON.parse(localStorage.getItem('wc_player_photo_cache_v2') || '{}')
+        JSON.parse(localStorage.getItem(PLAYER_PHOTO_CACHE_KEY) || '{}')
       );
       const playerPhotoPending = new Set();
 
-      let cacheUpdated = false;
-      for (const [name, url] of Object.entries(seedPlayerPhotos)) {
-        const key = playerPhotoCacheKey(name);
-        if (!playerPhotoCache[key]) {
-          const safeUrl = safeImageUrl(url);
-          if (safeUrl) {
-            playerPhotoCache[key] = safeUrl;
-            cacheUpdated = true;
-          }
-        }
-      }
-      if (cacheUpdated) {
-        try {
-          localStorage.setItem('wc_player_photo_cache_v2', JSON.stringify(playerPhotoCache));
-        } catch (e) {}
-      }
-
-      function buildPlayerSearchVariants(playerName) {
+      function buildPlayerSearchVariants(playerName, context) {
         const trimmed = String(playerName || '').trim();
         const normalized = normalizePlayerName(trimmed);
         const parts = normalized.split(/\s+/).filter(Boolean);
         const variants = [trimmed, normalized];
         if (parts.length >= 2) {
           variants.push(parts.slice(-2).join(' '));
-          variants.push(parts[parts.length - 1]);
+        }
+        if (context?.club) {
+          variants.push(`${trimmed} ${context.club}`);
+          if (parts.length >= 2) {
+            variants.push(`${parts.slice(-2).join(' ')} ${context.club}`);
+          }
         }
         return [...new Set(variants.filter(Boolean))];
       }
 
-      function pickBestSoccerPlayer(results, searchName) {
-        if (!Array.isArray(results) || !results.length) return null;
-        const soccerPlayers = results.filter(item => item.strSport === 'Soccer');
-        const pool = soccerPlayers.length ? soccerPlayers : results;
-        const target = normalizePlayerName(searchName).toLowerCase();
-        const exact = pool.find(item => normalizePlayerName(item.strPlayer || '').toLowerCase() === target);
-        if (exact) return exact;
-        const partial = pool.find(item => {
-          const playerName = normalizePlayerName(item.strPlayer || '').toLowerCase();
-          return playerName.includes(target) || target.includes(playerName);
-        });
-        return partial || pool[0];
+      function isMononym(playerName) {
+        return normalizePlayerName(playerName).split(/\s+/).filter(Boolean).length === 1;
       }
 
-      function extractPlayerPhotoUrl(data, searchName) {
-        const result = pickBestSoccerPlayer(data && data.player, searchName);
+      function scorePlayerMatch(candidate, targetName, context) {
+        const playerName = normalizePlayerName(candidate.strPlayer || '').toLowerCase();
+        const target = normalizePlayerName(targetName).toLowerCase();
+        const targetParts = target.split(/\s+/).filter(Boolean);
+        const playerParts = playerName.split(/\s+/).filter(Boolean);
+        let score = 0;
+
+        if (playerName === target) {
+          score += 100;
+        } else if (targetParts.length === 1) {
+          if (playerParts.length === 1 && playerParts[0] === targetParts[0]) {
+            score += 95;
+          } else if (playerParts[0] === targetParts[0] && context?.club && clubMatches(candidate.strTeam, context.club)) {
+            score += 88;
+          } else {
+            return 0;
+          }
+        } else if (playerParts.slice(-2).join(' ') === targetParts.slice(-2).join(' ')) {
+          score += 80;
+        } else if (playerName.includes(target) || target.includes(playerName)) {
+          score += 55;
+        } else {
+          return 0;
+        }
+
+        if (context?.club && clubMatches(candidate.strTeam, context.club)) score += 35;
+        if (context?.team && clubMatches(candidate.strTeam, context.team)) score += 15;
+        if (candidate.strSport === 'Soccer') score += 5;
+        if (candidate.strCutout) score += 3;
+        return score;
+      }
+
+      function pickBestSoccerPlayer(results, targetName, context) {
+        if (!Array.isArray(results) || !results.length) return null;
+        const mononym = isMononym(targetName);
+        const minScore = mononym ? 90 : 70;
+        const scored = results
+          .map(item => ({ item, score: scorePlayerMatch(item, targetName, context) }))
+          .filter(entry => entry.score >= minScore)
+          .sort((a, b) => b.score - a.score);
+        return scored[0]?.item || null;
+      }
+
+      function extractPlayerPhotoUrl(data, targetName, context) {
+        const result = pickBestSoccerPlayer(data && data.player, targetName, context);
+        if (!result) return '';
+        return result.strCutout || result.strThumb || result.strFanart1 || '';
+      }
+
+      function extractLookupPlayerPhotoUrl(data) {
+        const result = (data && data.players && data.players[0]) || null;
         if (!result) return '';
         return result.strCutout || result.strThumb || result.strFanart1 || '';
       }
 
       function persistPlayerPhotoCache() {
         try {
-          localStorage.setItem('wc_player_photo_cache_v2', JSON.stringify(playerPhotoCache));
+          localStorage.setItem(PLAYER_PHOTO_CACHE_KEY, JSON.stringify(playerPhotoCache));
         } catch (e) {}
       }
+
+      let seedCacheUpdated = false;
+      for (const [name, url] of Object.entries(seedPlayerPhotos)) {
+        const key = playerPhotoCacheKey(name);
+        if (!playerPhotoCache[key]) {
+          const safeUrl = safeImageUrl(url);
+          if (safeUrl) {
+            playerPhotoCache[key] = safeUrl;
+            seedCacheUpdated = true;
+          }
+        }
+      }
+      if (seedCacheUpdated) persistPlayerPhotoCache();
 
       function cachePlayerPhoto(playerName, photoUrl) {
         const safeUrl = safeImageUrl(photoUrl);
@@ -3409,37 +3485,62 @@
         return safeUrl;
       }
 
-      async function fetchPlayerPhotoFromBackend(searchName) {
+      async function fetchPlayerPhotoById(playerId) {
+        const res = await fetch(`${SPORTSDB_LOOKUP_URL}?id=${encodeURIComponent(playerId)}`);
+        if (!res.ok) throw new Error('SportsDB lookup failed');
+        const data = await res.json();
+        return extractLookupPlayerPhotoUrl(data);
+      }
+
+      async function fetchPlayerPhotoFromBackend(searchName, context, targetName) {
         const res = await fetch(
           `${API_BASE_URL}/api/players/search?name=${encodeURIComponent(searchName)}`,
           { credentials: 'include' }
         );
         if (!res.ok) throw new Error('Player search unavailable');
         const data = await res.json();
-        return extractPlayerPhotoUrl(data, searchName);
+        return extractPlayerPhotoUrl(data, targetName, context);
       }
 
-      async function fetchPlayerPhotoFromSportsDb(searchName) {
+      async function fetchPlayerPhotoFromSportsDb(searchName, context, targetName) {
         const res = await fetch(`${SPORTSDB_SEARCH_URL}?p=${encodeURIComponent(searchName)}`);
         if (!res.ok) throw new Error('SportsDB search failed');
         const data = await res.json();
-        return extractPlayerPhotoUrl(data, searchName);
+        return extractPlayerPhotoUrl(data, targetName, context);
       }
 
       async function resolvePlayerPhotoUrl(playerName) {
-        const variants = buildPlayerSearchVariants(playerName);
+        const context = getPlayerPhotoContext(playerName);
+        const cacheKey = playerPhotoCacheKey(playerName);
+        const mappedId = playerPhotoIds[cacheKey];
+        if (mappedId) {
+          try {
+            const idUrl = await fetchPlayerPhotoById(mappedId);
+            if (idUrl) return idUrl;
+          } catch (e) {}
+        }
+
+        const variants = buildPlayerSearchVariants(playerName, context);
         for (const variant of variants) {
           try {
-            const backendUrl = await fetchPlayerPhotoFromBackend(variant);
+            const backendUrl = await fetchPlayerPhotoFromBackend(variant, context, playerName);
             if (backendUrl) return backendUrl;
           } catch (e) {}
           try {
-            const sportsDbUrl = await fetchPlayerPhotoFromSportsDb(variant);
+            const sportsDbUrl = await fetchPlayerPhotoFromSportsDb(variant, context, playerName);
             if (sportsDbUrl) return sportsDbUrl;
           } catch (e) {}
         }
         return '';
       }
+
+      function invalidatePlayerPhoto(playerName) {
+        const key = playerPhotoCacheKey(playerName);
+        if (!playerPhotoCache[key]) return;
+        delete playerPhotoCache[key];
+        persistPlayerPhotoCache();
+      }
+      window.invalidatePlayerPhoto = invalidatePlayerPhoto;
 
       function getPlayerPhoto(playerName, callback) {
         const cacheKey = playerPhotoCacheKey(playerName);
