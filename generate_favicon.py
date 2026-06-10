@@ -7,12 +7,12 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "logo_icon.png"
 BRAND_GREEN = np.array([0, 61, 41], dtype=np.uint8)  # #003d29 — site --logo-brand
+OUTLINE_ALPHA = 90  # ~35% white — matches minimal site --logo-glow
 
 
 def load_icon() -> Image.Image:
     rgb = np.asarray(Image.open(SRC).convert("RGB")).astype(np.float32)
 
-    # Remove white background with smooth extraction, then harden edges for favicons.
     min_ch = rgb.min(axis=2)
     alpha = 1.0 - (min_ch / 255.0)
     lo = 0.18
@@ -29,8 +29,6 @@ def load_icon() -> Image.Image:
 
     cropped_alpha = alpha[y0:y1, x0:x1]
     alpha_u8 = (cropped_alpha * 255).astype(np.uint8)
-
-    # Drop the soft fringe that reads as a white outline in browser tabs.
     alpha_u8 = np.where(alpha_u8 >= 96, 255, 0).astype(np.uint8)
 
     h, w = alpha_u8.shape
@@ -51,8 +49,38 @@ def _harden_edges(img: Image.Image) -> Image.Image:
     arr[:, :, 3] = np.where(arr[:, :, 3] >= 64, 255, 0).astype(np.uint8)
     rgb = arr[:, :, :3].astype(np.float32)
     alpha = arr[:, :, 3:4].astype(np.float32) / 255.0
-    arr[:, :, :3] = np.clip(rgb * alpha + 0 * (1 - alpha), 0, 255).astype(np.uint8)
+    arr[:, :, :3] = np.clip(rgb * alpha, 0, 255).astype(np.uint8)
     return Image.fromarray(arr, mode="RGBA")
+
+
+def _dilate_mask(mask: np.ndarray) -> np.ndarray:
+    h, w = mask.shape
+    out = mask.copy()
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            if dy == 0 and dx == 0:
+                continue
+            shifted = np.zeros_like(mask)
+            sy0, sy1 = max(0, dy), min(h, h + dy)
+            sx0, sx1 = max(0, dx), min(w, w + dx)
+            ty0, ty1 = max(0, -dy), min(h, h - dy)
+            tx0, tx1 = max(0, -dx), min(w, w - dx)
+            shifted[ty0:ty1, tx0:tx1] = mask[sy0:sy1, sx0:sx1]
+            out |= shifted
+    return out
+
+
+def _add_minimal_outline(img: Image.Image) -> Image.Image:
+    arr = np.asarray(img)
+    solid = arr[:, :, 3] >= 128
+    ring = _dilate_mask(solid) & ~solid
+
+    outline = np.zeros_like(arr)
+    outline[ring] = (255, 255, 255, OUTLINE_ALPHA)
+
+    composed = Image.fromarray(outline, mode="RGBA")
+    composed.alpha_composite(Image.fromarray(arr, mode="RGBA"))
+    return composed
 
 
 def save_assets(icon: Image.Image) -> None:
@@ -68,6 +96,9 @@ def save_assets(icon: Image.Image) -> None:
         out = icon.resize((size, size), Image.Resampling.LANCZOS)
         if size <= 180:
             out = _harden_edges(out)
+            out = _add_minimal_outline(out)
+        else:
+            out = _add_minimal_outline(out)
         path = ROOT / name
         out.save(path, format="PNG", optimize=True)
         pngs.append(out)
