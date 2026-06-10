@@ -9,8 +9,7 @@ from uuid import UUID
 from app.database import get_db
 from app import models, schemas, auth
 from app.quiz_verify import make_answer_hash, new_verify_key
-
-DIFFICULTY_POINTS = {"easy": 10, "medium": 20, "hard": 30}
+from app.quiz_scoring import calc_quiz_points
 
 router = APIRouter(prefix="/api/quiz", tags=["quiz"])
 
@@ -70,6 +69,7 @@ async def start_quiz(
         topic=setup.topic,
         verify_key=verify_key,
         challenge_type=setup.challenge_type,
+        play_mode=setup.play_mode or ("daily" if setup.challenge_type == "daily" else "solo"),
         total_questions=len(questions),
         score=0,
         is_completed=False
@@ -148,7 +148,26 @@ async def submit_answer(
         selected_option = ans_data.selected_option.upper()
         is_correct = selected_option == question.correct_option.upper()
 
-    points = DIFFICULTY_POINTS.get(question.difficulty.lower(), 10) if is_correct else 0
+    streak = 0
+    if is_correct:
+        prior_correct = (
+            await db.execute(
+                select(func.count(models.SessionAnswer.id)).where(
+                    models.SessionAnswer.session_id == session.id,
+                    models.SessionAnswer.is_correct.is_(True),
+                )
+            )
+        ).scalar() or 0
+        streak = prior_correct + 1
+
+    points = calc_quiz_points(
+        difficulty=question.difficulty,
+        time_taken_seconds=ans_data.time_taken_seconds,
+        mode=session.play_mode,
+        streak=streak,
+        timed_out=ans_data.timed_out,
+        is_correct=is_correct,
+    )
     if is_correct:
         session.score += points
 
@@ -222,16 +241,26 @@ async def apply_session_progress(session: models.QuizSession, db: AsyncSession) 
         db.add(leaderboard)
 
     session_points = 0
+    session_streak = 0
     for answer, question in rows:
         progress.total_questions_answered += 1
         if answer.is_correct:
-            pts = DIFFICULTY_POINTS.get(question.difficulty.lower(), 10)
+            session_streak += 1
+            pts = calc_quiz_points(
+                difficulty=question.difficulty,
+                time_taken_seconds=answer.time_taken_seconds,
+                mode=session.play_mode,
+                streak=session_streak,
+                timed_out=answer.selected_option is None and not answer.is_correct,
+                is_correct=True,
+            )
             session_points += pts
             progress.total_correct += 1
             progress.current_streak += 1
             if progress.current_streak > progress.longest_streak:
                 progress.longest_streak = progress.current_streak
         else:
+            session_streak = 0
             progress.total_incorrect += 1
             progress.current_streak = 0
 

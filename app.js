@@ -643,8 +643,44 @@
 
       // ──────────────────────────  a• a• a• a• a• a•  QUIZ ENGINE a• a• a• a• a• a• a• 
       const QUIZ_QUESTIONS_PER_ROUND = 10;
-      const SERVER_QUIZ_POINTS = { easy: 10, medium: 20, hard: 30 };
       const QUIZ_RECENT_STORAGE_KEY = 'footytrivia_recent_quiz_questions';
+      const QUIZ_ADVANCE_MS_CORRECT = 380;
+      const QUIZ_ADVANCE_MS_WRONG = 520;
+      const QUIZ_MODE_CONFIG = {
+        solo: { timer: 15, multiplier: 1.0 },
+        blitz: { timer: 8, multiplier: 2.0 },
+        hardcore: { timer: 10, multiplier: 1.0 },
+        ranked: { timer: 12, multiplier: 1.5 },
+        daily: { timer: 15, multiplier: 1.25 },
+      };
+      const QUIZ_DIFF_BASE = { easy: 80, medium: 120, hard: 160, legendary: 200, mixed: 100 };
+
+      function getActiveQuizMode() {
+        if (state.selectedMode === 'daily' || state.quiz.category === 'daily') return 'daily';
+        return state.selectedMode || 'solo';
+      }
+
+      function getQuizTimerMax(mode) {
+        const key = mode || getActiveQuizMode();
+        return (QUIZ_MODE_CONFIG[key] || QUIZ_MODE_CONFIG.solo).timer;
+      }
+
+      function calcQuizPoints({ difficulty, timeLeft, timerMax, mode, streak, hintPenalty = 1, correct = true }) {
+        if (!correct) return 0;
+        const base = QUIZ_DIFF_BASE[difficulty] || QUIZ_DIFF_BASE.mixed;
+        const maxTimer = timerMax || getQuizTimerMax(mode);
+        const secondsLeft = Math.max(0, Math.min(maxTimer, timeLeft));
+        const speedBonus = secondsLeft * 8;
+        let pts = Math.floor((base + speedBonus) * hintPenalty);
+        if (streak >= 3) pts = Math.floor(pts * 1.2);
+        const modeMult = (QUIZ_MODE_CONFIG[mode] || QUIZ_MODE_CONFIG.solo).multiplier;
+        pts = Math.floor(pts * modeMult);
+        return Math.max(pts, 30);
+      }
+
+      function getQuizAdvanceDelay(correct) {
+        return correct ? QUIZ_ADVANCE_MS_CORRECT : QUIZ_ADVANCE_MS_WRONG;
+      }
 
       const QUIZ_CATEGORY_EXPANSIONS = {
         'man-utd': { parents: ['premier-league'], keywords: ['manchester united', 'man united', 'man utd', 'old trafford', 'wayne rooney', 'sir alex', 'ferguson', 'solskjaer', 'beckham', 'giggs'] },
@@ -767,6 +803,7 @@
           difficulty,
           total_questions: QUIZ_QUESTIONS_PER_ROUND,
           topic: frontendCategory,
+          play_mode: frontendCategory === 'daily' ? 'daily' : (state.selectedMode || 'solo'),
         };
         if (mapped) payload.category = mapped;
         if (frontendCategory === 'daily') payload.challenge_type = 'daily';
@@ -1059,68 +1096,52 @@
         const question = q.questions[q.idx];
         const timeTaken = TIMER_MAX - state.quiz.timeLeft;
 
-        if (q.serverMode) {
-          q.submitting = true;
-          const selectedOption = String.fromCharCode(65 + idx);
-          const correctOption = question.correctOption || 'A';
-          const correct = selectedOption === correctOption;
-          const pts = correct ? (SERVER_QUIZ_POINTS[question.diff] || 10) : 0;
-          if (correct) {
-            q.score += pts;
-            q.correct++;
-            q.streak++;
-            if (q.streak > q.bestStreak) q.bestStreak = q.streak;
-          } else {
-            q.streak = 0;
-          }
-          q.answersSubmitted++;
-          revealAnswerResult(idx, correctOption, correct);
-          document.getElementById('q-score').textContent = `${q.score} PTS`;
-          showFeedback(correct, pts, q.streak);
-          queueQuizAnswerSync(selectedOption, timeTaken);
-          const advanceDelay = correct ? 1000 : 1300;
-          if (!correct && state.selectedMode === 'hardcore') {
-            setTimeout(() => { hideFeedback(); endQuiz(); }, advanceDelay);
-            q.submitting = false;
-            return;
-          }
-          setTimeout(() => {
-            hideFeedback();
-            q.idx++;
-            q.submitting = false;
-            renderQuestion();
-          }, advanceDelay);
-          return;
-        }
+        const selectedOption = String.fromCharCode(65 + idx);
+        const correctOption = q.serverMode
+          ? (question.correctOption || 'A')
+          : String.fromCharCode(65 + question.ans);
+        const correct = q.serverMode ? (selectedOption === correctOption) : (idx === question.ans);
+        const nextStreak = correct ? q.streak + 1 : 0;
+        const pts = calcQuizPoints({
+          difficulty: question.diff,
+          timeLeft: state.quiz.timeLeft,
+          timerMax: TIMER_MAX,
+          mode: getActiveQuizMode(),
+          streak: nextStreak,
+          hintPenalty: q.hintPenalty,
+          correct,
+        });
 
-        const correct = idx === question.ans;
-        revealAnswerResult(idx, String.fromCharCode(65 + question.ans), correct);
-        const timeBonus = Math.floor(state.quiz.timeLeft * 5);
-        let pts = 0;
+        q.submitting = true;
         if (correct) {
-          q.correct++;
-          q.streak++;
-          if (q.streak > q.bestStreak) q.bestStreak = q.streak;
-          const base = { easy: 100, medium: 150, hard: 200, legendary: 300 }[question.diff] || 100;
-          pts = Math.floor((base + timeBonus) * q.hintPenalty);
-          if (q.streak >= 3) pts = Math.floor(pts * 1.2);
-          if (state.selectedMode === 'blitz') pts *= 2;
-          if (state.selectedMode === 'ranked') pts = Math.floor(pts * 1.5);
           q.score += pts;
+          q.correct++;
+          q.streak = nextStreak;
+          if (q.streak > q.bestStreak) q.bestStreak = q.streak;
         } else {
           q.streak = 0;
         }
+
+        revealAnswerResult(idx, correctOption, correct);
         document.getElementById('q-score').textContent = `${q.score} PTS`;
         showFeedback(correct, pts, q.streak);
+
+        if (q.serverMode) {
+          q.answersSubmitted++;
+          queueQuizAnswerSync(selectedOption, timeTaken);
+        }
+
+        const advanceDelay = getQuizAdvanceDelay(correct);
         if (!correct && state.selectedMode === 'hardcore') {
-          setTimeout(() => { hideFeedback(); endQuiz(); }, 2200);
+          setTimeout(() => { hideFeedback(); q.submitting = false; endQuiz(); }, advanceDelay);
           return;
         }
         setTimeout(() => {
           hideFeedback();
           q.idx++;
+          q.submitting = false;
           renderQuestion();
-        }, correct ? 1000 : 1300);
+        }, advanceDelay);
       }
       function showFeedback(correct, pts, streak) {
         if (correct) playCorrectSound();
@@ -1140,7 +1161,7 @@
         el.className = 'combo-flash';
         el.textContent = `${streak}× COMBO!`;
         document.body.appendChild(el);
-        setTimeout(() => el.remove(), 1100);
+        setTimeout(() => el.remove(), 700);
       }
       function useHint(hintIdx) {
         const q = state.quiz;
@@ -1174,8 +1195,7 @@
       let TIMER_MAX = 15;
       function startTimer() {
         clearInterval(state.quiz.timer);
-        const mode = state.selectedMode;
-        TIMER_MAX = mode === 'blitz' ? 8 : mode === 'hardcore' ? 10 : mode === 'ranked' ? 12 : 15;
+        TIMER_MAX = getQuizTimerMax(getActiveQuizMode());
         state.quiz.timeLeft = TIMER_MAX;
         updateTimerUI();
         state.quiz.timer = setInterval(() => {
@@ -1214,9 +1234,9 @@
           q.streak = 0;
           showFeedback(false, 0, 0);
           queueQuizAnswerSync(null, TIMER_MAX, true);
+          const advanceDelay = getQuizAdvanceDelay(false);
           if (state.selectedMode === 'hardcore') {
-            setTimeout(() => { hideFeedback(); endQuiz(); }, 1300);
-            q.submitting = false;
+            setTimeout(() => { hideFeedback(); q.submitting = false; endQuiz(); }, advanceDelay);
             return;
           }
           setTimeout(() => {
@@ -1224,7 +1244,7 @@
             q.idx++;
             q.submitting = false;
             renderQuestion();
-          }, 1300);
+          }, advanceDelay);
           return;
         }
 
@@ -1232,15 +1252,16 @@
         revealAnswerResult(-1, String.fromCharCode(65 + question.ans), false);
         q.streak = 0;
         showFeedback(false, 0, 0);
+        const advanceDelay = getQuizAdvanceDelay(false);
         if (state.selectedMode === 'hardcore') {
-          setTimeout(() => { hideFeedback(); endQuiz(); }, 1300);
+          setTimeout(() => { hideFeedback(); endQuiz(); }, advanceDelay);
           return;
         }
         setTimeout(() => {
           hideFeedback();
           q.idx++;
           renderQuestion();
-        }, 1300);
+        }, advanceDelay);
       }
 
       async function endQuiz() {

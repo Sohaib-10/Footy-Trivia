@@ -55,6 +55,9 @@ async def lifespan(app: FastAPI):
             await conn.execute(text(
                 "ALTER TABLE quiz_sessions ADD COLUMN IF NOT EXISTS verify_key VARCHAR(64)"
             ))
+            await conn.execute(text(
+                "ALTER TABLE quiz_sessions ADD COLUMN IF NOT EXISTS play_mode VARCHAR(20)"
+            ))
     except Exception:
         logger.exception("Failed to ensure database tables on startup")
 

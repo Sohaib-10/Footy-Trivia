@@ -130,6 +130,7 @@ class QuizSession(Base):
     topic: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     verify_key: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     challenge_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    play_mode: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     total_questions: Mapped[int] = mapped_column(Integer, nullable=False)
     score: Mapped[int] = mapped_column(Integer, default=0)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)

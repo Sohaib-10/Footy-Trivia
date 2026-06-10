@@ -337,6 +337,7 @@ class QuizSessionStart(BaseModel):
     topic: Optional[str] = Field(None, max_length=50)
     total_questions: int = Field(10, ge=1, le=50)
     challenge_type: Optional[str] = Field(None, pattern="^daily$")
+    play_mode: Optional[str] = Field("solo", pattern="^(solo|blitz|hardcore|ranked|daily)$")
 
 class QuizSessionRead(BaseModel):
     id: UUID
