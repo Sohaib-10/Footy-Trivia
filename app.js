@@ -3724,27 +3724,49 @@
         return slim;
       }
 
+      function getBracketPayloadFromStorage() {
+        try {
+          const saved = localStorage.getItem('wc_bracket_state_official_slots_v1');
+          if (!saved) return [];
+          const data = JSON.parse(saved);
+          return Array.isArray(data) ? data : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
       function collectWcPredictionPayload() {
         let bracket = [];
         let champion = null;
         let bracketSubmitted = false;
         if (window.bracketPredictor && window.bracketPredictor.matches) {
-          bracket = window.bracketPredictor.matches.map(m => {
-            const entry = {
-              home: m.home ? m.home.name : null,
-              away: m.away ? m.away.name : null,
-              winner: m.winner || null,
-            };
-            if (m.winner && m[m.winner]) {
-              entry[m.winner] = m[m.winner].name || m[m.winner];
-            }
-            return entry;
-          });
+          bracket = window.bracketPredictor.matches.map(m => ({
+            home: m.home ? m.home.name : null,
+            away: m.away ? m.away.name : null,
+            winner: m.winner || null,
+          }));
           const finalM = window.bracketPredictor.matches[30];
           if (finalM && finalM.winner && finalM[finalM.winner]) {
             champion = finalM[finalM.winner].name || finalM[finalM.winner];
           }
           bracketSubmitted = window.bracketPredictor.isBracketSubmitted();
+        }
+        const storedBracket = getBracketPayloadFromStorage();
+        const memoryHasWinners = bracket.some(m => m && m.winner);
+        const storageHasWinners = storedBracket.some(m => m && m.winner);
+        if (!memoryHasWinners && storageHasWinners) {
+          bracket = storedBracket.map(m => ({
+            home: m.home || null,
+            away: m.away || null,
+            winner: m.winner || null,
+          }));
+          const finalEntry = bracket[30];
+          if (finalEntry && finalEntry.winner) {
+            champion = finalEntry[finalEntry.winner] || null;
+          }
+        }
+        if (!bracketSubmitted && localStorage.getItem(BRACKET_SUBMITTED_KEY) === '1' && bracket.length === 31) {
+          bracketSubmitted = bracket.every(m => m && m.winner);
         }
         const awards = {};
         Object.entries(awardPredictions).forEach(([key, val]) => {
@@ -3802,9 +3824,7 @@
           localStorage.setItem(BRACKET_SUBMITTED_KEY, '1');
         }
         if (window.bracketPredictor) {
-          window.bracketPredictor.syncRound32Matchups();
-          window.bracketPredictor.loadSavedBracket();
-          window.bracketPredictor.updateDownloadButton();
+          window.bracketPredictor.restoreBracketState();
         }
         refreshPredictionCenterIfVisible();
       }
@@ -5272,12 +5292,7 @@
 
         // ── INIT ──
         init() {
-          this.syncRound32Matchups();
-          this.loadSavedBracket();
-          this.renderProgress();
-          this.renderBracket();
-          this.updateChampionDisplay();
-          this.updateDownloadButton();
+          this.restoreBracketState({ render: true });
 
           document.removeEventListener('click', this.boundCloseDropdowns);
           this.boundCloseDropdowns = (e) => {
@@ -5325,29 +5340,52 @@
           if (!saved) return;
           try {
             const data = JSON.parse(saved);
+            if (!Array.isArray(data)) return;
+
+            this.matches.forEach(m => { m.winner = null; });
+            for (let i = 16; i < this.totalMatches; i++) {
+              this.matches[i].home = null;
+              this.matches[i].away = null;
+            }
+
             data.forEach((d, i) => {
-              if (i >= this.totalMatches) return;
+              if (i >= this.totalMatches || !d) return;
               const m = this.matches[i];
-              if (i >= 16) {
-                if (d.home) m.home = this.findTeamByName(d.home);
-                if (d.away) m.away = this.findTeamByName(d.away);
-              }
-              if (d.winner) {
-                m.winner = d.winner;
-                const winnerTeam = m[d.winner];
-                if (winnerTeam) {
-                  this.propagateWinner(i, winnerTeam, false);
-                }
-              }
+              if (d.home) m.home = this.findTeamByName(d.home);
+              if (d.away) m.away = this.findTeamByName(d.away);
             });
+
+            for (let i = 0; i < data.length && i < this.totalMatches; i++) {
+              const d = data[i];
+              if (!d || !d.winner) continue;
+              const m = this.matches[i];
+              const winnerTeam = m[d.winner];
+              if (!winnerTeam) continue;
+              m.winner = d.winner;
+              this.propagateWinner(i, winnerTeam, false);
+            }
           } catch (e) { console.error('Bracket load error:', e); }
         }
 
+        restoreBracketState(options = {}) {
+          const { render = true } = options;
+          this.syncRound32Matchups({ persist: false });
+          this.loadSavedBracket();
+          if (render) {
+            this.renderBracket();
+            this.renderProgress();
+            this.updateChampionDisplay();
+          }
+          this.updateDownloadButton();
+        }
+
         // ── SYNC R32 slot labels from group predictions ──
-        syncRound32Matchups(forceDesignated = true) {
+        syncRound32Matchups(options = {}) {
+          if (typeof options === 'boolean') {
+            options = { forceDesignated: options };
+          }
+          const persist = options.persist !== false;
           this._savedDesignations = {};
-          // Only populate the bracket once predictions are complete (group rankings
-          // submitted + 8 third-place qualifiers confirmed). Otherwise keep it empty.
           const isSubmitted = arePredictionsComplete();
 
           if (!isSubmitted) {
@@ -5356,10 +5394,10 @@
               m.away = null;
               m.winner = null;
             });
-            this.saveBracket();
+            if (persist) this.saveBracket();
             return;
           }
-          
+
           for (let i = 0; i < 16; i++) {
             const homeCode = this.getSlotDesignation(i, 'home');
             const awayCode = this.getSlotDesignation(i, 'away');
@@ -5367,39 +5405,34 @@
             this._savedDesignations[`${i}-away`] = awayCode;
 
             const m = this.matches[i];
-            
-            if (isSubmitted) {
-              const defaultHome = this.getTeamByDesignation(homeCode);
-              const defaultAway = this.getTeamByDesignation(awayCode);
+            const defaultHome = this.getTeamByDesignation(homeCode);
+            const defaultAway = this.getTeamByDesignation(awayCode);
 
-              // Check if home changed
-              if (defaultHome) {
-                if (!m.home || m.home.name !== defaultHome.name) {
-                  m.home = defaultHome;
-                  this.clearDownstream(i);
-                }
-              } else {
-                if (m.home) {
-                  m.home = null;
-                  this.clearDownstream(i);
-                }
+            if (defaultHome) {
+              if (m.home && m.home.name !== defaultHome.name) {
+                m.home = defaultHome;
+                this.clearDownstream(i);
+              } else if (!m.home) {
+                m.home = defaultHome;
               }
+            } else if (m.home) {
+              m.home = null;
+              this.clearDownstream(i);
+            }
 
-              // Check if away changed
-              if (defaultAway) {
-                if (!m.away || m.away.name !== defaultAway.name) {
-                  m.away = defaultAway;
-                  this.clearDownstream(i);
-                }
-              } else {
-                if (m.away) {
-                  m.away = null;
-                  this.clearDownstream(i);
-                }
+            if (defaultAway) {
+              if (m.away && m.away.name !== defaultAway.name) {
+                m.away = defaultAway;
+                this.clearDownstream(i);
+              } else if (!m.away) {
+                m.away = defaultAway;
               }
+            } else if (m.away) {
+              m.away = null;
+              this.clearDownstream(i);
             }
           }
-          this.saveBracket();
+          if (persist) this.saveBracket();
         }
 
         // ── MATCH DESTINATION MAPPING ──
@@ -6440,11 +6473,14 @@
           }
           const champion = this.matches[30][this.matches[30].winner];
           this.markBracketSubmitted();
+          this.saveBracket();
           const saved = await syncWcPredictionsToApi();
           updatePredictorProfile();
           this.updateDownloadButton();
           if (saved) {
             showToast(`Bracket submitted! Predicted champion: ${champion.name}`, 'success');
+          } else {
+            showToast('Bracket saved locally but could not sync to your account. Please try again.', 'error');
           }
         }
       }
@@ -7565,10 +7601,7 @@
             bracketPredictor.init();
             bracketInitialized = true;
           } else {
-            // Force-refresh slots that still track group designations
-            bracketPredictor.syncRound32Matchups(true);
-            bracketPredictor.renderBracket();
-            bracketPredictor.updateChampionDisplay();
+            bracketPredictor.restoreBracketState({ render: true });
           }
         } else if (tabId === 'analytics') {
           initAnalyticsTab();
