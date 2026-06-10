@@ -6,19 +6,17 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "logo_icon.png"
-BRAND_GREEN = (34, 197, 94, 255)  # #22c55e — matches site --green accent
+BRAND_GREEN = np.array([34, 197, 94], dtype=np.uint8)  # #22c55e — site --green accent
 
 
 def load_icon() -> Image.Image:
-    img = Image.open(SRC).convert("RGBA")
-    arr = np.asarray(img).astype(np.float32)
+    rgb = np.asarray(Image.open(SRC).convert("RGB")).astype(np.float32)
 
-    # White/light background -> transparent; keep the dark-green icon strokes.
-    min_ch = arr[:, :, :3].min(axis=2)
-    alpha = np.clip(1.0 - (min_ch / 255.0), 0.0, 1.0)
-    alpha = np.where(min_ch < 200, np.maximum(alpha, 0.85), alpha)
-    alpha = np.where(min_ch > 240, 0.0, alpha)
-    alpha = np.clip(alpha, 0.0, 1.0)
+    # Remove white background with smooth extraction, then harden edges for favicons.
+    min_ch = rgb.min(axis=2)
+    alpha = 1.0 - (min_ch / 255.0)
+    lo = 0.18
+    alpha = np.clip((alpha - lo) / (1.0 - lo), 0.0, 1.0)
 
     mask = alpha > 0.08
     ys, xs = np.where(mask)
@@ -26,20 +24,35 @@ def load_icon() -> Image.Image:
         raise RuntimeError(f"No icon pixels found in {SRC}")
 
     pad = max(8, int(max(xs.max() - xs.min(), ys.max() - ys.min()) * 0.06))
-    x0, x1 = max(0, xs.min() - pad), min(arr.shape[1], xs.max() + pad + 1)
-    y0, y1 = max(0, ys.min() - pad), min(arr.shape[0], ys.max() + pad + 1)
+    x0, x1 = max(0, xs.min() - pad), min(rgb.shape[1], xs.max() + pad + 1)
+    y0, y1 = max(0, ys.min() - pad), min(rgb.shape[0], ys.max() + pad + 1)
 
     cropped_alpha = alpha[y0:y1, x0:x1]
-    h, w = cropped_alpha.shape
+    alpha_u8 = (cropped_alpha * 255).astype(np.uint8)
+
+    # Drop the soft fringe that reads as a white outline in browser tabs.
+    alpha_u8 = np.where(alpha_u8 >= 96, 255, 0).astype(np.uint8)
+
+    h, w = alpha_u8.shape
     icon = np.zeros((h, w, 4), dtype=np.uint8)
-    icon[:, :, :3] = np.array(BRAND_GREEN[:3], dtype=np.uint8)
-    icon[:, :, 3] = (cropped_alpha * 255).astype(np.uint8)
+    icon[:, :, :3] = BRAND_GREEN
+    icon[:, :, 3] = alpha_u8
 
     side = max(w, h)
-    square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-    offset = ((side - w) // 2, (side - h) // 2)
-    square.paste(Image.fromarray(icon, mode="RGBA"), offset)
-    return square
+    square = np.zeros((side, side, 4), dtype=np.uint8)
+    offset_y = (side - h) // 2
+    offset_x = (side - w) // 2
+    square[offset_y : offset_y + h, offset_x : offset_x + w] = icon
+    return Image.fromarray(square, mode="RGBA")
+
+
+def _harden_edges(img: Image.Image) -> Image.Image:
+    arr = np.asarray(img).copy()
+    arr[:, :, 3] = np.where(arr[:, :, 3] >= 64, 255, 0).astype(np.uint8)
+    rgb = arr[:, :, :3].astype(np.float32)
+    alpha = arr[:, :, 3:4].astype(np.float32) / 255.0
+    arr[:, :, :3] = np.clip(rgb * alpha + 0 * (1 - alpha), 0, 255).astype(np.uint8)
+    return Image.fromarray(arr, mode="RGBA")
 
 
 def save_assets(icon: Image.Image) -> None:
@@ -53,6 +66,8 @@ def save_assets(icon: Image.Image) -> None:
     pngs = []
     for name, size in sizes.items():
         out = icon.resize((size, size), Image.Resampling.LANCZOS)
+        if size <= 180:
+            out = _harden_edges(out)
         path = ROOT / name
         out.save(path, format="PNG", optimize=True)
         pngs.append(out)
