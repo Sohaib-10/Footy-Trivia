@@ -6328,6 +6328,11 @@
           });
         }
 
+        _getPdfUsername() {
+          const name = state.user && state.user.username ? String(state.user.username).trim() : '';
+          return name || 'Player';
+        }
+
         _getPdfCaptureScale() {
           const isMobile = window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
           return isMobile ? 1 : 1.25;
@@ -6401,13 +6406,25 @@
           ctx.fillStyle = '#0f1115';
           ctx.fillRect(0, 0, totalW, totalH);
 
+          const username = this._getPdfUsername();
+          const headerPad = Math.round(14 * captureScale);
+
           if (logoImg) {
             const logoH = Math.round(34 * captureScale);
             const logoW = Math.round(logoH * (logoImg.width / logoImg.height));
-            const logoX = Math.round(14 * captureScale);
+            const logoX = headerPad;
             const logoY = Math.round(10 * captureScale);
             ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
           }
+
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#9ca3af';
+          ctx.font = `${Math.round(10 * captureScale)}px Arial, sans-serif`;
+          ctx.fillText('Predicted by', totalW - headerPad, Math.round(18 * captureScale));
+          ctx.fillStyle = '#d4af37';
+          ctx.font = `bold ${Math.round(14 * captureScale)}px Arial, sans-serif`;
+          ctx.fillText(username, totalW - headerPad, Math.round(36 * captureScale));
+          ctx.textAlign = 'center';
 
           ctx.fillStyle = '#d4af37';
           ctx.font = `bold ${Math.round(18 * captureScale)}px Arial, sans-serif`;
@@ -6464,7 +6481,19 @@
           return composite;
         }
 
-        _addPdfBranding(pdf, pageW, pageH, logoImg) {
+        _addPdfBranding(pdf, pageW, pageH, logoImg, username) {
+          const margin = 4;
+          const displayName = username || this._getPdfUsername();
+
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(8);
+          pdf.setTextColor(156, 163, 175);
+          pdf.text('Predicted by', pageW - margin, margin + 3, { align: 'right' });
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(11);
+          pdf.setTextColor(212, 175, 55);
+          pdf.text(displayName, pageW - margin, margin + 8.5, { align: 'right' });
+
           const footerLabelY = pageH - 6;
           const footerUrlY = pageH - 2.5;
 
@@ -6610,7 +6639,7 @@
             } catch (e) {
               console.warn('PDF logo unavailable:', e);
             }
-            this._addPdfBranding(pdf, pageW, pageH, logoImg);
+            this._addPdfBranding(pdf, pageW, pageH, logoImg, this._getPdfUsername());
 
             const slug = hasChampion
               ? champion.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
