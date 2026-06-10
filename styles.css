@@ -3576,20 +3576,20 @@
     .wc-tier-gold { background: linear-gradient(45deg, var(--gold), #f59e0b); color: #000; }
 
 /* ── BRACKET PREDICTION — SYMMETRIC TEMPLATE ── */
-    .bp-bracket-wrapper { display: flex; align-items: stretch; overflow-x: auto; overflow-y: visible; padding: 1rem 0 2rem; scrollbar-width: thin; scrollbar-color: var(--border) transparent; scrollbar-gutter: stable; gap: 2rem; position: relative; width: 100%; max-width: 100%; margin: 0; justify-content: flex-start; min-height: 1550px; contain: layout style; }
-    .bp-bracket-half { display: flex; flex: 0 0 auto; gap: 2rem; }
+    .bp-bracket-wrapper { display: flex; align-items: stretch; overflow-x: auto; overflow-y: visible; padding: 1rem 0 2rem; scrollbar-width: thin; scrollbar-color: var(--border) transparent; scrollbar-gutter: stable; gap: 1rem; position: relative; width: 100%; max-width: 100%; margin: 0; justify-content: flex-start; min-height: 1050px; contain: layout style; }
+    .bp-bracket-half { display: flex; flex: 0 0 auto; gap: 1rem; }
     .bp-bracket-half.right { flex-direction: row; }
-    .bp-bracket-center { display: flex; flex-direction: column; align-items: stretch; min-width: 200px; flex-shrink: 0; position: relative; gap: 1rem; }
+    .bp-bracket-center { display: flex; flex-direction: column; align-items: stretch; min-width: 200px; flex-shrink: 0; position: relative; gap: 0.75rem; }
     .bp-round { min-width: 200px; flex-shrink: 0; display: flex; flex-direction: column; align-items: stretch; padding: 0 4px; position: relative; }
     .bp-round-title { text-align: center; color: var(--text2); font-family: var(--font-display); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; padding: 0.4rem 0.6rem; border-radius: var(--r); background: var(--surface2); border: 1px solid var(--border); flex-shrink: 0; position: sticky; top: 0; z-index: 10; }
     .bp-round-title.active-round { color: var(--gold); border-color: var(--gold); background: var(--gold-light); }
-    .bp-round-matches { position: relative; flex: 1; width: 100%; display: flex; flex-direction: column; height: 1550px; }
-    .bp-round-matches.r32-matches { justify-content: space-between; gap: 0.35rem; }
-    .bp-match { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 0.25rem; overflow: hidden; transition: border-color var(--transition), box-shadow var(--transition); }
+    .bp-round-matches { position: relative; flex: 1; width: 100%; display: flex; flex-direction: column; height: 1050px; }
+    .bp-round-matches.r32-matches { justify-content: flex-start; gap: 0.4rem; }
+    .bp-match { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 0; overflow: hidden; transition: border-color var(--transition), box-shadow var(--transition); }
     .bp-match:hover { border-color: var(--border2, var(--border)); box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
     .bp-match.complete { border-color: var(--success); }
-    .bp-match-label { font-size: 0.6rem; color: var(--text3); text-align: center; padding: 0.25rem; background: var(--surface2); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-    .bp-slot { display: flex; align-items: center; padding: 0.5rem 0.6rem; cursor: pointer; transition: background var(--transition); gap: 0.4rem; border-bottom: 1px solid var(--border); position: relative; min-height: 36px; }
+    .bp-match-label { font-size: 0.6rem; color: var(--text3); text-align: center; padding: 0.18rem; background: var(--surface2); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+    .bp-slot { display: flex; align-items: center; padding: 0.38rem 0.5rem; cursor: pointer; transition: background var(--transition); gap: 0.35rem; border-bottom: 1px solid var(--border); position: relative; min-height: 32px; }
     .bp-slot:last-of-type { border-bottom: none; }
     .bp-slot:hover { background: var(--surface-hover); }
     .bp-slot.winner { background: var(--gold-light); border-left: 3px solid var(--gold); }
@@ -3661,7 +3661,7 @@
 
     /* Refined Symmetric Connector lines between rounds */
     .bp-connector { display: flex; flex-direction: column; justify-content: space-around; width: 14px; flex-shrink: 0; z-index: 5; }
-    .bp-connector-block { display: flex; flex-direction: column; flex: 1; min-height: 60px; }
+    .bp-connector-block { display: flex; flex-direction: column; flex: 1; min-height: 40px; }
     .bp-connector-branch { display: none !important; }
 
     @keyframes slotFillIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
@@ -4857,9 +4857,10 @@
       #wc-leaderboard-table { min-width: 480px !important; }
 
       /* ── Match prediction bracket (symmetric template) ── */
-      .bp-bracket-wrapper { gap: 0.75rem; padding: 0.5rem 0 1.25rem; min-height: 1200px; }
-      .bp-bracket-half { gap: 0.75rem; }
-      .bp-round-matches { height: 1200px; }
+      .bp-bracket-wrapper { gap: 0.5rem; padding: 0.5rem 0 1.25rem; min-height: 900px; }
+      .bp-bracket-half { gap: 0.5rem; }
+      .bp-round-matches { height: 900px; }
+      .bp-round-matches.r32-matches { gap: 0.3rem; }
       .bp-round,
       .bp-bracket-center { min-width: 144px; }
       .bp-round-title { font-size: 0.58rem; padding: 0.3rem 0.4rem; margin-bottom: 0.5rem; }
