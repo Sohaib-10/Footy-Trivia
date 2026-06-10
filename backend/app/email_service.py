@@ -172,7 +172,7 @@ async def send_verification_email(email: str, verification_link: str) -> bool:
     )
     html = _html_email(
         heading="Confirm your email",
-        intro="Welcome to Footy-Trivia! Confirm your email address to activate your account and start playing.",
+        intro="Welcome to Footy-Trivia! Confirm your email address to secure your account. You can already log in and play while you verify.",
         link=link,
         button_label="Verify my account",
         footnote=(

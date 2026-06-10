@@ -3018,7 +3018,7 @@
             }
           }
           closeModal();
-          showToast(`Welcome, ${username}! Your account is ready.`, 'success');
+          showToast(`Welcome, ${username}! Check your inbox for a verification email — you can play right away.`, 'success');
         } catch (err) {
           console.error(err);
           const message = err.message || (isNetworkError(err) ? networkErrorMessage() : 'Registration failed');
