@@ -17,6 +17,9 @@
       }
 
       const API_BASE_URL = resolveApiBaseUrl();
+      const FT_SITE_URL = (typeof location !== 'undefined' && location.origin && location.origin !== 'null')
+        ? location.origin
+        : 'https://footy-trivia.vercel.app';
       const API_TIMEOUT_MS = 20000;
       const API_RETRY_DELAY_MS = 3000;
       const API_MAX_RETRIES = 2;
@@ -6311,6 +6314,20 @@
           root.querySelectorAll('img').forEach(img => { img.crossOrigin = 'anonymous'; });
         }
 
+        async _loadPdfLogoImage() {
+          if (this._pdfLogoImage) return this._pdfLogoImage;
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+              this._pdfLogoImage = img;
+              resolve(img);
+            };
+            img.onerror = () => reject(new Error('Logo load failed'));
+            img.src = 'logo_hd.png';
+          });
+        }
+
         _getPdfCaptureScale() {
           const isMobile = window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
           return isMobile ? 1 : 1.25;
@@ -6360,13 +6377,22 @@
             });
           }
 
-          const headerH = Math.round(48 * captureScale);
+          let logoImg = null;
+          try {
+            logoImg = await this._loadPdfLogoImage();
+          } catch (e) {
+            console.warn('PDF logo unavailable:', e);
+          }
+
+          const headerH = Math.round(64 * captureScale);
+          const footerH = Math.round(36 * captureScale);
           const gap = Math.round(20 * captureScale);
           const contentW = bracketCanvas.width;
           const champW = champCanvas ? champCanvas.width : 0;
           const champH = champCanvas ? champCanvas.height : 0;
           const totalW = Math.max(contentW, champW);
-          const totalH = headerH + bracketCanvas.height + (champCanvas ? gap + champH : 0);
+          const bodyH = bracketCanvas.height + (champCanvas ? gap + champH : 0);
+          const totalH = headerH + bodyH + footerH;
 
           const composite = document.createElement('canvas');
           composite.width = totalW;
@@ -6375,24 +6401,113 @@
           ctx.fillStyle = '#0f1115';
           ctx.fillRect(0, 0, totalW, totalH);
 
+          if (logoImg) {
+            const logoH = Math.round(34 * captureScale);
+            const logoW = Math.round(logoH * (logoImg.width / logoImg.height));
+            const logoX = Math.round(14 * captureScale);
+            const logoY = Math.round(10 * captureScale);
+            ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
+          }
+
           ctx.fillStyle = '#d4af37';
           ctx.font = `bold ${Math.round(18 * captureScale)}px Arial, sans-serif`;
           ctx.textAlign = 'center';
-          ctx.fillText('Footy-Trivia — World Cup 2026 Knockout Bracket', totalW / 2, Math.round(28 * captureScale));
+          ctx.fillText('Footy-Trivia — World Cup 2026 Knockout Bracket', totalW / 2, Math.round(26 * captureScale));
 
           ctx.fillStyle = '#9ca3af';
           ctx.font = `${Math.round(11 * captureScale)}px Arial, sans-serif`;
           ctx.fillText('Round of 32 through Final — full prediction route', totalW / 2, Math.round(42 * captureScale));
 
+          ctx.fillStyle = '#d4af37';
+          ctx.font = `bold ${Math.round(12 * captureScale)}px Arial, sans-serif`;
+          ctx.fillText(FT_SITE_URL, totalW / 2, Math.round(56 * captureScale));
+
           const bracketX = (totalW - bracketCanvas.width) / 2;
-          ctx.drawImage(bracketCanvas, bracketX, headerH);
+          const bracketY = headerH;
+
+          if (logoImg) {
+            ctx.save();
+            ctx.globalAlpha = 0.09;
+            const wmSize = Math.min(totalW, bodyH) * 0.38;
+            const wmW = wmSize;
+            const wmH = wmSize * (logoImg.height / logoImg.width);
+            const wmX = (totalW - wmW) / 2;
+            const wmY = bracketY + (bodyH - wmH) / 2;
+            ctx.drawImage(logoImg, wmX, wmY, wmW, wmH);
+            ctx.restore();
+          }
+
+          ctx.drawImage(bracketCanvas, bracketX, bracketY);
 
           if (champCanvas) {
             const champX = (totalW - champCanvas.width) / 2;
-            ctx.drawImage(champCanvas, champX, headerH + bracketCanvas.height + gap);
+            ctx.drawImage(champCanvas, champX, bracketY + bracketCanvas.height + gap);
           }
 
+          const footerY = headerH + bodyH;
+          ctx.strokeStyle = 'rgba(212, 175, 55, 0.35)';
+          ctx.lineWidth = Math.max(1, Math.round(captureScale));
+          ctx.beginPath();
+          ctx.moveTo(Math.round(24 * captureScale), footerY + Math.round(6 * captureScale));
+          ctx.lineTo(totalW - Math.round(24 * captureScale), footerY + Math.round(6 * captureScale));
+          ctx.stroke();
+
+          ctx.fillStyle = '#9ca3af';
+          ctx.font = `${Math.round(10 * captureScale)}px Arial, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText('Create your own bracket at', totalW / 2, footerY + Math.round(20 * captureScale));
+
+          ctx.fillStyle = '#d4af37';
+          ctx.font = `bold ${Math.round(13 * captureScale)}px Arial, sans-serif`;
+          ctx.fillText(FT_SITE_URL, totalW / 2, footerY + Math.round(34 * captureScale));
+
           return composite;
+        }
+
+        _addPdfBranding(pdf, pageW, pageH, logoImg) {
+          const footerLabelY = pageH - 6;
+          const footerUrlY = pageH - 2.5;
+
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(7);
+          pdf.setTextColor(156, 163, 175);
+          pdf.text('Create your own bracket at', pageW / 2, footerLabelY, { align: 'center' });
+
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(9);
+          pdf.setTextColor(212, 175, 55);
+          pdf.textWithLink(FT_SITE_URL, pageW / 2, footerUrlY, { align: 'center', url: FT_SITE_URL });
+
+          if (!logoImg) return;
+
+          const logoAspect = logoImg.width / logoImg.height;
+          const wmH = Math.min(pageW, pageH) * 0.42;
+          const wmW = wmH * logoAspect;
+          const wmX = (pageW - wmW) / 2;
+          const wmY = (pageH - wmH) / 2;
+
+          try {
+            const logoData = this._pdfLogoDataUrl || (() => {
+              const c = document.createElement('canvas');
+              c.width = logoImg.width;
+              c.height = logoImg.height;
+              const cctx = c.getContext('2d');
+              cctx.drawImage(logoImg, 0, 0);
+              return c.toDataURL('image/png');
+            })();
+            this._pdfLogoDataUrl = logoData;
+
+            if (typeof pdf.GState === 'function') {
+              pdf.saveGraphicsState();
+              pdf.setGState(new pdf.GState({ opacity: 0.08 }));
+              pdf.addImage(logoData, 'PNG', wmX, wmY, wmW, wmH);
+              pdf.restoreGraphicsState();
+            } else {
+              pdf.addImage(logoData, 'PNG', wmX, wmY, wmW, wmH);
+            }
+          } catch (e) {
+            console.warn('PDF watermark skipped:', e);
+          }
         }
 
         _savePdfFile(pdf, filename) {
@@ -6474,10 +6589,10 @@
             const pageW = pdf.internal.pageSize.getWidth();
             const pageH = pdf.internal.pageSize.getHeight();
             const margin = 4;
+            const footerReserve = 11;
             const availW = pageW - margin * 2;
-            const availH = pageH - margin * 2;
+            const availH = pageH - margin * 2 - footerReserve;
 
-            // Scale the single composite image to fit the full page (width + height)
             let drawW = availW;
             let drawH = (exportImage.height / exportImage.width) * drawW;
             if (drawH > availH) {
@@ -6485,9 +6600,17 @@
               drawW = (exportImage.width / exportImage.height) * drawH;
             }
             const drawX = (pageW - drawW) / 2;
-            const drawY = (pageH - drawH) / 2;
+            const drawY = margin + (availH - drawH) / 2;
 
             pdf.addImage(exportImage.data, exportImage.format, drawX, drawY, drawW, drawH);
+
+            let logoImg = null;
+            try {
+              logoImg = await this._loadPdfLogoImage();
+            } catch (e) {
+              console.warn('PDF logo unavailable:', e);
+            }
+            this._addPdfBranding(pdf, pageW, pageH, logoImg);
 
             const slug = hasChampion
               ? champion.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
