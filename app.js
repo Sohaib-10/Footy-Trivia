@@ -4,6 +4,7 @@
       // CATEGORIES_DATA loaded from data.js
       // TRANSFER_PLAYERS loaded from data.js
       const LOCAL_API_URL = 'http://localhost:8002';
+      const PRODUCTION_API_URL = 'https://footytrivia-api.onrender.com';
 
       function resolveApiBaseUrl() {
         const isLocalHost = location.hostname === 'localhost'
@@ -12,8 +13,7 @@
         const fromEnv = window.ENV && window.ENV.API_BASE_URL;
         if (fromEnv) return fromEnv;
         if (isLocalHost) return LOCAL_API_URL;
-        console.error('API_BASE_URL is not configured. Set it via config.js or the API_BASE_URL deployment env var.');
-        return '';
+        return PRODUCTION_API_URL;
       }
 
       const API_BASE_URL = resolveApiBaseUrl();
@@ -204,7 +204,7 @@
       }
       let state = {
         currentPage: 'home',
-        quiz: { active: false, questions: [], idx: 0, score: 0, correct: 0, streak: 0, bestStreak: 0, hintPenalty: 1, timer: null, timeLeft: 15, mode: 'solo', diff: 'easy', hintsUsed: [] },
+        quiz: { active: false, questions: [], idx: 0, score: 0, correct: 0, streak: 0, bestStreak: 0, hintPenalty: 1, timer: null, timeLeft: 15, mode: 'solo', diff: 'easy', hintsUsed: [], serverMode: false, sessionId: null, submitting: false, answersSubmitted: 0 },
         user: null,
         transfer: { playerIdx: 0, guesses: [], maxGuesses: 5, revealed: false, hintsRevealed: 1 },
         theme: 'dark',
@@ -268,6 +268,9 @@
 
       // ──────────────────────────  a• a• a• a• a• a•  NAVIGATION a• a• a• a• a• a• a• 
       function showPage(page) {
+        if (!ALLOWED_PAGES.has(page)) {
+          page = 'home';
+        }
         if (page === 'profile' && !state.user) {
           showToast('Sign up to create your profile and track your stats!', 'info');
           openModal('signup');
@@ -579,17 +582,153 @@
       }
 
       // ──────────────────────────  a• a• a• a• a• a•  QUIZ ENGINE a• a• a• a• a• a• a• 
-      function startQuiz(category) {
-        if (!checkDailyLimit()) return;
-        incrementDailyAttempts();
-        const pool = QUESTIONS[category] || QUESTIONS['daily'];
-        const shuffled = [...pool].sort(() => Math.random() - .5).slice(0, Math.min(10, pool.length));
-        state.quiz = { ...state.quiz, active: true, questions: shuffled, idx: 0, score: 0, correct: 0, streak: 0, bestStreak: 0, hintPenalty: 1, hintsUsed: [], category };
+      const QUIZ_API_CATEGORY_MAP = {
+        'world-cup': 'world_cup',
+        'ucl': 'clubs',
+        'premier-league': 'clubs',
+        'la-liga': 'clubs',
+        'serie-a': 'clubs',
+        'bundesliga': 'clubs',
+        'ligue-1': 'clubs',
+        'man-utd': 'clubs',
+        'man-city': 'clubs',
+        'chelsea': 'clubs',
+        'arsenal': 'clubs',
+        'liverpool': 'clubs',
+        'real-madrid': 'clubs',
+        'barcelona': 'clubs',
+        'atletico': 'clubs',
+        'players': 'players',
+        'history': 'history',
+        'transfers': 'transfers',
+        'daily': null,
+        'general': 'general',
+      };
+
+      function mapQuizStartParams(frontendCategory) {
+        const mapped = Object.prototype.hasOwnProperty.call(QUIZ_API_CATEGORY_MAP, frontendCategory)
+          ? QUIZ_API_CATEGORY_MAP[frontendCategory]
+          : 'clubs';
+        let difficulty = state.selectedDiff || 'mixed';
+        if (difficulty === 'legendary') difficulty = 'hard';
+        if (!['easy', 'medium', 'hard', 'mixed'].includes(difficulty)) difficulty = 'mixed';
+        const payload = { difficulty, total_questions: 10 };
+        if (mapped) payload.category = mapped;
+        return payload;
+      }
+
+      function normalizeApiQuestion(q) {
+        return {
+          id: q.id,
+          cat: q.category,
+          diff: q.difficulty,
+          q: q.question_text,
+          opts: [q.option_a, q.option_b, q.option_c, q.option_d],
+        };
+      }
+
+      function beginQuizUi() {
         showPage('play');
         document.getElementById('mode-select').classList.add('hidden');
         document.getElementById('results-screen').classList.add('hidden');
         document.getElementById('quiz-interface').classList.remove('hidden');
         renderQuestion();
+      }
+
+      async function startQuiz(category) {
+        if (!checkDailyLimit()) return;
+        incrementDailyAttempts();
+
+        if (state.user) {
+          try {
+            showPleaseWait('Loading quiz…');
+            const data = await apiRequest('/api/quiz/start', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(mapQuizStartParams(category)),
+            });
+            hidePleaseWait();
+            const questions = (data.questions || []).map(normalizeApiQuestion);
+            if (!questions.length) {
+              showToast('No questions available for this category.', 'warning');
+              return;
+            }
+            state.quiz = {
+              ...state.quiz,
+              active: true,
+              serverMode: true,
+              sessionId: data.session.id,
+              questions,
+              idx: 0,
+              score: data.session.score || 0,
+              correct: 0,
+              streak: 0,
+              bestStreak: 0,
+              hintPenalty: 1,
+              hintsUsed: [],
+              submitting: false,
+              answersSubmitted: 0,
+              category,
+            };
+            beginQuizUi();
+          } catch (err) {
+            hidePleaseWait();
+            const msg = err && err.message ? String(err.message) : 'Could not start quiz';
+            if (msg.toLowerCase().includes('verify')) {
+              showToast('Please verify your email before playing ranked quizzes.', 'warning');
+              openModal('login');
+            } else {
+              showToast(msg, 'error');
+            }
+          }
+          return;
+        }
+
+        const pool = QUESTIONS[category] || QUESTIONS['daily'];
+        const shuffled = [...pool].sort(() => Math.random() - .5).slice(0, Math.min(10, pool.length));
+        state.quiz = {
+          ...state.quiz,
+          active: true,
+          serverMode: false,
+          sessionId: null,
+          questions: shuffled,
+          idx: 0,
+          score: 0,
+          correct: 0,
+          streak: 0,
+          bestStreak: 0,
+          hintPenalty: 1,
+          hintsUsed: [],
+          submitting: false,
+          answersSubmitted: 0,
+          category,
+        };
+        beginQuizUi();
+      }
+
+      async function submitQuizAnswer(selectedOption, timeTakenSeconds, timedOut = false) {
+        const q = state.quiz;
+        const question = q.questions[q.idx];
+        const payload = {
+          session_id: q.sessionId,
+          question_id: question.id,
+          time_taken_seconds: timeTakenSeconds,
+          timed_out: timedOut,
+        };
+        if (!timedOut) payload.selected_option = selectedOption;
+        return apiRequest('/api/quiz/answer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      function revealAnswerResult(selectedIdx, correctOption, isCorrect) {
+        const correctIdx = 'ABCD'.indexOf(correctOption);
+        const options = document.querySelectorAll('.option');
+        options.forEach(o => o.classList.add('disabled'));
+        if (options[correctIdx]) options[correctIdx].classList.add('correct');
+        if (!isCorrect && selectedIdx >= 0 && options[selectedIdx]) options[selectedIdx].classList.add('wrong');
       }
       function renderQuestion() {
         const q = state.quiz;
@@ -613,15 +752,53 @@
     </button>`).join('');
         startTimer();
       }
-      function selectAnswer(idx) {
-        clearInterval(state.quiz.timer);
+      async function selectAnswer(idx) {
         const q = state.quiz;
+        if (q.submitting) return;
+        clearInterval(state.quiz.timer);
         const question = q.questions[q.idx];
+        const timeTaken = TIMER_MAX - state.quiz.timeLeft;
+
+        if (q.serverMode) {
+          q.submitting = true;
+          const selectedOption = String.fromCharCode(65 + idx);
+          try {
+            const result = await submitQuizAnswer(selectedOption, timeTaken);
+            const correct = !!result.answer?.is_correct;
+            const pts = result.points_earned || 0;
+            q.score = result.session_score ?? q.score;
+            q.answersSubmitted++;
+            revealAnswerResult(idx, result.correct_option, correct);
+            if (correct) {
+              q.correct++;
+              q.streak++;
+              if (q.streak > q.bestStreak) q.bestStreak = q.streak;
+            } else {
+              q.streak = 0;
+            }
+            document.getElementById('q-score').textContent = `${q.score} PTS`;
+            showFeedback(correct, pts, q.streak);
+            if (!correct && state.selectedMode === 'hardcore') {
+              setTimeout(() => { hideFeedback(); endQuiz(); }, 2200);
+              q.submitting = false;
+              return;
+            }
+            setTimeout(() => {
+              hideFeedback();
+              q.idx++;
+              q.submitting = false;
+              renderQuestion();
+            }, correct ? 1800 : 2200);
+          } catch (err) {
+            q.submitting = false;
+            showToast(err.message || 'Failed to submit answer', 'error');
+            startTimer();
+          }
+          return;
+        }
+
         const correct = idx === question.ans;
-        const options = document.querySelectorAll('.option');
-        options.forEach(o => o.classList.add('disabled'));
-        options[question.ans].classList.add('correct');
-        if (!correct) options[idx].classList.add('wrong');
+        revealAnswerResult(idx, String.fromCharCode(65 + question.ans), correct);
         const timeBonus = Math.floor(state.quiz.timeLeft * 5);
         let pts = 0;
         if (correct) {
@@ -631,12 +808,8 @@
           const base = { easy: 100, medium: 150, hard: 200, legendary: 300 }[question.diff] || 100;
           pts = Math.floor((base + timeBonus) * q.hintPenalty);
           if (q.streak >= 3) pts = Math.floor(pts * 1.2);
-          if (state.selectedMode === 'blitz') {
-            pts *= 2;
-          }
-          if (state.selectedMode === 'ranked') {
-            pts = Math.floor(pts * 1.5);
-          }
+          if (state.selectedMode === 'blitz') pts *= 2;
+          if (state.selectedMode === 'ranked') pts = Math.floor(pts * 1.5);
           q.score += pts;
         } else {
           q.streak = 0;
@@ -644,10 +817,7 @@
         document.getElementById('q-score').textContent = `${q.score} PTS`;
         showFeedback(correct, pts, q.streak);
         if (!correct && state.selectedMode === 'hardcore') {
-          setTimeout(() => {
-            hideFeedback();
-            endQuiz();
-          }, 2200);
+          setTimeout(() => { hideFeedback(); endQuiz(); }, 2200);
           return;
         }
         setTimeout(() => {
@@ -678,6 +848,10 @@
       }
       function useHint(hintIdx) {
         const q = state.quiz;
+        if (q.serverMode) {
+          showToast('Hints are not available in verified quiz mode.', 'info');
+          return;
+        }
         const question = q.questions[q.idx];
         const el = document.getElementById(`hint${hintIdx + 1}`);
         if (!el || el.classList.contains('used')) return;
@@ -731,19 +905,44 @@
         if (t <= 5) ring.classList.add('danger');
         else if (t <= 8) ring.classList.add('warning');
       }
-      function timeUp() {
+      async function timeUp() {
         const q = state.quiz;
+        if (q.submitting) return;
+
+        if (q.serverMode) {
+          q.submitting = true;
+          try {
+            const result = await submitQuizAnswer(null, TIMER_MAX, true);
+            q.score = result.session_score ?? q.score;
+            q.answersSubmitted++;
+            revealAnswerResult(-1, result.correct_option, false);
+            q.streak = 0;
+            showFeedback(false, 0, 0);
+            if (state.selectedMode === 'hardcore') {
+              setTimeout(() => { hideFeedback(); endQuiz(); }, 2000);
+              q.submitting = false;
+              return;
+            }
+            setTimeout(() => {
+              hideFeedback();
+              q.idx++;
+              q.submitting = false;
+              renderQuestion();
+            }, 2000);
+          } catch (err) {
+            q.submitting = false;
+            showToast(err.message || 'Failed to record timeout', 'error');
+            endQuiz();
+          }
+          return;
+        }
+
         const question = q.questions[q.idx];
-        const options = document.querySelectorAll('.option');
-        options.forEach(o => o.classList.add('disabled'));
-        if (options[question.ans]) options[question.ans].classList.add('correct');
+        revealAnswerResult(-1, String.fromCharCode(65 + question.ans), false);
         q.streak = 0;
         showFeedback(false, 0, 0);
         if (state.selectedMode === 'hardcore') {
-          setTimeout(() => {
-            hideFeedback();
-            endQuiz();
-          }, 2000);
+          setTimeout(() => { hideFeedback(); endQuiz(); }, 2000);
           return;
         }
         setTimeout(() => {
@@ -752,29 +951,44 @@
           renderQuestion();
         }, 2000);
       }
-      function endQuiz() {
+
+      async function endQuiz() {
         clearInterval(state.quiz.timer);
         document.getElementById('quiz-interface').classList.add('hidden');
         document.getElementById('results-screen').classList.remove('hidden');
         const q = state.quiz;
         const total = q.questions.length;
-        const pct = total > 0 ? Math.round((q.correct / total) * 100) : 0;
+        let score = q.score;
+        let correct = q.correct;
+
+        if (q.serverMode && q.sessionId && q.answersSubmitted >= total) {
+          try {
+            const session = await apiRequest(`/api/quiz/complete/${q.sessionId}`, { method: 'POST' });
+            score = session.score ?? score;
+          } catch (err) {
+            showToast(err.message || 'Quiz finished locally but could not be saved to leaderboard.', 'warning');
+          }
+        }
+
+        const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
         const titles = ['Keep Practicing!', 'Not Bad!', 'Good Game!', 'Great Performance!', 'Excellent!', 'Unstoppable! 🔥'];
         const titleIdx = Math.floor(pct / 20);
         document.getElementById('results-pct').textContent = pct + '%';
         document.getElementById('results-title').textContent = titles[Math.min(titleIdx, 5)];
-        document.getElementById('results-msg').textContent = `${q.correct}/${total} correct answers`;
-        document.getElementById('r-correct').textContent = q.correct;
-        document.getElementById('r-points').textContent = q.score;
+        document.getElementById('results-msg').textContent = `${correct}/${total} correct answers`;
+        document.getElementById('r-correct').textContent = correct;
+        document.getElementById('r-points').textContent = score;
         document.getElementById('r-best-streak').textContent = q.bestStreak;
-        saveQuizResult(q.category, q.score, q.correct, total, TIMER_MAX - state.quiz.timeLeft);
-        markCategoryCompleted(q.category);
-        // animate arc
+        q.score = score;
+        saveQuizResult(q.category, score, correct, total, TIMER_MAX - state.quiz.timeLeft);
+        if (!q.serverMode || q.answersSubmitted >= total) {
+          markCategoryCompleted(q.category);
+        }
         setTimeout(() => {
           const arc = document.getElementById('results-arc');
           if (arc) arc.style.strokeDashoffset = 377 * (1 - pct / 100);
         }, 100);
-        showToast(`🏆 Game over! ${q.correct}/${total} correct`, 'success');
+        showToast(`🏆 Game over! ${correct}/${total} correct`, 'success');
       }
       function exitQuiz() {
         clearInterval(state.quiz.timer);
@@ -854,8 +1068,8 @@
           return;
         }
         suggestionsDiv.innerHTML = matches.map(p => `
-        <div class="suggestion-item" onclick="selectTransferSuggestion('${p.name.replace(/'/g, "\\'")}')">
-          ${p.name}
+        <div class="suggestion-item" onclick="selectTransferSuggestion('${escapeJsString(p.name)}')">
+          ${escapeHtml(p.name)}
         </div>
       `).join('');
         suggestionsDiv.style.display = 'block';
@@ -939,12 +1153,12 @@
         guessEl.style.marginBottom = '1.25rem';
         guessEl.innerHTML = `
         <div style="font-family:var(--font-ui);font-size:0.85rem;color:var(--text2);margin-bottom:0.35rem">
-          Guess ${t.guesses.length + 1}: <strong>${guessedPlayer.name}</strong>
+          Guess ${t.guesses.length + 1}: <strong>${escapeHtml(guessedPlayer.name)}</strong>
         </div>
         <div class="clue-row">
           <div class="clue-cell ${natClass}">
             <div class="clue-cell-label">Nation</div>
-            <div class="clue-cell-value">${guessedPlayer.nationality}</div>
+            <div class="clue-cell-value">${escapeHtml(guessedPlayer.nationality)}</div>
           </div>
           <div class="clue-cell ${ageClass}">
             <div class="clue-cell-label">Age</div>
@@ -952,19 +1166,19 @@
           </div>
           <div class="clue-cell ${posClass}">
             <div class="clue-cell-label">Pos</div>
-            <div class="clue-cell-value">${guessedPlayer.position}</div>
+            <div class="clue-cell-value">${escapeHtml(guessedPlayer.position)}</div>
           </div>
           <div class="clue-cell ${lgClass}">
             <div class="clue-cell-label">League</div>
-            <div class="clue-cell-value">${guessedPlayer.league}</div>
+            <div class="clue-cell-value">${escapeHtml(guessedPlayer.league)}</div>
           </div>
           <div class="clue-cell ${clubClass}">
             <div class="clue-cell-label">Club</div>
-            <div class="clue-cell-value">${guessedPlayer.club}</div>
+            <div class="clue-cell-value">${escapeHtml(guessedPlayer.club)}</div>
           </div>
           <div class="clue-cell ${valClass}">
             <div class="clue-cell-label">Value</div>
-            <div class="clue-cell-value">${guessedPlayer.value}${valArrow}</div>
+            <div class="clue-cell-value">${escapeHtml(guessedPlayer.value)}${valArrow}</div>
           </div>
         </div>
       `;
@@ -984,9 +1198,9 @@
           reveal.classList.remove('hidden');
           reveal.innerHTML = `
           <div style="font-family:var(--font-display);font-size: 1.25rem; font-weight: 600;letter-spacing:2px;margin-bottom:.5rem;color:${correct ? 'var(--green)' : 'var(--text)'}">${correct ? 'CORRECT!' : 'THE ANSWER WAS...'}</div>
-          <div style="font-family:var(--font-display);font-size: 1.25rem; font-weight: 600;color:var(--accent);letter-spacing:1px">${player.name}</div>
-          <div style="color:var(--text2);font-size:.9rem;margin-top:.5rem">${player.nationality}  -  ${player.position}  -  ${player.club}</div>
-          <div style="margin-top:.75rem;font-size:.85rem;color:var(--text3)">Career: ${player.clubs.join(' &rarr; ')}</div>
+          <div style="font-family:var(--font-display);font-size: 1.25rem; font-weight: 600;color:var(--accent);letter-spacing:1px">${escapeHtml(player.name)}</div>
+          <div style="color:var(--text2);font-size:.9rem;margin-top:.5rem">${escapeHtml(player.nationality)}  -  ${escapeHtml(player.position)}  -  ${escapeHtml(player.club)}</div>
+          <div style="margin-top:.75rem;font-size:.85rem;color:var(--text3)">Career: ${escapeHtml(player.clubs.join(' → '))}</div>
           <button class="btn btn-primary mt-3" onclick="newTransferGame()">Try Another</button>
         `;
           showToast(correct ? 'You got it!' : `It was ${player.name}`, correct ? 'success' : 'error');
@@ -1052,7 +1266,7 @@
         if (!fc) {
           return `<span style="${style}display:inline-flex;align-items:center;justify-content:center;background:var(--surface2)">🏳️</span>`;
         }
-        const safeName = (name || '').replace(/"/g, '&quot;');
+        const safeName = escapeAttr(name || '');
         return `<img src="https://flagcdn.com/${fc}.svg" alt="${safeName}" style="${style}" onerror="lbLogoFallback(this,'🏳️')">`;
       }
 
@@ -1113,7 +1327,7 @@
           <div class="lb-row">
             <div class="lb-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}</div>
             <div class="lb-avatar" style="background:var(--surface2)">${p.name ? p.name[0].toUpperCase() : '?'}</div>
-            <div class="lb-info"><div class="lb-name">${p.name || 'Guest'}</div></div>
+            <div class="lb-info"><div class="lb-name">${escapeHtml(p.name || 'Guest')}</div></div>
             <div class="lb-score">${(p.score || 0).toLocaleString()}</div>
           </div>
         `).join('');
@@ -1305,6 +1519,24 @@
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#39;');
       }
+
+      function escapeAttr(value) {
+        return escapeHtml(value).replace(/`/g, '&#96;');
+      }
+
+      function escapeJsString(value) {
+        return String(value ?? '')
+          .replace(/\\/g, '\\\\')
+          .replace(/'/g, "\\'")
+          .replace(/\r/g, '\\r')
+          .replace(/\n/g, '\\n')
+          .replace(/</g, '\\u003c');
+      }
+
+      const ALLOWED_PAGES = new Set([
+        'home', 'categories', 'play', 'battle', 'transfer', 'leaderboard',
+        'worldcup', 'profile', 'club', 'analytics', 'prediction-center',
+      ]);
 
       function safeImageUrl(url, fallback = '') {
         try {
@@ -1742,7 +1974,7 @@
           userObj.favWc = prefs.favWc.name;
           userObj.favWcLogo = prefs.favWc.flag || (prefs.favWc.code ? `https://flagcdn.com/w80/${prefs.favWc.code}.png` : '');
         }
-        localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
+        persistUserCache(userObj);
       }
 
       function saveProfilePreferences(partial) {
@@ -2034,12 +2266,18 @@
         return fallback;
       }
 
+      function persistUserCache(user) {
+        if (!user) return;
+        const copy = { ...user };
+        delete copy.email;
+        localStorage.setItem('footytrivia_user', JSON.stringify(copy));
+      }
+
       function buildUserFromApi(profile, progress, email, rank = null) {
         const totalPoints = progress.total_points || 0;
         return {
           id: profile.user_id,
           username: profile.display_name || (email ? email.split('@')[0] : 'Player'),
-          email: email || '',
           level: Math.floor(totalPoints / 1000) + 1,
           xp: totalPoints % 1000,
           totalPoints,
@@ -2085,9 +2323,10 @@
             const me = ranked.entries.find(e => e.user_id === state.user.id);
             if (me?.rank) rank = me.rank;
           }
-          const userObj = buildUserFromApi(profile, progress, state.user.email, rank);
+          const stored = JSON.parse(localStorage.getItem('footytrivia_user') || '{}');
+          const userObj = buildUserFromApi(profile, progress, stored.email || '', rank);
           state.user = { ...state.user, ...userObj };
-          localStorage.setItem('footytrivia_user', JSON.stringify(state.user));
+          persistUserCache(state.user);
           renderProfileStats(state.user);
           const xpFillEl = document.querySelector('.profile-xp-fill');
           const xpLabelEl = document.querySelector('.profile-xp-label');
@@ -2149,7 +2388,7 @@
 
         const userObj = buildUserFromApi(profile, progress, email);
         applyProfilePreferences(profile.preferences, userObj);
-        localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
+        persistUserCache(userObj);
         state.user = userObj;
         touchSessionActivity();
         setupSessionGuards();
@@ -2183,7 +2422,7 @@
             userObj.countryFlag = stored.countryFlag;
           }
           state.user = userObj;
-          localStorage.setItem('footytrivia_user', JSON.stringify(userObj));
+          persistUserCache(userObj);
           touchSessionActivity();
           setupSessionGuards();
           const legacyPrefs = {};
@@ -2495,7 +2734,7 @@
         const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
         const hashParams = new URLSearchParams(hash);
         return {
-          verifyToken: urlParams.get('verify_token'),
+          verifyToken: hashParams.get('verify_token') || urlParams.get('verify_token'),
           resetToken: hashParams.get('reset_token') || urlParams.get('reset_token'),
         };
       }
@@ -2565,7 +2804,7 @@
           }
           if (mobileAuthWrap) {
             mobileAuthWrap.innerHTML = `
-            <span style="font-family:var(--font-ui);font-size:0.85rem;color:var(--text2);flex:1;text-align:center">👤 ${user.username}</span>
+            <span style="font-family:var(--font-ui);font-size:0.85rem;color:var(--text2);flex:1;text-align:center">👤 ${escapeHtml(user.username)}</span>
             <button class="btn btn-ghost" style="flex:1" onclick="logout()">Log out</button>
           `;
           }
@@ -2620,7 +2859,7 @@
         const countryFlag = state.user ? state.user.countryFlag : state.guestCountryFlag;
         if (countryName) {
           if (countryLabel) {
-            countryLabel.innerHTML = `<div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.25rem"><img src="${countryFlag}" style="height:1.2rem;width:1.8rem;object-fit:cover;border-radius:2px;vertical-align:middle" onerror="this.style.display='none'"/> <span style="color:var(--text);font-weight:600">${countryName}</span></div>`;
+            countryLabel.innerHTML = `<div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.25rem"><img src="${safeImageUrl(countryFlag)}" style="height:1.2rem;width:1.8rem;object-fit:cover;border-radius:2px;vertical-align:middle" onerror="this.style.display='none'"/> <span style="color:var(--text);font-weight:600">${escapeHtml(countryName)}</span></div>`;
           }
           if (countryBtn) countryBtn.textContent = 'Change';
         } else {
@@ -2656,28 +2895,12 @@
           if (favWcBtn) favWcBtn.textContent = 'Set';
         }
       }
-      async function saveQuizResult(mode, score, correct, total, timeTaken) {
+      async function saveQuizResult(_mode, _score, _correct, _total, _timeTaken) {
         if (!state.user) return;
-        const user = state.user;
-        const incorrect = Math.max(0, total - correct);
-        user.gamesPlayed = (user.gamesPlayed || 0) + 1;
-        user.correctAnswers = (user.correctAnswers || 0) + correct;
-        user.totalQuestions = (user.totalQuestions || 0) + total;
-        user.accuracy = user.totalQuestions > 0 ? Math.round((user.correctAnswers / user.totalQuestions) * 100) : 0;
-        if (state.quiz.bestStreak > (user.bestStreak || 0)) {
-          user.bestStreak = state.quiz.bestStreak;
-        }
-        const xpEarned = Math.round(score / 10) + 50;
-        user.xp = (user.xp || 0) + xpEarned;
-        while (user.xp >= 1000) {
-          user.xp -= 1000;
-          user.level = (user.level || 0) + 1;
-          showToast(`🎉 Level Up! You reached Level ${user.level}!`, 'success');
-        }
-
-        localStorage.setItem('footytrivia_user', JSON.stringify(user));
-        if (state.user) {
-          refreshProfileStats().catch(() => {});
+        try {
+          await refreshProfileStats();
+        } catch (e) {
+          console.warn('Failed to refresh profile after quiz:', e);
         }
         updateAuthUI();
       }
@@ -2875,7 +3098,7 @@
                 <div class="card" style="padding:1rem;display:flex;align-items:center;gap:1rem">
                   ${countryFlagImg(c.code, c.name)}
                   <div style="flex:1">
-                    <div style="font-family:var(--font-ui);font-weight:700;font-size:.9rem">${c.name}</div>
+                    <div style="font-family:var(--font-ui);font-weight:700;font-size:.9rem">${escapeHtml(c.name)}</div>
                     <div style="font-size:.75rem;color:var(--text3)">${c.active_count.toLocaleString()} active</div>
                   </div>
                   <div style="font-family:var(--font-display);font-size: 1rem;color:${idx === 0 ? 'var(--gold)' : 'var(--text3)'}">#${idx + 1}</div>
@@ -3009,14 +3232,12 @@
         const urlParams = new URLSearchParams(window.location.search);
         handleAuthUrlParams(urlParams);
         const battleCode = urlParams.get('code');
-        if (battleCode) {
+        if (battleCode && /^[A-Z0-9]{6}$/i.test(battleCode)) {
           showPage('battle');
           joinRoom(battleCode.toUpperCase());
         } else {
-          
           const lastPage = localStorage.getItem('footytrivia_last_page');
-          
-          if (lastPage) {
+          if (lastPage && ALLOWED_PAGES.has(lastPage)) {
             showPage(lastPage);
           }
         }
@@ -3044,7 +3265,7 @@
       function getFlagImg(countryName) {
         const code = COUNTRY_CODES[countryName];
         if (!code) return '🏳️';
-        return `<img src="https://flagcdn.com/w40/${code}.png" alt="${countryName}" class="wc-flag-img" style="width:22px; height:15px; border-radius:2px; object-fit:cover; vertical-align:middle; box-shadow:0 1px 2px rgba(0,0,0,0.25);">`;
+        return `<img src="https://flagcdn.com/w40/${code}.png" alt="${escapeAttr(countryName)}" class="wc-flag-img" style="width:22px; height:15px; border-radius:2px; object-fit:cover; vertical-align:middle; box-shadow:0 1px 2px rgba(0,0,0,0.25);">`;
       }
       // WC_TEAMS loaded from data.js
       // WC_GROUPS loaded from data.js
@@ -3065,7 +3286,7 @@
         'Kevin De Bruyne': 'https://r2.thesportsdb.com/images/media/player/cutout/o4flia1764089447.png',
         'Phil Foden': 'https://r2.thesportsdb.com/images/media/player/cutout/lbn4sx1769182620.png'
       };
-      let playerPhotoCache = JSON.parse(localStorage.getItem('wc_player_photo_cache')) || {};
+      let playerPhotoCache = JSON.parse(localStorage.getItem('wc_player_photo_cache_v2')) || {};
       
       // Ensure seed photos are in the cache
       let cacheUpdated = false;
@@ -3077,7 +3298,7 @@
       }
       if (cacheUpdated) {
         try {
-          localStorage.setItem('wc_player_photo_cache', JSON.stringify(playerPhotoCache));
+          localStorage.setItem('wc_player_photo_cache_v2', JSON.stringify(playerPhotoCache));
         } catch(e) {}
       }
       function getPlayerPhoto(playerName, callback) {
@@ -3102,7 +3323,7 @@
             const safeUrl = safeImageUrl(photoUrl);
             playerPhotoCache[cleanName] = safeUrl;
             try {
-              localStorage.setItem('wc_player_photo_cache', JSON.stringify(playerPhotoCache));
+              localStorage.setItem('wc_player_photo_cache_v2', JSON.stringify(playerPhotoCache));
             } catch(e) {}
             callback(safeUrl);
           })
@@ -5700,7 +5921,7 @@
           if (champ) {
             champBox.classList.add('crowned');
             champFlag.innerHTML = getFlagImg(champ.name);
-            champName.innerHTML = champ.name;
+            champName.textContent = champ.name;
             champName.style.color = '';
           } else {
             champBox.classList.remove('crowned');
@@ -6901,14 +7122,14 @@
               const yMetric = document.getElementById('scatter-y-axis').value;
               
               tooltip.innerHTML = `
-                <div style="font-weight:700;color:var(--gold);margin-bottom:0.25rem">${hoveredPlayer.name}</div>
-                <div style="font-size:0.7rem;color:var(--text3);margin-bottom:0.25rem">${hoveredPlayer.team} | ${hoveredPlayer.pos}</div>
+                <div style="font-weight:700;color:var(--gold);margin-bottom:0.25rem">${escapeHtml(hoveredPlayer.name)}</div>
+                <div style="font-size:0.7rem;color:var(--text3);margin-bottom:0.25rem">${escapeHtml(hoveredPlayer.team)} | ${escapeHtml(hoveredPlayer.pos)}</div>
                 <div>${getMetricLabel(xMetric)}: <strong>${hoveredPlayer[xMetric]}</strong></div>
                 <div>${getMetricLabel(yMetric)}: <strong>${hoveredPlayer[yMetric]}</strong></div>
               `;
             } else {
               tooltip.innerHTML = `
-                <div style="font-weight:700;color:var(--gold);margin-bottom:0.25rem">${hoveredPlayer.team}</div>
+                <div style="font-weight:700;color:var(--gold);margin-bottom:0.25rem">${escapeHtml(hoveredPlayer.team)}</div>
                 <div>Average Player Rating: <strong>${hoveredPlayer.rating.toFixed(2)}</strong></div>
                 <div>Total Goals: <strong>${hoveredPlayer.goals}</strong></div>
                 <div>Total Assists: <strong>${hoveredPlayer.assists}</strong></div>
@@ -7747,3 +7968,4 @@
       window.startBattle = startBattle;
       window.exitBattle = exitBattle;
       window.submitBattleAnswer = submitBattleAnswer;
+      window.signOut = logout;

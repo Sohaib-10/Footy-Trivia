@@ -1,37 +1,38 @@
 from pathlib import Path
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
 
+_INSECURE_SECRET_VALUES = {
+    "",
+    "replace-with-a-long-random-secret",
+    "changeme",
+    "secret",
+}
+
+
 class Settings(BaseSettings):
-    DATABASE_URL: str = Field(default="postgresql+asyncpg://postgres:postgres@localhost:5432/footytrivia")
-    SECRET_KEY: str = Field(default="replace-with-a-long-random-secret")
+    DATABASE_URL: str = Field(default="")
+    SECRET_KEY: str = Field(default="")
     ALGORITHM: str = Field(default="HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=720)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7)
     SESSION_INACTIVITY_HOURS: int = Field(default=2)
 
-    # Supabase Settings
-    SUPABASE_URL: str = Field(default="https://placeholder.supabase.co")
-    SUPABASE_ANON_KEY: str = Field(default="anon-key-placeholder")
-    SUPABASE_SERVICE_KEY: str = Field(default="service-key-placeholder")
+    SUPABASE_URL: str = Field(default="")
+    SUPABASE_ANON_KEY: str = Field(default="")
+    SUPABASE_SERVICE_KEY: str = Field(default="")
 
-    # Storage Buckets
     STORAGE_AVATAR_BUCKET: str = Field(default="avatars")
     STORAGE_LOGOS_BUCKET: str = Field(default="team-logos")
     STORAGE_FLAGS_BUCKET: str = Field(default="country-flags")
     STORAGE_ACHIEVEMENTS_BUCKET: str = Field(default="achievements")
 
-    # RapidAPI Settings
-    RAPIDAPI_KEY: str = Field(default="")
-
-    # Ably Settings
+    SPORTSDB_API_KEY: str = Field(default="")
     ABLY_API_KEY: str = Field(default="")
 
-    # Email / auth links
     FRONTEND_URL: str = Field(default="http://localhost:9999")
-    # Set to true in production (Render) so auth cookies are Secure + HTTPS-only
     COOKIE_SECURE: bool = Field(default=False)
     BREVO_API_KEY: str = Field(default="")
     BREVO_SENDER: str = Field(default="")
@@ -46,11 +47,32 @@ class Settings(BaseSettings):
     EMAIL_VERIFY_EXPIRE_HOURS: int = Field(default=24)
     PASSWORD_RESET_EXPIRE_HOURS: int = Field(default=1)
 
+    AUTH_RATE_LIMIT_MAX_ATTEMPTS: int = Field(default=5)
+    AUTH_RATE_LIMIT_WINDOW_MINUTES: int = Field(default=15)
+
+    ENVIRONMENT: str = Field(default="development")
+    TRUST_PROXY_HEADERS: bool = Field(default=False)
+
     model_config = SettingsConfigDict(
         env_file=str(_BACKEND_DIR / ".env"),
         env_file_encoding="utf-8",
-        extra="ignore"
+        extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def validate_required_secrets(self) -> "Settings":
+        missing: list[str] = []
+        if not self.DATABASE_URL.strip():
+            missing.append("DATABASE_URL")
+        if self.SECRET_KEY.strip().lower() in _INSECURE_SECRET_VALUES:
+            missing.append("SECRET_KEY")
+        if missing:
+            raise ValueError(
+                "Missing or insecure required environment variables: "
+                + ", ".join(missing)
+                + ". Copy backend/.env.example to backend/.env and set them."
+            )
+        return self
 
     @property
     def cookie_secure(self) -> bool:
@@ -62,12 +84,24 @@ class Settings(BaseSettings):
     def cors_origins(self) -> list[str]:
         origins = {
             self.FRONTEND_URL.rstrip("/"),
-            "http://localhost:9999",
-            "http://127.0.0.1:8765",
-            "http://localhost:8765",
             "https://footy--trivia.vercel.app",
+            "https://footy-trivia.vercel.app",
         }
+        if self.ENVIRONMENT != "production":
+            origins.update({
+                "http://localhost:9999",
+                "http://127.0.0.1:8765",
+                "http://localhost:8765",
+            })
         return sorted(origins)
 
+    @property
+    def supabase_configured(self) -> bool:
+        return bool(self.SUPABASE_URL.strip() and self.SUPABASE_SERVICE_KEY.strip())
 
-settings = Settings()
+
+def load_settings() -> Settings:
+    return Settings()
+
+
+settings = load_settings()
