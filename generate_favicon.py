@@ -1,4 +1,4 @@
-"""Generate favicon assets from the icon-only logo, recolored to site accent green."""
+"""Generate favicon assets from the icon-only logo, recolored to site brand green."""
 from pathlib import Path
 
 import numpy as np
@@ -6,7 +6,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "logo_icon.png"
-BRAND_GREEN = np.array([34, 197, 94], dtype=np.uint8)  # #22c55e — site --green accent
+BRAND_GREEN = np.array([0, 61, 41], dtype=np.uint8)  # #003d29 — site --logo-brand
 
 
 def load_icon() -> Image.Image:
