@@ -5023,7 +5023,7 @@
 
           // Add resize listener for absolute positioning and connectors
           window.removeEventListener('resize', this.boundResize);
-          this.boundResize = () => this.scheduleBracketAlign();
+          this.boundResize = () => this.alignMatchesAndDrawConnectors();
           window.addEventListener('resize', this.boundResize);
         }
 
@@ -5693,56 +5693,29 @@
             }
           }
 
-          // Final (match 30) — sit above both semi-finals
+          // Final (match 30)
           const m30El = document.getElementById('bp-match-30');
-          const s28El = document.getElementById('bp-match-28');
-          const s29El = document.getElementById('bp-match-29');
-          if (m30El && s28El && s29El) {
-            const finalCol = document.getElementById('bp-final-col');
-            const matchesContainer = finalCol ? finalCol.querySelector('.bp-round-matches') : null;
-            if (matchesContainer) {
-              const s28Rect = s28El.getBoundingClientRect();
-              const s29Rect = s29El.getBoundingClientRect();
-              const containerRect = matchesContainer.getBoundingClientRect();
-              const semiTop = Math.min(s28Rect.top, s29Rect.top);
-              const finalGap = 18;
-              const top = semiTop - containerRect.top - finalGap - m30El.offsetHeight;
-              m30El.style.position = 'absolute';
-              m30El.style.top = Math.max(0, top) + 'px';
-              m30El.style.left = '4px';
-              m30El.style.right = '4px';
-            }
+          const s1El = document.getElementById('bp-match-28'); // M29
+          const s2El = document.getElementById('bp-match-29'); // M30
+          let titleHeight = 0;
+          if (m30El && s1El && s2El) {
+            const y1 = s1El.offsetTop + s1El.offsetHeight / 2;
+            const y2 = s2El.offsetTop + s2El.offsetHeight / 2;
+            const centerY = (y1 + y2) / 2;
+            m30El.style.position = 'absolute';
+            m30El.style.top = (centerY - m30El.offsetHeight / 2) + 'px';
+            m30El.style.left = '4px';
+            m30El.style.right = '4px';
 
+            const finalCol = document.getElementById('bp-final-col');
+            const finalTitle = finalCol ? finalCol.querySelector('.bp-round-title') : null;
+            titleHeight = finalTitle ? finalTitle.offsetHeight : 0;
+
+            // Champion box now lives outside the bracket wrapper � no positioning needed
           }
 
           // 2. Draw SVG connector lines
           this.drawSVGConnectors();
-          this.fitBracketToViewport();
-        }
-
-        fitBracketToViewport() {
-          const exportArea = document.getElementById('bp-export-area');
-          const wrapper = document.getElementById('bp-bracket-wrapper');
-          const bracketTab = document.getElementById('wc-bracket');
-          if (!exportArea || !wrapper) return;
-          if (bracketTab && bracketTab.style.display === 'none') return;
-          if (exportArea.classList.contains('bp-export-capturing')) return;
-
-          wrapper.style.transform = '';
-          exportArea.style.minHeight = '';
-
-          const available = exportArea.clientWidth;
-          const natural = wrapper.scrollWidth;
-          if (!available || !natural) return;
-
-          const scale = Math.min(1, available / natural);
-          if (scale < 0.995) {
-            wrapper.style.transform = `scale(${scale})`;
-            wrapper.style.transformOrigin = 'top center';
-            exportArea.style.minHeight = `${Math.ceil(wrapper.scrollHeight * scale)}px`;
-          } else {
-            exportArea.style.minHeight = `${wrapper.scrollHeight}px`;
-          }
         }
 
         drawSVGConnectors() {
@@ -5847,13 +5820,7 @@
             } else if (side === 'final-left') {
               const xStart = s1Right;
               const xEnd = tLeft;
-              const xMid = xStart + lineOffset;
-              const pathData = `
-                M ${xStart} ${s1CenterY}
-                H ${xMid}
-                V ${tCenterY}
-                H ${xEnd}
-              `.trim();
+              const pathData = `M ${xStart} ${s1CenterY} H ${xEnd}`;
               const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
               path.setAttribute('d', pathData);
               path.setAttribute('stroke', '#2a2a30');
@@ -5864,13 +5831,7 @@
             } else if (side === 'final-right') {
               const xStart = s1Left;
               const xEnd = tRight;
-              const xMid = xStart - lineOffset;
-              const pathData = `
-                M ${xStart} ${s1CenterY}
-                H ${xMid}
-                V ${tCenterY}
-                H ${xEnd}
-              `.trim();
+              const pathData = `M ${xStart} ${s1CenterY} H ${xEnd}`;
               const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
               path.setAttribute('d', pathData);
               path.setAttribute('stroke', '#2a2a30');
@@ -6116,15 +6077,11 @@
           const savedWrapperOverflow = wrapper.style.overflow;
           const savedWrapperWidth = wrapper.style.width;
           const savedWrapperHeight = wrapper.style.height;
-          const savedWrapperTransform = wrapper.style.transform;
           const savedExportOverflow = exportArea.style.overflow;
           const savedExportWidth = exportArea.style.width;
-          const savedExportMinHeight = exportArea.style.minHeight;
 
           this.closeAllDropdowns();
           exportArea.classList.add('bp-export-capturing');
-          wrapper.style.transform = '';
-          exportArea.style.minHeight = '';
 
           this._preparePdfCapture(wrapper);
           if (hasChampion && champBox) this._preparePdfCapture(champBox);
@@ -6180,12 +6137,10 @@
             wrapper.style.overflow = savedWrapperOverflow;
             wrapper.style.width = savedWrapperWidth;
             wrapper.style.height = savedWrapperHeight;
-            wrapper.style.transform = savedWrapperTransform;
             exportArea.style.overflow = savedExportOverflow;
             exportArea.style.width = savedExportWidth;
-            exportArea.style.minHeight = savedExportMinHeight;
             exportArea.classList.remove('bp-export-capturing');
-            this.scheduleBracketAlign();
+            this.alignMatchesAndDrawConnectors();
           }
         }
 
@@ -7345,7 +7300,6 @@
             bracketPredictor.renderBracket();
             bracketPredictor.updateChampionDisplay();
           }
-          requestAnimationFrame(() => bracketPredictor.scheduleBracketAlign());
         } else if (tabId === 'analytics') {
           initAnalyticsTab();
         } else if (tabId === 'leaderboard') {
