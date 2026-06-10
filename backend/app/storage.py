@@ -1,80 +1,78 @@
 import io
+from typing import Optional
 from PIL import Image
 from fastapi import UploadFile, HTTPException
 from supabase import create_client, Client
 from app.config import settings
 
-# Initialize Supabase client using Service Key to bypass RLS restrictions on admin actions
-supabase_client = None
+MAX_IMAGE_PIXELS = 8_000_000
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
+supabase_client = None  # type: Optional[Client]
 try:
-    if "your-project-ref" not in settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY != "your-service-role-key":
+    if settings.supabase_configured:
         supabase_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
 except Exception as e:
     print(f"Warning: Could not initialize Supabase storage client: {e}")
 
+
+def _ensure_storage() -> None:
+    if not supabase_client:
+        raise HTTPException(status_code=503, detail="File storage is not configured")
+
+
 def get_public_url(bucket: str, path: str) -> str:
-    """
-    Construct the CDN public URL for a file in Supabase Storage.
-    Format: https://[PROJECT-REF].supabase.co/storage/v1/object/public/[bucket]/[path]
-    """
     return f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1/object/public/{bucket}/{path}"
 
-def resize_avatar(file_bytes: bytes, max_size=(400, 400)) -> bytes:
-    """
-    Resizes the avatar image to save space and converts it to WebP.
-    """
+
+def _process_image(file_bytes: bytes, max_size=(800, 800), output_format: str = "WEBP") -> bytes:
+    Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
     try:
         img = Image.open(io.BytesIO(file_bytes))
-        # Handle transparency modes for WebP conversion
+        img.load()
+        if img.width * img.height > MAX_IMAGE_PIXELS:
+            raise HTTPException(status_code=400, detail="Image dimensions too large")
         if img.mode in ("RGBA", "P"):
-            # WebP supports transparency, but if we convert to RGB it becomes smaller
-            # We keep transparency for avatars by converting to RGBA if transparent
             if img.mode == "P":
                 img = img.convert("RGBA")
         else:
             img = img.convert("RGB")
-            
         img.thumbnail(max_size, Image.Resampling.LANCZOS)
         buffer = io.BytesIO()
-        # Save as WEBP
-        img.save(buffer, format="WEBP", quality=85)
+        img.save(buffer, format=output_format, quality=85)
         return buffer.getvalue()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=400, detail="Failed to process image")
+
+
+def resize_avatar(file_bytes: bytes, max_size=(400, 400)) -> bytes:
+    return _process_image(file_bytes, max_size=max_size, output_format="WEBP")
+
 
 async def delete_avatar(user_id: str):
-    """
-    Delete any existing avatar profiles to avoid file accumulation.
-    """
+    _ensure_storage()
     bucket = settings.STORAGE_AVATAR_BUCKET
-    # Search and delete profile.webp
     path = f"{user_id}/profile.webp"
     try:
         supabase_client.storage.from_(bucket).remove([path])
     except Exception:
-        # Ignore errors if the file does not exist
         pass
 
+
 async def upload_avatar(user_id: str, file: UploadFile) -> str:
-    """
-    Uploads user avatar after resizing and converting to WEBP.
-    Returns the public CDN URL.
-    """
+    _ensure_storage()
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported image type")
+
     bucket = settings.STORAGE_AVATAR_BUCKET
-    
-    # Read bytes
     file_bytes = await file.read()
-    
-    # Process & Resize image
     processed_bytes = resize_avatar(file_bytes)
-    
-    # Define destination path: avatars/{user_id}/profile.webp
     path = f"{user_id}/profile.webp"
-    
-    # Clean up old avatar first
+
     await delete_avatar(user_id)
-    
-    # Upload to Supabase Storage
+
     try:
         supabase_client.storage.from_(bucket).upload(
             path=path,
@@ -82,66 +80,68 @@ async def upload_avatar(user_id: str, file: UploadFile) -> str:
             file_options={"content-type": "image/webp", "upsert": "true"}
         )
         return get_public_url(bucket, path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Supabase upload error: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to upload avatar")
+
 
 async def upload_team_logo(team_id: int, team_slug: str, file: UploadFile) -> str:
-    """
-    Uploads a team logo to the team-logos bucket.
-    """
+    _ensure_storage()
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported image type")
+
     bucket = settings.STORAGE_LOGOS_BUCKET
     file_bytes = await file.read()
-    
-    # Resolve file extension
-    ext = file.filename.split(".")[-1] if "." in file.filename else "png"
-    path = f"{team_id}/{team_slug}.{ext}"
-    
+    processed_bytes = _process_image(file_bytes, max_size=(512, 512), output_format="WEBP")
+    path = f"{team_id}/{team_slug}.webp"
+
     try:
         supabase_client.storage.from_(bucket).upload(
             path=path,
-            file=file_bytes,
-            file_options={"content-type": file.content_type, "upsert": "true"}
+            file=processed_bytes,
+            file_options={"content-type": "image/webp", "upsert": "true"}
         )
         return get_public_url(bucket, path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload team logo: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to upload team logo")
+
 
 async def upload_flag(country_code: str, file: UploadFile) -> str:
-    """
-    Uploads a country flag to the country-flags bucket.
-    """
+    _ensure_storage()
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported image type")
+
     bucket = settings.STORAGE_FLAGS_BUCKET
     file_bytes = await file.read()
-    
-    ext = file.filename.split(".")[-1] if "." in file.filename else "svg"
-    path = f"{country_code.upper()}.{ext}"
-    
+    processed_bytes = _process_image(file_bytes, max_size=(256, 256), output_format="WEBP")
+    path = f"{country_code.upper()}.webp"
+
     try:
         supabase_client.storage.from_(bucket).upload(
             path=path,
-            file=file_bytes,
-            file_options={"content-type": file.content_type, "upsert": "true"}
+            file=processed_bytes,
+            file_options={"content-type": "image/webp", "upsert": "true"}
         )
         return get_public_url(bucket, path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload flag: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to upload flag")
+
 
 async def upload_achievement_icon(achievement_id: int, slug: str, file: UploadFile) -> str:
-    """
-    Uploads a badge icon to the achievements bucket.
-    """
+    _ensure_storage()
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported image type")
+
     bucket = settings.STORAGE_ACHIEVEMENTS_BUCKET
     file_bytes = await file.read()
-    
-    ext = file.filename.split(".")[-1] if "." in file.filename else "png"
-    path = f"{achievement_id}/{slug}.{ext}"
-    
+    processed_bytes = _process_image(file_bytes, max_size=(256, 256), output_format="WEBP")
+    path = f"{achievement_id}/{slug}.webp"
+
     try:
         supabase_client.storage.from_(bucket).upload(
             path=path,
-            file=file_bytes,
-            file_options={"content-type": file.content_type, "upsert": "true"}
+            file=processed_bytes,
+            file_options={"content-type": "image/webp", "upsert": "true"}
         )
         return get_public_url(bucket, path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload achievement icon: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to upload achievement icon")

@@ -2,8 +2,8 @@
 
 Usage (PowerShell):
     cd backend
-    $env:SOURCE_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/footytrivia"
-    $env:TARGET_DATABASE_URL = "postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres"
+    $env:SOURCE_DATABASE_URL = "<your-source-database-url>"
+    $env:TARGET_DATABASE_URL = "<your-target-database-url>"
     python migrate_db.py
 
 The script creates the schema on the target (if missing), copies every table in
@@ -20,9 +20,6 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.database import Base
 from app import models  # noqa: F401  (registers all tables on Base.metadata)
-
-DEFAULT_SOURCE = "postgresql+asyncpg://postgres:postgres@localhost:5432/footytrivia"
-
 
 def _normalize(url: str) -> str:
     if url.startswith("postgresql://"):
@@ -97,12 +94,16 @@ async def migrate(source_url: str, target_url: str) -> None:
 
 
 def main() -> int:
-    source = _normalize(os.environ.get("SOURCE_DATABASE_URL", DEFAULT_SOURCE))
-    target = os.environ.get("TARGET_DATABASE_URL")
-    if not target:
-        print("ERROR: set TARGET_DATABASE_URL to your Supabase connection string.")
+    source_raw = os.environ.get("SOURCE_DATABASE_URL", "").strip()
+    target_raw = os.environ.get("TARGET_DATABASE_URL", "").strip()
+    if not source_raw:
+        print("ERROR: set SOURCE_DATABASE_URL to your source database connection string.")
         return 1
-    target = _normalize(target)
+    if not target_raw:
+        print("ERROR: set TARGET_DATABASE_URL to your target database connection string.")
+        return 1
+    source = _normalize(source_raw)
+    target = _normalize(target_raw)
     print(f"Source: {source.split('@')[-1]}")
     print(f"Target: {target.split('@')[-1]}")
     asyncio.run(migrate(source, target))

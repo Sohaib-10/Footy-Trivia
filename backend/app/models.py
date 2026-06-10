@@ -57,6 +57,8 @@ class User(Base):
     last_login: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     session_token: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     last_activity_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    password_reset_nonce: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    email_verify_nonce: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
 
     __table_args__ = (
         CheckConstraint("role IN ('user', 'admin')", name="check_user_role"),
@@ -124,6 +126,7 @@ class QuizSession(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     difficulty: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     category: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    challenge_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     total_questions: Mapped[int] = mapped_column(Integer, nullable=False)
     score: Mapped[int] = mapped_column(Integer, default=0)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -137,6 +140,29 @@ class QuizSession(Base):
     # Relationships
     user: Mapped[User] = relationship(back_populates="quiz_sessions")
     answers: Mapped[List["SessionAnswer"]] = relationship(back_populates="session", cascade="all, delete-orphan")
+    session_questions: Mapped[List["QuizSessionQuestion"]] = relationship(
+        back_populates="session", cascade="all, delete-orphan", order_by="QuizSessionQuestion.order_index"
+    )
+
+
+class QuizSessionQuestion(Base):
+    __tablename__ = "quiz_session_questions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("quiz_sessions.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id", ondelete="CASCADE"), nullable=False)
+    order_index: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("session_id", "question_id", name="uq_quiz_session_question"),
+        UniqueConstraint("session_id", "order_index", name="uq_quiz_session_order"),
+    )
+
+    session: Mapped["QuizSession"] = relationship(back_populates="session_questions")
+    question: Mapped["Question"] = relationship()
+
 
 class SessionAnswer(Base):
     __tablename__ = "session_answers"
@@ -151,6 +177,7 @@ class SessionAnswer(Base):
 
     __table_args__ = (
         CheckConstraint("selected_option IN ('A', 'B', 'C', 'D')", name="check_selected_option"),
+        UniqueConstraint("session_id", "question_id", name="uq_session_answer_question"),
     )
 
     # Relationships

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -8,6 +8,8 @@ from uuid import UUID
 from pydantic import BaseModel
 from app.database import get_db
 from app import models, schemas, auth
+from app.dependencies import CountryCodePath, LeaderboardPeriodQuery
+from app.cookie_auth import ACCESS_TOKEN_COOKIE
 
 router = APIRouter(prefix="/api/leaderboard", tags=["leaderboard"])
 
@@ -17,18 +19,28 @@ _optional_oauth2 = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=F
 
 
 async def get_optional_user(
+    request: Request,
     token: Optional[str] = Depends(_optional_oauth2),
     db: AsyncSession = Depends(get_db),
 ) -> Optional[models.User]:
-    if not token:
+    access_token = token or request.cookies.get(ACCESS_TOKEN_COOKIE)
+    if not access_token:
         return None
     try:
-        payload = auth.decode_token(token, expected_type="access")
+        payload = auth.decode_token(access_token, expected_type="access")
         user_id = UUID(payload.get("sub"))
     except Exception:
         return None
     result = await db.execute(select(models.User).where(models.User.id == user_id))
-    return result.scalars().first()
+    user = result.scalars().first()
+    if user is None or not user.is_active or not user.is_verified:
+        return None
+    try:
+        await auth.validate_user_session(user, payload, db)
+    except HTTPException:
+        return None
+    auth.touch_user_activity(user)
+    return user
 
 
 class RankedLeaderboardResponse(BaseModel):
@@ -54,7 +66,7 @@ def _accuracy(correct: Optional[int], total: Optional[int]) -> str:
 
 @router.get("/ranked", response_model=RankedLeaderboardResponse)
 async def get_ranked_leaderboard(
-    period: str = "all_time",
+    period: LeaderboardPeriodQuery = "all_time",
     current_user: Optional[models.User] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -122,7 +134,11 @@ async def get_ranked_leaderboard(
     return RankedLeaderboardResponse(entries=entries, current_user=current)
 
 @router.get("/global", response_model=List[schemas.LeaderboardRead])
-async def get_global_leaderboard(limit: int = 50, offset: int = 0, db: AsyncSession = Depends(get_db)):
+async def get_global_leaderboard(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0, le=10_000),
+    db: AsyncSession = Depends(get_db),
+):
     query = (
         select(models.Leaderboard, models.User.username, models.UserProgress.total_correct, models.UserProgress.total_questions_answered)
         .select_from(models.Leaderboard)
@@ -146,7 +162,12 @@ async def get_global_leaderboard(limit: int = 50, offset: int = 0, db: AsyncSess
     return leaderboard_data
 
 @router.get("/country/{code}", response_model=List[schemas.LeaderboardRead])
-async def get_country_leaderboard(code: str, limit: int = 50, offset: int = 0, db: AsyncSession = Depends(get_db)):
+async def get_country_leaderboard(
+    code: CountryCodePath,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0, le=10_000),
+    db: AsyncSession = Depends(get_db),
+):
     # Find country by code
     country_query = select(models.Country).where(models.Country.code == code.upper())
     country_result = await db.execute(country_query)
@@ -180,7 +201,11 @@ async def get_country_leaderboard(code: str, limit: int = 50, offset: int = 0, d
     return leaderboard_data
 
 @router.get("/weekly", response_model=List[schemas.LeaderboardRead])
-async def get_weekly_leaderboard(limit: int = 50, offset: int = 0, db: AsyncSession = Depends(get_db)):
+async def get_weekly_leaderboard(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0, le=10_000),
+    db: AsyncSession = Depends(get_db),
+):
     query = (
         select(models.Leaderboard, models.User.username, models.UserProgress.total_correct, models.UserProgress.total_questions_answered)
         .select_from(models.Leaderboard)
@@ -205,7 +230,11 @@ async def get_weekly_leaderboard(limit: int = 50, offset: int = 0, db: AsyncSess
     return leaderboard_data
 
 @router.get("/monthly", response_model=List[schemas.LeaderboardRead])
-async def get_monthly_leaderboard(limit: int = 50, offset: int = 0, db: AsyncSession = Depends(get_db)):
+async def get_monthly_leaderboard(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0, le=10_000),
+    db: AsyncSession = Depends(get_db),
+):
     query = (
         select(models.Leaderboard, models.User.username, models.UserProgress.total_correct, models.UserProgress.total_questions_answered)
         .select_from(models.Leaderboard)

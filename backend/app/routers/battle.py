@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import random
 import string
 from datetime import datetime, timedelta
@@ -12,6 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app import auth, models, schemas
+from app.battle_auth import ensure_battle_participant, get_active_battle_room
+from app.dependencies import RoomCodePath
+
+logger = logging.getLogger(__name__)
 from ably import AblyRest
 from app.config import settings
 from app.database import async_session, get_db
@@ -122,11 +127,10 @@ async def create_battle_room(
 
 @router.post("/join/{room_code}")
 async def join_battle_room(
-    room_code: str,
+    room_code: RoomCodePath,
     current_user: models.User = Depends(auth.get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    room_code = room_code.upper()
     query = select(models.BattleRoom).where(
         models.BattleRoom.room_code == room_code,
         models.BattleRoom.expires_at > datetime.utcnow()
@@ -183,33 +187,45 @@ async def join_battle_room(
     }
 
 
-# Resolve the round
-async def resolve_round(room: models.BattleRoom, db: AsyncSession):
-    # Fetch the current question ID
+async def _lock_battle_room(room_id: UUID, db: AsyncSession) -> Optional[models.BattleRoom]:
+    result = await db.execute(
+        select(models.BattleRoom).where(models.BattleRoom.id == room_id).with_for_update()
+    )
+    return result.scalars().first()
+
+
+# Resolve the round (idempotent; safe under concurrent calls)
+async def resolve_round(room_id: UUID, db: AsyncSession):
+    room = await _lock_battle_room(room_id, db)
+    if not room or room.status != "in_progress":
+        return
+
+    if room.question_deadline is None:
+        return
+
     q_query = select(models.BattleRoomQuestion).where(
         models.BattleRoomQuestion.room_id == room.id,
         models.BattleRoomQuestion.order_index == room.current_question_index
     ).options(selectinload(models.BattleRoomQuestion.question))
-    q_res = await db.execute(q_query)
-    room_q = q_res.scalars().first()
+    room_q = (await db.execute(q_query)).scalars().first()
     if not room_q:
         return
 
     question = room_q.question
 
-    # Fetch answers submitted so far
     ans_query = select(models.BattleAnswer).where(
         models.BattleAnswer.room_id == room.id,
         models.BattleAnswer.question_id == question.id
     )
-    ans_res = await db.execute(ans_query)
-    answers = ans_res.scalars().all()
+    answers = (await db.execute(ans_query)).scalars().all()
     answers_map = {ans.user_id: ans for ans in answers}
 
     host_ans = answers_map.get(room.host_id)
     guest_ans = answers_map.get(room.guest_id)
 
-    # If answer is missing, create a dummy timeout answer
+    if (not host_ans or not guest_ans) and room.question_deadline and datetime.utcnow() <= room.question_deadline:
+        return
+
     if not host_ans:
         host_ans = models.BattleAnswer(
             room_id=room.id,
@@ -220,7 +236,7 @@ async def resolve_round(room: models.BattleRoom, db: AsyncSession):
             time_taken_ms=30000
         )
         db.add(host_ans)
-    if not guest_ans:
+    if not guest_ans and room.guest_id:
         guest_ans = models.BattleAnswer(
             room_id=room.id,
             user_id=room.guest_id,
@@ -231,34 +247,51 @@ async def resolve_round(room: models.BattleRoom, db: AsyncSession):
         )
         db.add(guest_ans)
 
+    resolved_index = room.current_question_index
+    room.question_deadline = None
+    await db.flush()
+    await db.refresh(host_ans)
+    if guest_ans:
+        await db.refresh(guest_ans)
+
+    host_score = room.host_score
+    guest_score = room.guest_score
+    room_code = room.room_code
+    host_id = room.host_id
+    guest_id = room.guest_id
+    total_questions = room.total_questions
+
     await db.commit()
 
-    # Broadcast round results
     round_result = {
         "event": "ROUND_RESULT",
         "correct_option": question.correct_option,
-        "host_score": room.host_score,
-        "guest_score": room.guest_score,
+        "host_score": host_score,
+        "guest_score": guest_score,
         "host_answer": {
             "option": host_ans.selected_option,
             "is_correct": host_ans.is_correct,
             "time_taken_ms": host_ans.time_taken_ms
         },
         "guest_answer": {
-            "option": guest_ans.selected_option,
-            "is_correct": guest_ans.is_correct,
-            "time_taken_ms": guest_ans.time_taken_ms
+            "option": guest_ans.selected_option if guest_ans else None,
+            "is_correct": guest_ans.is_correct if guest_ans else False,
+            "time_taken_ms": guest_ans.time_taken_ms if guest_ans else 30000
         },
         "next_question_delay_sec": 5
     }
-    await publish_to_room(room.room_code, round_result)
+    await publish_to_room(room_code, round_result)
 
-    # Wait 5 seconds before advancing
     await asyncio.sleep(5)
 
-    # Advance index
+    room = await _lock_battle_room(room_id, db)
+    if not room or room.status == "completed":
+        return
+    if room.current_question_index != resolved_index:
+        return
+
     room.current_question_index += 1
-    if room.current_question_index < room.total_questions:
+    if room.current_question_index < total_questions:
         # Move to next question
         next_q_query = select(models.BattleRoomQuestion).where(
             models.BattleRoomQuestion.room_id == room.id,
@@ -288,44 +321,47 @@ async def resolve_round(room: models.BattleRoom, db: AsyncSession):
                 "server_time": int(datetime.utcnow().timestamp() * 1000),
                 "answer_deadline": int(deadline.timestamp() * 1000)
             }
-            await publish_to_room(room.room_code, next_question_payload)
+            await publish_to_room(room_code, next_question_payload)
             await db.commit()
     else:
-        # End game!
+        if room.status == "completed":
+            return
+
         room.status = "completed"
         room.ended_at = datetime.utcnow()
 
-        # Determine winner
         winner_id = None
         if room.host_score > room.guest_score:
-            winner_id = room.host_id
+            winner_id = host_id
         elif room.guest_score > room.host_score:
-            winner_id = room.guest_id
+            winner_id = guest_id
         else:
             # Tiebreaker: Check who answered faster across correct answers
             host_correct_times = select(func.sum(models.BattleAnswer.time_taken_ms)).where(
                 models.BattleAnswer.room_id == room.id,
-                models.BattleAnswer.user_id == room.host_id,
+                models.BattleAnswer.user_id == host_id,
                 models.BattleAnswer.is_correct == True
             )
             guest_correct_times = select(func.sum(models.BattleAnswer.time_taken_ms)).where(
                 models.BattleAnswer.room_id == room.id,
-                models.BattleAnswer.user_id == room.guest_id,
+                models.BattleAnswer.user_id == guest_id,
                 models.BattleAnswer.is_correct == True
             )
-            
+
             host_sum = (await db.execute(host_correct_times)).scalar() or 999999
             guest_sum = (await db.execute(guest_correct_times)).scalar() or 999999
-            
+
             if host_sum < guest_sum:
-                winner_id = room.host_id
+                winner_id = host_id
             elif guest_sum < host_sum:
-                winner_id = room.guest_id
+                winner_id = guest_id
 
         room.winner_id = winner_id
+        await db.flush()
 
-        # Update both players' progress and stats in the database
-        for player_id, score in [(room.host_id, room.host_score), (room.guest_id, room.guest_score)]:
+        for player_id, score in [(host_id, room.host_score), (guest_id, room.guest_score)]:
+            if not player_id:
+                continue
             prog_query = select(models.UserProgress).where(models.UserProgress.user_id == player_id)
             prog_result = await db.execute(prog_query)
             progress = prog_result.scalars().first()
@@ -373,13 +409,13 @@ async def resolve_round(room: models.BattleRoom, db: AsyncSession):
         await db.commit()
 
         # Fetch usernames
-        host_user = (await db.execute(select(models.User).where(models.User.id == room.host_id))).scalar()
-        guest_user = (await db.execute(select(models.User).where(models.User.id == room.guest_id))).scalar()
+        host_user = (await db.execute(select(models.User).where(models.User.id == host_id))).scalar()
+        guest_user = (await db.execute(select(models.User).where(models.User.id == guest_id))).scalar() if guest_id else None
 
         winner_username = None
-        if winner_id == room.host_id:
-            winner_username = host_user.username
-        elif winner_id == room.guest_id:
+        if winner_id == host_id:
+            winner_username = host_user.username if host_user else None
+        elif winner_id == guest_id and guest_user:
             winner_username = guest_user.username
 
         game_over_payload = {
@@ -388,38 +424,46 @@ async def resolve_round(room: models.BattleRoom, db: AsyncSession):
             "winner_username": winner_username,
             "host_score": room.host_score,
             "guest_score": room.guest_score,
-            "host_username": host_user.username,
-            "guest_username": guest_user.username
+            "host_username": host_user.username if host_user else "Host",
+            "guest_username": guest_user.username if guest_user else "Guest"
         }
-        await publish_to_room(room.room_code, game_over_payload)
+        await publish_to_room(room_code, game_over_payload)
 
 
 # Ably Token Authentication endpoint
 @router.get("/token")
-async def get_ably_token(current_user: models.User = Depends(auth.get_current_user)):
+async def get_ably_token(
+    room_code: RoomCodePath,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     if not ably:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ably is not configured on the backend.")
+    room = await get_active_battle_room(room_code, db)
+    ensure_battle_participant(room, current_user.id)
     try:
         token_params = {
             "clientId": str(current_user.id),
             "capability": {
-                "room:*": ["publish", "subscribe", "presence"]
+                f"room:{room_code}": ["subscribe", "presence"]
             }
         }
         token_request = await ably.auth.create_token_request(token_params)
         return token_request
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to create Ably token for room %s", room_code)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create realtime token")
 
 
 # Get room state endpoint
 @router.get("/room/{room_code}/state")
 async def get_room_state(
-    room_code: str,
+    room_code: RoomCodePath,
     current_user: models.User = Depends(auth.get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    room_code = room_code.upper()
     query = select(models.BattleRoom).where(
         models.BattleRoom.room_code == room_code,
         models.BattleRoom.expires_at > datetime.utcnow()
@@ -428,7 +472,8 @@ async def get_room_state(
     room = result.scalars().first()
     if not room:
         raise HTTPException(status_code=404, detail="Room not found or expired")
-    
+    ensure_battle_participant(room, current_user.id)
+
     # Load users
     host_user = (await db.execute(select(models.User).where(models.User.id == room.host_id))).scalar()
     guest_user = None
@@ -447,10 +492,6 @@ async def get_room_state(
             q = room_q.question
             server_time = int(datetime.utcnow().timestamp() * 1000)
             deadline_ms = int(room.question_deadline.timestamp() * 1000) if room.question_deadline else 0
-            
-            # Check if deadline has passed and we need to auto-resolve
-            if room.question_deadline and datetime.utcnow() > room.question_deadline:
-                await resolve_round(room, db)
             
             return {
                 "status": room.status,
@@ -490,11 +531,10 @@ async def get_room_state(
 # Toggle player ready status endpoint
 @router.post("/room/{room_code}/ready")
 async def toggle_ready(
-    room_code: str,
+    room_code: RoomCodePath,
     current_user: models.User = Depends(auth.get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    room_code = room_code.upper()
     query = select(models.BattleRoom).where(
         models.BattleRoom.room_code == room_code,
         models.BattleRoom.expires_at > datetime.utcnow()
@@ -541,11 +581,10 @@ async def toggle_ready(
 # Start battle endpoint
 @router.post("/room/{room_code}/start")
 async def start_battle(
-    room_code: str,
+    room_code: RoomCodePath,
     current_user: models.User = Depends(auth.get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    room_code = room_code.upper()
     query = select(models.BattleRoom).where(
         models.BattleRoom.room_code == room_code,
         models.BattleRoom.expires_at > datetime.utcnow()
@@ -608,20 +647,14 @@ async def start_battle(
     return {"status": "ok"}
 
 
-# Submit Answer endpoint schema
-class AnswerPayload(schemas.BaseModel):
-    option: Optional[str] = None
-    time_taken_ms: int
-
 # Submit Answer endpoint
 @router.post("/room/{room_code}/answer")
 async def submit_answer(
-    room_code: str,
-    payload: AnswerPayload,
+    room_code: RoomCodePath,
+    payload: schemas.BattleAnswerPayload,
     current_user: models.User = Depends(auth.get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    room_code = room_code.upper()
     query = select(models.BattleRoom).where(
         models.BattleRoom.room_code == room_code,
         models.BattleRoom.expires_at > datetime.utcnow()
@@ -662,12 +695,17 @@ async def submit_answer(
     
     option = payload.option
     time_taken_ms = payload.time_taken_ms
-    
+    if room.question_deadline:
+        question_started = room.question_deadline - timedelta(seconds=30)
+        server_elapsed_ms = max(0, int((datetime.utcnow() - question_started).total_seconds() * 1000))
+        time_taken_ms = min(time_taken_ms, server_elapsed_ms, 30_000)
+        if datetime.utcnow() > room.question_deadline:
+            time_taken_ms = 30_000
+
     is_correct = (option == question.correct_option)
     pts = 0
     if is_correct:
         pts = 10
-        # Speed bonus:
         if time_taken_ms < 5000:
             pts += 5
         elif time_taken_ms < 10000:
@@ -707,9 +745,9 @@ async def submit_answer(
     
     # If both players have answered, resolve the round
     if len(all_answers) >= 2:
-        await resolve_round(room, db)
+        await resolve_round(room.id, db)
     elif room.question_deadline and datetime.utcnow() > room.question_deadline:
-        await resolve_round(room, db)
+        await resolve_round(room.id, db)
         
     return {"status": "ok"}
 

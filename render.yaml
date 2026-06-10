@@ -16,6 +16,10 @@ services:
         sync: false
       - key: COOKIE_SECURE
         value: "true"
+      - key: ENVIRONMENT
+        value: production
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
       # Email via Brevo HTTP API (works on hosts that block SMTP).
       - key: BREVO_API_KEY
         sync: false
@@ -23,4 +27,12 @@ services:
         sync: false
       # Ably realtime (required for multiplayer Battle rooms).
       - key: ABLY_API_KEY
+        sync: false
+      - key: SPORTSDB_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
         sync: false

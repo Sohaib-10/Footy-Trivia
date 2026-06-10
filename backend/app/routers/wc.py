@@ -7,7 +7,7 @@ import unicodedata
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -164,6 +164,49 @@ def _results_as_dict(rows: List[models.WcResult]) -> dict:
     return data
 
 
+def _merge_predictions(existing: dict, incoming: dict, results: dict) -> dict:
+    """Merge incoming predictions but refuse changes to categories with published results."""
+    merged = dict(existing) if isinstance(existing, dict) else {}
+    published_matches = set((results.get("matches") or {}).keys())
+    published_awards = set((results.get("awards") or {}).keys())
+    published_groups = set((results.get("groups") or {}).keys())
+
+    existing_matches = dict(merged.get("matches") or {})
+    for fixture_id, pred in (incoming.get("matches") or {}).items():
+        if str(fixture_id) not in published_matches:
+            existing_matches[str(fixture_id)] = pred
+    merged["matches"] = existing_matches
+
+    existing_awards = dict(merged.get("awards") or {})
+    for award_key, pred in (incoming.get("awards") or {}).items():
+        if award_key not in published_awards:
+            existing_awards[award_key] = pred
+    merged["awards"] = existing_awards
+
+    existing_groups = dict(merged.get("groups") or {})
+    for group_key, pred in (incoming.get("groups") or {}).items():
+        if group_key not in published_groups:
+            existing_groups[group_key] = pred
+    merged["groups"] = existing_groups
+
+    if not results.get("third_place"):
+        merged["third_place"] = incoming.get("third_place", merged.get("third_place") or [])
+
+    if not results.get("bracket"):
+        merged["bracket"] = incoming.get("bracket", merged.get("bracket") or [])
+
+    if not results.get("champion"):
+        if "champion" in incoming:
+            merged["champion"] = incoming.get("champion")
+
+    if "bracket_submitted" in incoming:
+        merged["bracket_submitted"] = bool(incoming.get("bracket_submitted"))
+    if "group_rankings_submitted" in incoming:
+        merged["group_rankings_submitted"] = bool(incoming.get("group_rankings_submitted"))
+
+    return merged
+
+
 def score_predictions(predictions: dict, results: dict) -> tuple[int, int, int]:
     total_points = 0
     correct = 0
@@ -307,15 +350,17 @@ async def sync_predictions(
         select(models.WcUserPredictions).where(models.WcUserPredictions.user_id == current_user.id)
     )
     record = pred_result.scalars().first()
-    data = payload.model_dump()
+    incoming = payload.model_dump()
+    result_rows = (await db.execute(select(models.WcResult))).scalars().all()
+    results = _results_as_dict(list(result_rows))
+    existing_data = record.data if record and isinstance(record.data, dict) else {}
+    data = _merge_predictions(existing_data, incoming, results)
     if record:
         record.data = data
     else:
         record = models.WcUserPredictions(user_id=current_user.id, data=data)
         db.add(record)
 
-    result_rows = (await db.execute(select(models.WcResult))).scalars().all()
-    results = _results_as_dict(list(result_rows))
     points, correct, graded = score_predictions(data, results)
     lb = await _upsert_wc_leaderboard(db, current_user.id, points, correct, graded)
     await rebuild_wc_ranks(db)
@@ -335,7 +380,7 @@ async def sync_predictions(
 
 
 @router.get("/leaderboard", response_model=List[schemas.WcLeaderboardRead])
-async def get_wc_leaderboard(limit: int = 10, db: AsyncSession = Depends(get_db)):
+async def get_wc_leaderboard(limit: int = Query(10, ge=1, le=100), db: AsyncSession = Depends(get_db)):
     query = (
         select(models.WcLeaderboard, models.User.username)
         .join(models.User, models.WcLeaderboard.user_id == models.User.id)
@@ -397,12 +442,9 @@ async def get_wc_me(
 @router.post("/results", response_model=dict)
 async def upsert_results(
     payload: schemas.WcResultsBulk,
-    current_user: models.User = Depends(auth.get_current_user),
+    _admin: models.User = Depends(auth.get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
-
     for item in payload.results:
         existing = (
             await db.execute(

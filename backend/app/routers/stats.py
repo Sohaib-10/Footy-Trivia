@@ -43,11 +43,6 @@ async def get_stats_overview(db: AsyncSession = Depends(get_db)):
             "active_count": active_count
         })
 
-    display_user_count = user_count
-    display_question_count = question_count if question_count > 0 else 248
-    display_category_count = category_count if category_count > 0 else 12
-
-    # 5. League counts — use real signup total until per-league tracking exists
     league_counts = {
         "premier-league": user_count,
         "la-liga": user_count,
@@ -55,20 +50,10 @@ async def get_stats_overview(db: AsyncSession = Depends(get_db)):
         "world-cup": user_count,
     }
 
-    # If top countries is empty, fallback to seed top countries
-    if not top_countries:
-        top_countries = [
-            {"name": "United Kingdom", "code": "gb", "active_count": 2341},
-            {"name": "Brazil", "code": "br", "active_count": 1892},
-            {"name": "Argentina", "code": "ar", "active_count": 1204},
-            {"name": "Spain", "code": "es", "active_count": 980},
-            {"name": "France", "code": "fr", "active_count": 850}
-        ]
-
     return {
-        "active_players": display_user_count,
-        "total_questions": display_question_count,
-        "total_categories": display_category_count,
+        "active_players": user_count,
+        "total_questions": question_count,
+        "total_categories": category_count,
         "total_game_modes": 4,
         "league_players": league_counts,
         "top_countries": top_countries

@@ -1,20 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.database import get_db
 from app import models, auth, storage
 from app.schemas.storage_schemas import UploadResponse
+from app.dependencies import CountryCodePath
+from app.validation import sanitize_upload_filename
 
 router = APIRouter(prefix="/api", tags=["storage"])
 
-ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/svg+xml"}
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 MAX_AVATAR_SIZE = 2 * 1024 * 1024       # 2MB
 MAX_LOGO_SIZE = 1 * 1024 * 1024         # 1MB
 MAX_FLAG_SIZE = 500 * 1024              # 500KB
 MAX_ACHIEVEMENT_SIZE = 500 * 1024       # 500KB
 
 async def validate_file(file: UploadFile, max_size: int, allowed_types: set):
-    # MIME check
+    file.filename = sanitize_upload_filename(file.filename)
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -39,7 +41,7 @@ async def validate_file(file: UploadFile, max_size: int, allowed_types: set):
 
 @router.post("/admin/teams/{id}/logo", response_model=UploadResponse)
 async def upload_team_logo_logo(
-    id: int,
+    id: int = Path(..., ge=1),
     file: UploadFile = File(...),
     admin: models.User = Depends(auth.get_current_admin),
     db: AsyncSession = Depends(get_db)
@@ -65,13 +67,13 @@ async def upload_team_logo_logo(
 
 @router.post("/admin/countries/{code}/flag", response_model=UploadResponse)
 async def upload_country_flag_flag(
-    code: str,
+    code: CountryCodePath,
     file: UploadFile = File(...),
     admin: models.User = Depends(auth.get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
     # Flags only allow SVG or PNG
-    allowed_flag_types = {"image/svg+xml", "image/png"}
+    allowed_flag_types = {"image/png"}
     await validate_file(file, MAX_FLAG_SIZE, allowed_flag_types)
     
     # Fetch country
@@ -90,7 +92,7 @@ async def upload_country_flag_flag(
 
 @router.post("/admin/achievements/{id}/icon", response_model=UploadResponse)
 async def upload_achievement_badge_icon(
-    id: int,
+    id: int = Path(..., ge=1),
     file: UploadFile = File(...),
     admin: models.User = Depends(auth.get_current_admin),
     db: AsyncSession = Depends(get_db)

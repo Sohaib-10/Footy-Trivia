@@ -1,6 +1,5 @@
-// Application Configuration Example
-// Copy this file to 'config.js' and fill in your details.
+// Copy to config.js for local development (config.js is gitignored).
+// Production: Vercel sets API_BASE_URL and runs scripts/generate-config.js at build time.
 window.ENV = {
-  SPORTSDB_API_URL: 'https://www.thesportsdb.com/api/v1/json/3/searchplayers.php',
-  API_BASE_URL: 'https://your-hosted-backend-api.com',
+  API_BASE_URL: 'http://localhost:8002',
 };

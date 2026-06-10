@@ -272,48 +272,4 @@ INSERT INTO questions (question_text, option_a, option_b, option_c, option_d, co
 ('Who holds the record for the most appearances for Manchester United?', 'Bobby Charlton', 'Paul Scholes', 'Ryan Giggs', 'Gary Neville', 'C', 'medium', 'players', 1, 1),
 ('Who scored the famous 93:20 winning goal to win Man City the 2012 Premier League?', 'Mario Balotelli', 'Edin Džeko', 'Sergio Agüero', 'Yaya Touré', 'C', 'easy', 'players', 5, 1);
 
--- 5. Seed Users (passwords are 'password123', admin is 'admin123')
-INSERT INTO users (id, email, password_hash, username, role, is_active, is_verified) VALUES
-('11111111-1111-1111-1111-111111111111', 'admin@example.com', '$2b$12$R9hkaXUP9deIdEPY9VJ.c.1e1zRy18Gndy5A7BupqF.u6U3Gz0pyq', 'admin', 'admin', true, true),
-('22222222-2222-2222-2222-222222222222', 'futbolking99@example.com', '$2b$12$R9hkaXUP9deIdEPY9VJ.c.1e1zRy18Gndy5A7BupqF.u6U3Gz0pyq', 'futbolking99', 'user', true, true),
-('33333333-3333-3333-3333-333333333333', 'tacticsguru@example.com', '$2b$12$R9hkaXUP9deIdEPY9VJ.c.1e1zRy18Gndy5A7BupqF.u6U3Gz0pyq', 'tacticsguru', 'user', true, true),
-('44444444-4444-4444-4444-444444444444', 'messifan10@example.com', '$2b$12$R9hkaXUP9deIdEPY9VJ.c.1e1zRy18Gndy5A7BupqF.u6U3Gz0pyq', 'messifan10', 'user', true, true),
-('55555555-5555-5555-5555-555555555555', 'balleriq@example.com', '$2b$12$R9hkaXUP9deIdEPY9VJ.c.1e1zRy18Gndy5A7BupqF.u6U3Gz0pyq', 'balleriq', 'user', true, true),
-('66666666-6666-6666-6666-666666666666', 'goalmachine@example.com', '$2b$12$R9hkaXUP9deIdEPY9VJ.c.1e1zRy18Gndy5A7BupqF.u6U3Gz0pyq', 'goalmachine', 'user', true, true),
-('77777777-7777-7777-7777-777777777777', 'crsevenfan@example.com', '$2b$12$R9hkaXUP9deIdEPY9VJ.c.1e1zRy18Gndy5A7BupqF.u6U3Gz0pyq', 'crsevenfan', 'user', true, true),
-('88888888-8888-8888-8888-888888888888', 'tifoverde@example.com', '$2b$12$R9hkaXUP9deIdEPY9VJ.c.1e1zRy18Gndy5A7BupqF.u6U3Gz0pyq', 'tifoverde', 'user', true, true),
-('99999999-9999-9999-9999-999999999999', 'elclasico@example.com', '$2b$12$R9hkaXUP9deIdEPY9VJ.c.1e1zRy18Gndy5A7BupqF.u6U3Gz0pyq', 'elclasico', 'user', true, true);
-
--- 6. Seed Profiles
-INSERT INTO profiles (user_id, display_name, country_id, total_quizzes_played) VALUES
-('11111111-1111-1111-1111-111111111111', 'Admin', 1, 0),
-('22222222-2222-2222-2222-222222222222', 'FutbolKing99', 5, 20),
-('33333333-3333-3333-3333-333333333333', 'TacticsGuru', 1, 18),
-('44444444-4444-4444-4444-444444444444', 'MessiFan10', 6, 16),
-('55555555-5555-5555-5555-555555555555', 'BallerIQ', 3, 15),
-('66666666-6666-6666-6666-666666666666', 'GoalMachine', 4, 12),
-('77777777-7777-7777-7777-777777777777', 'CRSevenFan', 2, 10),
-('88888888-8888-8888-8888-888888888888', 'TifoVerde', 7, 8),
-('99999999-9999-9999-9999-999999999999', 'ElClasico', 2, 6);
-
--- 7. Seed User Progress
-INSERT INTO user_progress (user_id, total_points, total_correct, total_incorrect, total_questions_answered, current_streak, longest_streak) VALUES
-('22222222-2222-2222-2222-222222222222', 9820, 142, 18, 160, 15, 25),
-('33333333-3333-3333-3333-333333333333', 8750, 128, 16, 144, 11, 20),
-('44444444-4444-4444-4444-444444444444', 7920, 115, 13, 128, 8, 18),
-('55555555-5555-5555-5555-555555555555', 7340, 109, 11, 120, 7, 15),
-('66666666-6666-6666-6666-666666666666', 6800, 98, 10, 108, 6, 14),
-('77777777-7777-7777-7777-777777777777', 6210, 89, 9, 98, 5, 12),
-('88888888-8888-8888-8888-888888888888', 5670, 81, 7, 88, 4, 10),
-('99999999-9999-9999-9999-999999999999', 5100, 74, 6, 80, 3, 8);
-
--- 8. Seed Leaderboard
-INSERT INTO leaderboard (user_id, rank, total_points, weekly_points, monthly_points, country_id) VALUES
-('22222222-2222-2222-2222-222222222222', 1, 9820, 2450, 4820, 5),
-('33333333-3333-3333-3333-333333333333', 2, 8750, 2100, 4120, 1),
-('44444444-4444-4444-4444-444444444444', 3, 7920, 1950, 3850, 6),
-('55555555-5555-5555-5555-555555555555', 4, 7340, 1800, 3500, 3),
-('66666666-6666-6666-6666-666666666666', 5, 6800, 1650, 3100, 4),
-('77777777-7777-7777-7777-777777777777', 6, 6210, 1500, 2900, 2),
-('88888888-8888-8888-8888-888888888888', 7, 5670, 1350, 2700, 7),
-('99999999-9999-9999-9999-999999999999', 8, 5100, 1200, 2400, 2);
+-- 5. Users, profiles, progress, and leaderboard are created via /api/auth/register.

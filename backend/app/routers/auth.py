@@ -7,11 +7,13 @@ from sqlalchemy import or_, func
 import logging
 
 logger = logging.getLogger(__name__)
-from datetime import datetime, timedelta
-from uuid import UUID
+from datetime import datetime
+from uuid import UUID, uuid4
 from app.database import get_db
 from app import models, schemas, auth
+from app.config import settings
 from app.email_service import send_verification_email, send_password_reset_email, EmailDeliveryError
+from app.validation import parse_login_credentials
 from app.cookie_auth import (
     clear_auth_cookies,
     generate_csrf_token,
@@ -23,6 +25,34 @@ from app.cookie_auth import (
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+def _verification_link(token: str) -> str:
+    return f"{settings.FRONTEND_URL.rstrip('/')}/#verify_token={token}"
+
+
+def _password_reset_link(token: str) -> str:
+    return f"{settings.FRONTEND_URL.rstrip('/')}/#reset_token={token}"
+
+
+async def _issue_verify_email(user: models.User, db: AsyncSession) -> None:
+    nonce = str(uuid4())
+    user.email_verify_nonce = nonce
+    await db.flush()
+    token = auth.create_action_token(
+        str(user.id), "verify_email", settings.EMAIL_VERIFY_EXPIRE_HOURS, nonce
+    )
+    await send_verification_email(user.email, _verification_link(token))
+
+
+async def _issue_password_reset_email(user: models.User, db: AsyncSession) -> None:
+    nonce = str(uuid4())
+    user.password_reset_nonce = nonce
+    await db.flush()
+    token = auth.create_action_token(
+        str(user.id), "password_reset", settings.PASSWORD_RESET_EXPIRE_HOURS, nonce
+    )
+    await send_password_reset_email(user.email, _password_reset_link(token))
+
+
 @router.get("/csrf", response_model=schemas.CsrfTokenResponse)
 async def issue_csrf_token(response: Response):
     csrf_token = generate_csrf_token()
@@ -31,7 +61,6 @@ async def issue_csrf_token(response: Response):
 
 @router.post("/register", response_model=schemas.UserRead, status_code=status.HTTP_201_CREATED)
 async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
-    # Check if username or email already exists
     email = user_data.email.lower()
     query = select(models.User).where(
         or_(
@@ -40,47 +69,31 @@ async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get
         )
     )
     result = await db.execute(query)
-    existing_user = result.scalars().first()
-    if existing_user:
-        if existing_user.email.lower() == email:
-            raise HTTPException(status_code=400, detail="Email already registered")
-        else:
-            raise HTTPException(status_code=400, detail="Username already taken")
+    if result.scalars().first():
+        raise HTTPException(
+            status_code=400,
+            detail="Registration failed. Email or username may already be in use.",
+        )
 
-    # Create new User — verified immediately so login works across devices without email dependency
     hashed_pwd = auth.hash_password(user_data.password)
     new_user = models.User(
         email=email,
         username=user_data.username,
         password_hash=hashed_pwd,
-        is_verified=True
+        is_verified=False
     )
     db.add(new_user)
-    await db.flush() # Flush to populate user.id
+    await db.flush()
 
-    # Create empty Profile
-    new_profile = models.Profile(
-        user_id=new_user.id,
-        display_name=new_user.username
-    )
-    db.add(new_profile)
-
-    # Create User Progress
-    new_progress = models.UserProgress(
-        user_id=new_user.id
-    )
-    db.add(new_progress)
-
-    # Create Leaderboard entry
-    new_leaderboard = models.Leaderboard(
-        user_id=new_user.id
-    )
-    db.add(new_leaderboard)
+    db.add(models.Profile(user_id=new_user.id, display_name=new_user.username))
+    db.add(models.UserProgress(user_id=new_user.id))
+    db.add(models.Leaderboard(user_id=new_user.id))
 
     await db.commit()
     await db.refresh(new_user)
     try:
-        await send_verification_email(new_user.email, str(new_user.id))
+        await _issue_verify_email(new_user, db)
+        await db.commit()
     except Exception:
         logger.exception("Failed to send welcome verification email to %s", new_user.email)
     return new_user
@@ -97,9 +110,14 @@ async def verify_email(body: schemas.EmailTokenRequest, db: AsyncSession = Depen
     user = result.scalars().first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if payload.get("nonce") != user.email_verify_nonce:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
     if user.is_verified:
+        user.email_verify_nonce = None
+        await db.commit()
         return {"detail": "Email already verified"}
     user.is_verified = True
+    user.email_verify_nonce = None
     await db.commit()
     return {"detail": "Email verified successfully"}
 
@@ -110,10 +128,11 @@ async def resend_verification(body: schemas.ResendVerificationRequest, db: Async
     user = result.scalars().first()
     if user and not user.is_verified:
         try:
-            await send_verification_email(user.email, str(user.id))
+            await _issue_verify_email(user, db)
+            await db.commit()
         except EmailDeliveryError as exc:
             logger.exception("Failed to send verification email to %s", email)
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
+            raise HTTPException(status_code=500, detail="Could not send verification email. Try again later.") from exc
         except Exception as exc:
             logger.exception("Failed to send verification email to %s", email)
             raise HTTPException(status_code=500, detail="Could not send verification email. Try again later.") from exc
@@ -126,10 +145,11 @@ async def forgot_password(body: schemas.ForgotPasswordRequest, db: AsyncSession 
     user = result.scalars().first()
     if user and user.is_active:
         try:
-            await send_password_reset_email(user.email, str(user.id))
+            await _issue_password_reset_email(user, db)
+            await db.commit()
         except EmailDeliveryError as exc:
             logger.exception("Failed to send password reset email to %s", email)
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
+            raise HTTPException(status_code=500, detail="Could not send password reset email. Try again later.") from exc
         except Exception as exc:
             logger.exception("Failed to send password reset email to %s", email)
             raise HTTPException(status_code=500, detail="Could not send password reset email. Try again later.") from exc
@@ -147,15 +167,19 @@ async def reset_password(body: schemas.ResetPasswordRequest, db: AsyncSession = 
     user = result.scalars().first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if payload.get("nonce") != user.password_reset_nonce:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
+
     user.password_hash = auth.hash_password(body.new_password)
     user.is_verified = True
+    user.password_reset_nonce = None
+    user.session_token = None
     await db.commit()
     return {"detail": "Password reset successfully"}
 
-@router.post("/login", response_model=schemas.Token)
+@router.post("/login", response_model=schemas.AuthSuccessResponse)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    # Look up by email (username parameter in OAuth2Form is used for email/username)
-    login_id = form_data.username.strip()
+    login_id, password = parse_login_credentials(form_data.username, form_data.password)
     query = select(models.User).where(
         or_(
             func.lower(models.User.email) == login_id.lower(),
@@ -165,7 +189,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     result = await db.execute(query)
     user = result.scalars().first()
 
-    if not user or not auth.verify_password(form_data.password, user.password_hash):
+    if not user or not auth.verify_password(password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username/email or password",
@@ -175,11 +199,12 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user account")
 
-    # Allow login for legacy accounts that registered before auto-verify was enabled
     if not user.is_verified:
-        user.is_verified = True
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email address before logging in.",
+        )
 
-    # Single-device session: new login invalidates any other active device
     session_token = auth.new_session_token()
     now = datetime.utcnow()
     user.session_token = session_token
@@ -192,16 +217,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     refresh_token = auth.create_refresh_token(data={"sub": str(user.id), "sid": session_token})
     csrf_token = generate_csrf_token()
 
-    body = {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-    }
-    response = JSONResponse(content=body)
+    response = JSONResponse(content={"detail": "Login successful", "token_type": "bearer"})
     set_auth_cookies(response, access_token, refresh_token, csrf_token)
     return response
 
-@router.post("/refresh", response_model=schemas.Token)
+@router.post("/refresh", response_model=schemas.AuthSuccessResponse)
 async def refresh(
     request: Request,
     body: schemas.RefreshTokenRequest,
@@ -230,6 +250,8 @@ async def refresh(
         )
 
     await auth.validate_user_session(user, payload, db)
+
+    user.session_token = auth.new_session_token()
     auth.touch_user_activity(user)
     await db.commit()
 
@@ -238,13 +260,7 @@ async def refresh(
     new_refresh_token = auth.create_refresh_token(data={"sub": str(user.id), "sid": user.session_token})
     csrf_token = generate_csrf_token()
 
-    response = JSONResponse(
-        content={
-            "access_token": new_access_token,
-            "refresh_token": new_refresh_token,
-            "token_type": "bearer",
-        }
-    )
+    response = JSONResponse(content={"detail": "Session refreshed", "token_type": "bearer"})
     set_auth_cookies(response, new_access_token, new_refresh_token, csrf_token)
     return response
 
@@ -254,18 +270,28 @@ async def logout(
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
+    from app.cookie_auth import ACCESS_TOKEN_COOKIE
+
+    user_id_str = None
     refresh_token = request.cookies.get(REFRESH_TOKEN_COOKIE)
-    if refresh_token:
+    access_token = request.cookies.get(ACCESS_TOKEN_COOKIE)
+    for token, expected_type in ((refresh_token, "refresh"), (access_token, "access")):
+        if not token:
+            continue
         try:
-            payload = auth.decode_token(refresh_token, expected_type="refresh")
+            payload = auth.decode_token(token, expected_type=expected_type)
             user_id_str = payload.get("sub")
             if user_id_str:
-                result = await db.execute(select(models.User).where(models.User.id == user_id_str))
-                user = result.scalars().first()
-                if user:
-                    user.session_token = None
-                    await db.commit()
+                break
         except HTTPException:
-            pass
+            continue
+
+    if user_id_str:
+        result = await db.execute(select(models.User).where(models.User.id == user_id_str))
+        user = result.scalars().first()
+        if user:
+            user.session_token = None
+            await db.commit()
+
     clear_auth_cookies(response)
     return {"detail": "Successfully logged out"}

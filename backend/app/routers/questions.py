@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
@@ -32,7 +32,7 @@ async def create_question(
 
 @router.put("/{id}", response_model=schemas.QuestionRead)
 async def update_question(
-    id: int,
+    id: int = Path(..., ge=1),
     q_data: schemas.QuestionUpdate,
     admin: models.User = Depends(auth.get_current_admin),
     db: AsyncSession = Depends(get_db)
@@ -52,7 +52,7 @@ async def update_question(
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_question(
-    id: int,
+    id: int = Path(..., ge=1),
     admin: models.User = Depends(auth.get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):

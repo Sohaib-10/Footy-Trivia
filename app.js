@@ -556,29 +556,34 @@
         }
       }
 
-      function checkDailyLimit() {
+      function dailyAttemptsStorageKey() {
+        return state.user ? `footytrivia_daily_${state.user.id}` : 'footytrivia_daily_guest';
+      }
+
+      function hasPlayedDailyToday() {
         const today = new Date().toDateString();
-        const attempts = JSON.parse(localStorage.getItem('footytrivia_daily_attempts') || '{}');
-        if (attempts.date !== today) {
-          attempts.date = today;
-          attempts.count = 0;
-          localStorage.setItem('footytrivia_daily_attempts', JSON.stringify(attempts));
-        }
-        if (attempts.count >= 10) {
-          showToast('You have reached the daily limit of 10 quizzes. Please try again tomorrow!', 'warning');
+        const attempts = JSON.parse(localStorage.getItem(dailyAttemptsStorageKey()) || '{}');
+        return attempts.date === today && attempts.played === true;
+      }
+
+      function checkDailyLimit() {
+        if (hasPlayedDailyToday()) {
+          showToast('You have already played today\'s Daily Challenge. Come back tomorrow!', 'warning');
           return false;
         }
         return true;
       }
-      function incrementDailyAttempts() {
+
+      function markDailyPlayed() {
         const today = new Date().toDateString();
-        const attempts = JSON.parse(localStorage.getItem('footytrivia_daily_attempts') || '{}');
-        if (attempts.date !== today) {
-          attempts.date = today;
-          attempts.count = 0;
-        }
-        attempts.count++;
-        localStorage.setItem('footytrivia_daily_attempts', JSON.stringify(attempts));
+        localStorage.setItem(dailyAttemptsStorageKey(), JSON.stringify({ date: today, played: true }));
+      }
+
+      function requireLoginForDaily() {
+        if (state.user) return true;
+        showToast('Log in to play the Daily Challenge.', 'warning');
+        openModal('login');
+        return false;
       }
 
       // ──────────────────────────  a• a• a• a• a• a•  QUIZ ENGINE a• a• a• a• a• a• a• 
@@ -610,10 +615,12 @@
           ? QUIZ_API_CATEGORY_MAP[frontendCategory]
           : 'clubs';
         let difficulty = state.selectedDiff || 'mixed';
+        if (frontendCategory === 'daily') difficulty = 'mixed';
         if (difficulty === 'legendary') difficulty = 'hard';
         if (!['easy', 'medium', 'hard', 'mixed'].includes(difficulty)) difficulty = 'mixed';
         const payload = { difficulty, total_questions: 10 };
         if (mapped) payload.category = mapped;
+        if (frontendCategory === 'daily') payload.challenge_type = 'daily';
         return payload;
       }
 
@@ -636,8 +643,10 @@
       }
 
       async function startQuiz(category) {
-        if (!checkDailyLimit()) return;
-        incrementDailyAttempts();
+        if (category === 'daily') {
+          if (!requireLoginForDaily()) return;
+          if (!checkDailyLimit()) return;
+        }
 
         if (state.user) {
           try {
@@ -670,6 +679,7 @@
               answersSubmitted: 0,
               category,
             };
+            if (category === 'daily') markDailyPlayed();
             beginQuizUi();
           } catch (err) {
             hidePleaseWait();
@@ -677,6 +687,9 @@
             if (msg.toLowerCase().includes('verify')) {
               showToast('Please verify your email before playing ranked quizzes.', 'warning');
               openModal('login');
+            } else if (msg.toLowerCase().includes('daily challenge')) {
+              markDailyPlayed();
+              showToast(msg, 'warning');
             } else {
               showToast(msg, 'error');
             }
@@ -684,7 +697,12 @@
           return;
         }
 
-        const pool = QUESTIONS[category] || QUESTIONS['daily'];
+        if (category === 'daily') {
+          showToast('Log in to play the Daily Challenge.', 'warning');
+          openModal('login');
+          return;
+        }
+        const pool = QUESTIONS[category] || QUESTIONS['general'] || [];
         const shuffled = [...pool].sort(() => Math.random() - .5).slice(0, Math.min(10, pool.length));
         state.quiz = {
           ...state.quiz,
@@ -1010,6 +1028,7 @@
 
       function selectMode(mode) {
         if (mode === 'daily') {
+          if (!requireLoginForDaily()) return;
           state.selectedMode = mode;
           syncModeCardSelection(mode);
           startQuiz('daily');
@@ -1463,7 +1482,7 @@
       // ────────────────────────── a•a•a•a•a•a• TOAST a•a•a•a•a•a•a•
       let authWaitToast = null;
       let authWaitShownAt = 0;
-      const AUTH_WAIT_MIN_MS = 10000;
+      const AUTH_WAIT_MIN_MS = 800;
 
       function showToast(msg, type = 'info') {
         const container = document.getElementById('toast-container');
@@ -2380,11 +2399,12 @@
         await tokenRes.json();
         localStorage.removeItem('footytrivia_token');
         localStorage.removeItem('footytrivia_refresh_token');
-        await ensureCsrfToken();
 
-        const profile = await apiRequest('/api/users/me');
-        let progress = {};
-        try { progress = await apiRequest('/api/users/me/progress'); } catch (e) {}
+        const [, profile, progress] = await Promise.all([
+          ensureCsrfToken().catch(() => null),
+          apiRequest('/api/users/me'),
+          apiRequest('/api/users/me/progress').catch(() => ({})),
+        ]);
 
         const userObj = buildUserFromApi(profile, progress, email);
         applyProfilePreferences(profile.preferences, userObj);
@@ -2401,10 +2421,11 @@
 
       async function restoreSession() {
         try {
-          await ensureCsrfToken().catch(() => null);
-          const profile = await apiRequest('/api/users/me');
-          let progress = {};
-          try { progress = await apiRequest('/api/users/me/progress'); } catch (e) {}
+          const [, profile, progress] = await Promise.all([
+            ensureCsrfToken().catch(() => null),
+            apiRequest('/api/users/me'),
+            apiRequest('/api/users/me/progress').catch(() => ({})),
+          ]);
           const stored = JSON.parse(localStorage.getItem('footytrivia_user') || '{}');
           const userObj = buildUserFromApi(profile, progress, stored.email || '');
           applyProfilePreferences(profile.preferences, userObj);
@@ -2461,6 +2482,9 @@
         const overlay = document.getElementById('modal-overlay');
         const content = document.getElementById('modal-content');
         if (!overlay || !content) return;
+        if (type === 'login' || type === 'signup') {
+          wakeApiServer();
+        }
         if (type === 'login') {
           content.innerHTML = `
           <h2 class="modal-title">Welcome Back</h2>

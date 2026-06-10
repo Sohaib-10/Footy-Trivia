@@ -36,21 +36,7 @@ To configure Supabase Storage for Footy-Trivia, perform these one-time manual st
 
 ### 1. Configure the Environment
 Ensure your `/backend/.env` is fully populated:
-```env
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/footytrivia
-SECRET_KEY=replace-with-a-long-random-secret
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=15
-REFRESH_TOKEN_EXPIRE_DAYS=7
-
-SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_KEY=your-service-role-key
-STORAGE_AVATAR_BUCKET=avatars
-STORAGE_LOGOS_BUCKET=team-logos
-STORAGE_FLAGS_BUCKET=country-flags
-STORAGE_ACHIEVEMENTS_BUCKET=achievements
-```
+Copy `backend/.env.example` to `backend/.env` and set at least `DATABASE_URL`, `SECRET_KEY`, and `POSTGRES_PASSWORD` (for Docker). See `.env.example` for all optional integrations.
 
 ### 2. Start the Stack
 From the `/backend` directory, run:

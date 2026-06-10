@@ -5,7 +5,6 @@ from email.message import EmailMessage
 
 import httpx
 
-from app import auth
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -162,20 +161,8 @@ def _html_email(heading: str, intro: str, link: str, button_label: str, footnote
 </html>"""
 
 
-def _verification_link(user_id: str) -> str:
-    token = auth.create_action_token(user_id, "verify_email", settings.EMAIL_VERIFY_EXPIRE_HOURS)
-    base = settings.FRONTEND_URL.rstrip("/")
-    return f"{base}/?verify_token={token}"
-
-
-def _password_reset_link(user_id: str) -> str:
-    token = auth.create_action_token(user_id, "password_reset", settings.PASSWORD_RESET_EXPIRE_HOURS)
-    base = settings.FRONTEND_URL.rstrip("/")
-    return f"{base}/?reset_token={token}"
-
-
-async def send_verification_email(email: str, user_id: str) -> bool:
-    link = _verification_link(user_id)
+async def send_verification_email(email: str, verification_link: str) -> bool:
+    link = verification_link
     body = (
         "Welcome to Footy-Trivia!\n\n"
         "Please verify your email address by opening this link:\n"
@@ -196,8 +183,8 @@ async def send_verification_email(email: str, user_id: str) -> bool:
     return await send_email(email, "Verify your Footy-Trivia account", body, html)
 
 
-async def send_password_reset_email(email: str, user_id: str) -> bool:
-    link = _password_reset_link(user_id)
+async def send_password_reset_email(email: str, reset_link: str) -> bool:
+    link = reset_link
     body = (
         "You requested a password reset for your Footy-Trivia account.\n\n"
         "Reset your password using this link:\n"
