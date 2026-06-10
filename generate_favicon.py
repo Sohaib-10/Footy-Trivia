@@ -1,29 +1,44 @@
-"""Generate clean favicon assets from the logo icon."""
+"""Generate favicon assets from the icon-only logo, recolored to site accent green."""
 from pathlib import Path
 
+import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent
-SRC = ROOT / "logo_clean.png"
+SRC = ROOT / "logo_icon.png"
 BRAND_GREEN = (34, 197, 94, 255)  # #22c55e — matches site --green accent
-ICON_CROP = (0, 0, 272, 253)
 
 
 def load_icon() -> Image.Image:
     img = Image.open(SRC).convert("RGBA")
-    icon = img.crop(ICON_CROP)
+    arr = np.asarray(img).astype(np.float32)
 
-    data = icon.load()
-    for y in range(icon.height):
-        for x in range(icon.width):
-            r, g, b, a = data[x, y]
-            if a > 20:
-                data[x, y] = BRAND_GREEN
+    # White/light background -> transparent; keep the dark-green icon strokes.
+    min_ch = arr[:, :, :3].min(axis=2)
+    alpha = np.clip(1.0 - (min_ch / 255.0), 0.0, 1.0)
+    alpha = np.where(min_ch < 200, np.maximum(alpha, 0.85), alpha)
+    alpha = np.where(min_ch > 240, 0.0, alpha)
+    alpha = np.clip(alpha, 0.0, 1.0)
 
-    side = max(icon.width, icon.height)
+    mask = alpha > 0.08
+    ys, xs = np.where(mask)
+    if ys.size == 0:
+        raise RuntimeError(f"No icon pixels found in {SRC}")
+
+    pad = max(8, int(max(xs.max() - xs.min(), ys.max() - ys.min()) * 0.06))
+    x0, x1 = max(0, xs.min() - pad), min(arr.shape[1], xs.max() + pad + 1)
+    y0, y1 = max(0, ys.min() - pad), min(arr.shape[0], ys.max() + pad + 1)
+
+    cropped_alpha = alpha[y0:y1, x0:x1]
+    h, w = cropped_alpha.shape
+    icon = np.zeros((h, w, 4), dtype=np.uint8)
+    icon[:, :, :3] = np.array(BRAND_GREEN[:3], dtype=np.uint8)
+    icon[:, :, 3] = (cropped_alpha * 255).astype(np.uint8)
+
+    side = max(w, h)
     square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-    offset = ((side - icon.width) // 2, (side - icon.height) // 2)
-    square.paste(icon, offset, icon)
+    offset = ((side - w) // 2, (side - h) // 2)
+    square.paste(Image.fromarray(icon, mode="RGBA"), offset)
     return square
 
 
