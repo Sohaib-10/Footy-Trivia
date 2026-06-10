@@ -603,13 +603,13 @@
         document.getElementById('q-num').textContent = `Q ${q.idx + 1} / ${q.questions.length}`;
         document.getElementById('q-progress').style.width = `${((q.idx + 1) / q.questions.length) * 100}%`;
         document.getElementById('q-score').textContent = `${q.score} PTS`;
-        document.getElementById('q-cat').innerHTML = `<span>${question.cat}</span><span class="q-difficulty ${question.diff}">${question.diff}</span>`;
+        document.getElementById('q-cat').innerHTML = `<span>${escapeHtml(question.cat)}</span><span class="q-difficulty ${escapeHtml(question.diff)}">${escapeHtml(question.diff)}</span>`;
         document.getElementById('q-text').textContent = question.q;
         const grid = document.getElementById('options-grid');
         grid.innerHTML = question.opts.map((opt, i) => `
     <button class="option" onclick="selectAnswer(${i})">
       <span class="option-letter">${String.fromCharCode(65 + i)}</span>
-      ${opt}
+      ${escapeHtml(opt)}
     </button>`).join('');
         startTimer();
       }
@@ -1187,7 +1187,7 @@
           console.error('Failed to load leaderboard from database:', err);
           if (cached && cached.entries.length) return;
           container.innerHTML = `<div style='padding:2rem;text-align:center;color:var(--text3)'>
-            ${err.message || 'Could not load live rankings.'}
+            ${escapeHtml(err.message || 'Could not load live rankings.')}
             <br><button class="btn btn-ghost" style="margin-top:1rem" onclick="switchLbTab(null, state.lbTab || 'alltime')">Retry</button>
           </div>`;
         }
@@ -2905,12 +2905,12 @@
               <td>
                 <div style="display:flex;align-items:center;gap:0.75rem">
                   <div class="profile-avatar" style="width:32px;height:32px;font-size:0.8rem;background:var(--surface2);display:flex;justify-content:center;align-items:center;border-radius:50%;border:1px solid var(--border)">${p.username ? p.username[0].toUpperCase() : '?'}</div>
-                  <span style="font-weight:600">${p.username || 'Guest'}</span>
+                  <span style="font-weight:600">${escapeHtml(p.username || 'Guest')}</span>
                 </div>
               </td>
-              <td>${accuracy}</td>
+              <td>${escapeHtml(accuracy)}</td>
               <td style="font-weight:700">${(p.total_points || 0).toLocaleString()}</td>
-              <td><span class="wc-tier-badge ${tierClass}">${tierName}</span></td>
+              <td><span class="wc-tier-badge ${tierClass}">${escapeHtml(tierName)}</span></td>
             </tr>
           `;
         });
@@ -2963,7 +2963,7 @@
           if (cached && cached.entries && cached.entries.length) return;
           tbody.innerHTML = `
             <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text3)">
-              ${err.message || 'Error loading rankings from database.'}
+              ${escapeHtml(err.message || 'Error loading rankings from database.')}
               <br><button class="btn btn-ghost" style="margin-top:1rem" onclick="renderWCLeaderboard()">Retry</button>
             </td></tr>
           `;
@@ -3083,7 +3083,7 @@
       function getPlayerPhoto(playerName, callback) {
         const cleanName = playerName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
         if (playerPhotoCache[cleanName] !== undefined) {
-          callback(playerPhotoCache[cleanName]);
+          callback(safeImageUrl(playerPhotoCache[cleanName]));
           return;
         }
         fetch(`${API_BASE_URL}/api/players/search?name=${encodeURIComponent(cleanName)}`, {
@@ -3099,11 +3099,12 @@
               const result = data.player.find(item => item.strSport === 'Soccer') || data.player[0];
               photoUrl = result.strCutout || result.strThumb || '';
             }
-            playerPhotoCache[cleanName] = photoUrl;
+            const safeUrl = safeImageUrl(photoUrl);
+            playerPhotoCache[cleanName] = safeUrl;
             try {
               localStorage.setItem('wc_player_photo_cache', JSON.stringify(playerPhotoCache));
             } catch(e) {}
-            callback(photoUrl);
+            callback(safeUrl);
           })
           .catch(err => {
             callback('');
@@ -4424,6 +4425,13 @@
         renderAwardsGrid();
       }
 
+      const WC_TROPHY_IMG = 'world-cup-trophy.png';
+
+      function wcTrophyIconMarkup(extraClass = '') {
+        const cls = ['wc-trophy-icon', extraClass].filter(Boolean).join(' ');
+        return `<img src="${WC_TROPHY_IMG}" alt="" class="${cls}" draggable="false">`;
+      }
+
       const AWARD_ICON_RENDERERS = {
         'golden-boot'() {
           return '<img src="golden-boot.png" alt="" class="wc-award-icon-img wc-golden-boot-img" draggable="false">';
@@ -4434,26 +4442,8 @@
         'golden-glove'() {
           return '<img src="golden-glove.png" alt="" class="wc-award-icon-img wc-golden-glove-img" draggable="false">';
         },
-        'best-young'(uid) {
-          return `<svg class="wc-award-icon-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs>
-              <linearGradient id="star-main-${uid}" x1="24" y1="6" x2="24" y2="42">
-                <stop offset="0%" stop-color="#FFF9C4"/>
-                <stop offset="45%" stop-color="#FFD700"/>
-                <stop offset="100%" stop-color="#00B4D8"/>
-              </linearGradient>
-              <radialGradient id="star-glow-${uid}" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stop-color="#FFD700" stop-opacity="0.35"/>
-                <stop offset="100%" stop-color="#FFD700" stop-opacity="0"/>
-              </radialGradient>
-            </defs>
-            <circle cx="24" cy="24" r="18" fill="url(#star-glow-${uid})"/>
-            <path d="M24 8L27.2 18.2H38L29.4 24.8L32.6 35L24 28.4L15.4 35L18.6 24.8L10 18.2H20.8L24 8Z" fill="url(#star-main-${uid})" stroke="#B8860B" stroke-width="0.7" stroke-linejoin="round"/>
-            <path d="M24 13L25.8 19H32L27.1 23L28.9 29L24 25.5L19.1 29L20.9 23L16 19H22.2L24 13Z" fill="#FFF8DC" opacity="0.45"/>
-            <circle cx="34" cy="12" r="1.2" fill="#FFD700"/>
-            <circle cx="12" cy="16" r="0.9" fill="#00B4D8" opacity="0.8"/>
-            <circle cx="36" cy="30" r="0.8" fill="#FFD700" opacity="0.7"/>
-          </svg>`;
+        'best-young'() {
+          return '<img src="best-young.png" alt="" class="wc-award-icon-img wc-best-young-img" draggable="false">';
         },
         'world-champion'() {
           return wcTrophyIconMarkup('wc-award-icon-img wc-world-cup-trophy-img');
@@ -7534,7 +7524,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--surface2); border-radius: 4px;">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <span>👑</span>
-                <span style="font-family: var(--font-ui); font-weight: 700;">${battleState.host.username}</span>
+                <span style="font-family: var(--font-ui); font-weight: 700;">${escapeHtml(battleState.host.username)}</span>
                 ${hostLock ? '<span style="font-size: 0.75rem; background: var(--green)20; color: var(--green); padding: 2px 6px; border-radius: 3px; font-weight: 600;">LOCKED IN</span>' : '<span style="font-size: 0.75rem; background: var(--orange)20; color: var(--orange); padding: 2px 6px; border-radius: 3px; font-weight: 600;">THINKING...</span>'}
               </div>
               <div style="font-family: var(--font-display); font-weight: 700; color: var(--accent);">${battleRoom.role === 'host' ? battleState.score : (battleState.hostAnswerScore || 0)} PTS</div>
@@ -7547,7 +7537,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--surface2); border-radius: 4px;">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <span>👤</span>
-                <span style="font-family: var(--font-ui); font-weight: 700;">${battleState.guest.username}</span>
+                <span style="font-family: var(--font-ui); font-weight: 700;">${escapeHtml(battleState.guest.username)}</span>
                 ${guestLock ? '<span style="font-size: 0.75rem; background: var(--green)20; color: var(--green); padding: 2px 6px; border-radius: 3px; font-weight: 600;">LOCKED IN</span>' : '<span style="font-size: 0.75rem; background: var(--orange)20; color: var(--orange); padding: 2px 6px; border-radius: 3px; font-weight: 600;">THINKING...</span>'}
               </div>
               <div style="font-family: var(--font-display); font-weight: 700; color: var(--accent);">${battleRoom.role === 'guest' ? battleState.score : (battleState.guestAnswerScore || 0)} PTS</div>
@@ -7583,9 +7573,9 @@
         let hostHtml = `
           <div style="background: var(--surface2); border: 1px solid ${hostAns.is_correct ? 'var(--green)' : 'var(--border)'}; border-radius: var(--r); padding: 1rem; text-align: left; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
             <div>
-              <div style="font-family: var(--font-ui); font-weight: 700; font-size: 0.95rem;">👑 ${battleState.host.username}</div>
+              <div style="font-family: var(--font-ui); font-weight: 700; font-size: 0.95rem;">👑 ${escapeHtml(battleState.host.username)}</div>
               <div style="font-size: 0.8rem; color: var(--text2); margin-top: 0.25rem;">
-                Option: <strong style="color: ${hostAns.is_correct ? 'var(--green)' : 'var(--red)'};">${hostAns.option || 'TIMEOUT'}</strong>
+                Option: <strong style="color: ${hostAns.is_correct ? 'var(--green)' : 'var(--red)'};">${escapeHtml(hostAns.option || 'TIMEOUT')}</strong>
                 (${hostAns.is_correct ? 'Correct' : 'Incorrect'})
               </div>
               <div style="font-size: 0.75rem; color: var(--text3); margin-top: 0.15rem;">Time: ${(hostAns.time_taken_ms / 1000).toFixed(2)}s</div>
@@ -7599,9 +7589,9 @@
           guestHtml = `
             <div style="background: var(--surface2); border: 1px solid ${guestAns.is_correct ? 'var(--green)' : 'var(--border)'}; border-radius: var(--r); padding: 1rem; text-align: left; display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <div style="font-family: var(--font-ui); font-weight: 700; font-size: 0.95rem;">👤 ${battleState.guest.username}</div>
+                <div style="font-family: var(--font-ui); font-weight: 700; font-size: 0.95rem;">👤 ${escapeHtml(battleState.guest.username)}</div>
                 <div style="font-size: 0.8rem; color: var(--text2); margin-top: 0.25rem;">
-                  Option: <strong style="color: ${guestAns.is_correct ? 'var(--green)' : 'var(--red)'};">${guestAns.option || 'TIMEOUT'}</strong>
+                  Option: <strong style="color: ${guestAns.is_correct ? 'var(--green)' : 'var(--red)'};">${escapeHtml(guestAns.option || 'TIMEOUT')}</strong>
                   (${guestAns.is_correct ? 'Correct' : 'Incorrect'})
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text3); margin-top: 0.15rem;">Time: ${(guestAns.time_taken_ms / 1000).toFixed(2)}s</div>
@@ -7660,7 +7650,7 @@
         grid.innerHTML = options.map((opt, i) => `
           <button class="option" onclick="submitBattleAnswer('${opt.key}', ${i})">
             <span class="option-letter">${opt.key}</span>
-            ${opt.text}
+            ${escapeHtml(opt.text)}
           </button>
         `).join('');
         
@@ -7695,11 +7685,11 @@
           ${headerHtml}
           <div style="display: flex; flex-direction: column; gap: 1rem;">
             <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-family: var(--font-ui); font-weight: 700; font-size: 1.1rem;">👑 ${data.host_username}</span>
+              <span style="font-family: var(--font-ui); font-weight: 700; font-size: 1.1rem;">👑 ${escapeHtml(data.host_username)}</span>
               <span style="font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; color: var(--accent);">${data.host_score} PTS</span>
             </div>
             <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-family: var(--font-ui); font-weight: 700; font-size: 1.1rem;">👤 ${data.guest_username}</span>
+              <span style="font-family: var(--font-ui); font-weight: 700; font-size: 1.1rem;">👤 ${escapeHtml(data.guest_username)}</span>
               <span style="font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; color: var(--accent);">${data.guest_score} PTS</span>
             </div>
           </div>
@@ -7710,23 +7700,26 @@
         
         finalContainer.innerHTML = scoresHtml;
         
+        closeBattleRealtime();
+      }
+
+      function closeBattleRealtime() {
         if (battleChannel) {
           try {
             battleChannel.unsubscribe();
             battleChannel.presence.leave();
           } catch (e) {}
           battleChannel = null;
+        }
+        if (ablyClient) {
+          try { ablyClient.close(); } catch (e) {}
+          ablyClient = null;
+          activeBattleRoomCode = null;
         }
       }
 
       function exitBattle() {
-        if (battleChannel) {
-          try {
-            battleChannel.unsubscribe();
-            battleChannel.presence.leave();
-          } catch (e) {}
-          battleChannel = null;
-        }
+        closeBattleRealtime();
         const url = new URL(window.location);
         url.searchParams.delete('code');
         window.history.replaceState({}, document.title, url.toString());
