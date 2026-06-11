@@ -3896,6 +3896,207 @@
       line-height: 1.45;
     }
 
+    /* ── WC MATCHES WIDGET (football-data.org) ── */
+    .wc-widget {
+      background: var(--surface2, rgba(15, 16, 19, 0.92));
+      border: 1px solid var(--border);
+      border-radius: var(--r, 12px);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .wc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .wc-header-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text);
+    }
+    .wc-stale-badge {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text3);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.15rem 0.5rem;
+    }
+    .wc-section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin: 1rem 0 0.5rem;
+    }
+    .wc-section-label:first-of-type {
+      margin-top: 0;
+    }
+    .wc-match-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.85rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .wc-match-card:last-child {
+      border-bottom: none;
+    }
+    .wc-match-card.live {
+      border-left: 3px solid #ef4444;
+      padding-left: 0.75rem;
+      background: rgba(239, 68, 68, 0.06);
+      border-radius: 6px;
+      margin-bottom: 0.25rem;
+    }
+    .wc-match-card.upcoming,
+    .wc-match-card.fixture {
+      opacity: 0.95;
+    }
+    .wc-match-card.result,
+    .wc-match-card.recent {
+      opacity: 0.88;
+    }
+    .wc-team-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      min-width: 72px;
+      flex: 1;
+    }
+    .wc-team-away {
+      text-align: center;
+    }
+    .wc-team-name {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      line-height: 1.2;
+    }
+    .wc-match-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      min-width: 88px;
+      flex-shrink: 0;
+    }
+    .live-badge {
+      color: #ef4444;
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      animation: wc-pulse 1.5s infinite;
+    }
+    .scoreline {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: var(--gold, #f5c518);
+    }
+    .kickoff-time {
+      font-size: 0.78rem;
+      color: var(--text2);
+    }
+    .wc-group-label,
+    .wc-ft-label {
+      font-size: 0.68rem;
+      color: var(--text3);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .team-crest {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+    }
+    .team-initials {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      font-size: 0.55rem;
+      font-weight: 800;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: var(--surface3, rgba(255,255,255,0.08));
+      border-radius: 4px;
+      color: var(--text);
+    }
+    .wc-offseason {
+      text-align: center;
+      padding: 2rem 1rem;
+    }
+    .wc-offseason .wc-trophy {
+      font-size: 2.5rem;
+      display: block;
+      margin-bottom: 0.75rem;
+    }
+    .wc-offseason p {
+      margin: 0.25rem 0;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--text);
+    }
+    .wc-offseason .wc-dates {
+      font-family: var(--font-ui, inherit);
+      font-weight: 500;
+      font-size: 0.82rem;
+      color: var(--text2);
+    }
+    .wc-skeleton {
+      color: var(--text2);
+      font-size: 0.9rem;
+      padding: 1.5rem 0;
+      text-align: center;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+      background-size: 200% 100%;
+      animation: wc-shimmer 1.4s infinite;
+      border-radius: 8px;
+    }
+    .wc-error {
+      text-align: center;
+      color: var(--text2);
+      font-size: 0.85rem;
+      padding: 1rem 0;
+    }
+    .wc-retry-btn {
+      margin-top: 0.75rem;
+      padding: 0.45rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .wc-retry-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    @keyframes wc-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    @keyframes wc-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
     /* ── ANALYTICS — locked until tournament starts ── */
     #wc-analytics.wc-analytics-locked {
       position: relative;

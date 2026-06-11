@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     STORAGE_ACHIEVEMENTS_BUCKET: str = Field(default="achievements")
 
     SPORTSDB_API_KEY: str = Field(default="")
+    FOOTBALL_DATA_API_KEY: str = Field(default="")
     ABLY_API_KEY: str = Field(default="")
 
     FRONTEND_URL: str = Field(default="http://localhost:9999")

@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
-from app.routers import auth, users, leaderboard, quiz, questions, teams, countries, achievements, storage_router, profiles, stats, battle, wc, players
+from app.routers import auth, users, leaderboard, quiz, questions, teams, countries, achievements, storage_router, profiles, stats, battle, wc, players, scores
 from app.database import engine, Base, async_session
 from app import models  # noqa: F401  (ensures all tables are registered on Base.metadata)
 from app.config import settings
@@ -123,6 +123,7 @@ app.include_router(profiles.router)
 app.include_router(stats.router)
 app.include_router(battle.router)
 app.include_router(wc.router)
+app.include_router(scores.router)
 app.include_router(players.router)
 
 @app.get("/")

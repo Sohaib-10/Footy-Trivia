@@ -1649,15 +1649,11 @@
         </div>
 
         <!-- MATCHDAY TAB -->
-        <div id="wc-matchday" class="wc-tab-content wc-matchday-locked" style="display:none">
-          <div class="wc-matchday-overlay" id="wc-matchday-overlay">
-            <div class="wc-matchday-overlay-card">
-              <div class="wc-matchday-overlay-icon">🏟️</div>
-              <div class="wc-matchday-overlay-title">No live match ongoing</div>
-              <div class="wc-matchday-overlay-sub">Check back during matchdays to track live scores and stats.</div>
-            </div>
+        <div id="wc-matchday" class="wc-tab-content" style="display:none">
+          <div id="wc-matches" class="wc-widget">
+            <div class="wc-skeleton">Loading World Cup matches...</div>
           </div>
-          <div class="wc-matchday-content">
+          <div class="wc-matchday-content" style="display:none">
           <div class="wc-grid">
             <div class="wc-card" style="grid-column: 1 / -1;">
               <div class="wc-card-title">
@@ -2143,6 +2139,12 @@
     <script src="questions-extra.js"></script>
     <script src="questions_extra.js"></script>
     <script src="data.js"></script>
+    <script src="/static/js/wc-matches.js"></script>
     <script src="app.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        if (typeof initWCMatches === 'function') initWCMatches('wc-matches');
+      });
+    </script>
   </body>
 </html>
