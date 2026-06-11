@@ -3284,28 +3284,56 @@
         gap: 1.5rem;
       }
 
-      /* Home page leaderboard preview — full width, readable on phones */
-      #lb-list .lb-row {
-        padding: 0.65rem 1rem;
-        gap: 0.6rem;
+      /* Leaderboard rows — home preview and full page */
+      #lb-list .lb-row,
+      #lb-main-list .lb-row,
+      .leaderboard-card .lb-row {
+        padding: 0.55rem 0.75rem;
+        gap: 0.45rem;
       }
 
-      #lb-list .lb-name {
-        font-size: 0.82rem;
+      #lb-list .lb-name,
+      #lb-main-list .lb-name,
+      .leaderboard-card .lb-name {
+        font-size: 0.72rem;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
 
-      #lb-list .lb-score {
-        font-size: 0.95rem;
+      #lb-list .lb-name span,
+      #lb-main-list .lb-name span,
+      .leaderboard-card .lb-name span {
+        font-size: 0.52rem !important;
+        padding: 0.05rem 0.25rem !important;
+        margin-left: 0.25rem !important;
+      }
+
+      #lb-list .lb-score,
+      #lb-main-list .lb-score,
+      .leaderboard-card .lb-score {
+        font-size: 0.82rem;
         flex-shrink: 0;
       }
 
-      #lb-list .lb-rank {
-        font-size: 0.95rem;
-        width: 1.5rem;
+      #lb-list .lb-rank,
+      #lb-main-list .lb-rank,
+      .leaderboard-card .lb-rank {
+        font-size: 0.78rem;
+        width: 1.35rem;
         flex-shrink: 0;
+      }
+
+      #lb-main-list .lb-avatar,
+      .leaderboard-card .lb-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.68rem;
+      }
+
+      #lb-main-list .lb-meta,
+      .leaderboard-card .lb-meta {
+        font-size: 0.6rem;
       }
 
       .leaderboard-card .lb-header {
@@ -3315,6 +3343,14 @@
       .leaderboard-card .lb-tab {
         font-size: 0.72rem;
         padding: 0.28rem 0.55rem;
+      }
+
+      .profile-stat-val {
+        font-size: 0.95rem;
+      }
+
+      .profile-stat-key {
+        font-size: 0.58rem;
       }
     }
 
@@ -5073,12 +5109,38 @@
         justify-content: center;
       }
 
+      /* ── Main trivia leaderboard (full page) ── */
+      #lb-main-list .lb-row,
+      .leaderboard-card .lb-row {
+        padding: 0.5rem 0.6rem;
+        gap: 0.4rem;
+      }
+      #lb-main-list .lb-name,
+      .leaderboard-card .lb-name {
+        font-size: 0.68rem;
+      }
+      #lb-main-list .lb-rank,
+      .leaderboard-card .lb-rank {
+        font-size: 0.72rem;
+        width: 1.25rem;
+      }
+      #lb-main-list .lb-score,
+      .leaderboard-card .lb-score {
+        font-size: 0.78rem;
+      }
+      #lb-main-list .lb-meta,
+      .leaderboard-card .lb-meta {
+        font-size: 0.58rem;
+      }
+
       /* ── WC player leaderboard rows ── */
       .wc-leaderboard-row { padding: 0.5rem 0.35rem; }
-      .wc-leaderboard-name { font-size: 0.8rem; }
-      .wc-leaderboard-sub { font-size: 0.62rem; }
-      .wc-leaderboard-value-badge { font-size: 0.7rem; }
-      .wc-leaderboard-avatar-frame { width: 28px; height: 28px; }
+      .wc-leaderboard-name { font-size: 0.72rem; }
+      .wc-leaderboard-rank { font-size: 0.72rem; width: 18px; }
+      .wc-leaderboard-rank.rank-1 { font-size: 0.82rem; }
+      .wc-leaderboard-sub { font-size: 0.58rem; }
+      .wc-leaderboard-value-badge { font-size: 0.65rem; min-width: 28px; padding: 0.15rem 0.35rem; }
+      .wc-leaderboard-avatar-frame { width: 26px; height: 26px; }
 
       /* ── WC hero / cards compacting ── */
       .wc-hero { padding: 1.75rem 1rem; }

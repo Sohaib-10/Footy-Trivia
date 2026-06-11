@@ -3017,23 +3017,14 @@
             return;
           }
 
-          await registerRes.json().catch(() => null);
+          const registerData = await registerRes.json().catch(() => ({}));
           setAuthFormError('');
           setAuthFormStatus('');
-          try {
-            await finishAuthSession(email);
-          } catch (sessionErr) {
-            try {
-              await completeLogin(email, password);
-            } catch (loginErr) {
-              closeModal();
-              showToast('Account created! Please log in with your email and password.', 'success');
-              openModal('login');
-              return;
-            }
-          }
           closeModal();
-          showToast(`Welcome, ${username}! Check your inbox for a verification email — you can play right away.`, 'success');
+          const verifyMsg = registerData.detail
+            || `Account created! We sent a verification link to ${email}. Please verify before logging in.`;
+          showToast(verifyMsg, 'success', 7000);
+          openModal('login');
         } catch (err) {
           console.error(err);
           hidePleaseWait(true);

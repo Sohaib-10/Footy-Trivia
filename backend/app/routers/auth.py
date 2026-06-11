@@ -110,7 +110,7 @@ async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get
         email=email,
         username=user_data.username,
         password_hash=hashed_pwd,
-        is_verified=True,
+        is_verified=False,
     )
     db.add(new_user)
     await db.flush()
@@ -144,11 +144,14 @@ async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get
     except Exception:
         logger.exception("Failed to send welcome verification email to %s", new_user.email)
 
-    access_token, refresh_token, csrf_token = await _start_user_session(new_user, db)
     user_payload = schemas.UserRead.model_validate(new_user).model_dump(mode="json")
-    response = JSONResponse(status_code=status.HTTP_201_CREATED, content=user_payload)
-    _attach_auth_cookies(response, access_token, refresh_token, csrf_token)
-    return response
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content={
+            **user_payload,
+            "detail": "Account created. Please verify your email before logging in.",
+        },
+    )
 
 @router.post("/verify-email")
 async def verify_email(body: schemas.EmailTokenRequest, db: AsyncSession = Depends(get_db)):
