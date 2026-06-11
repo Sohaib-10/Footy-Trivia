@@ -44,6 +44,114 @@ def _off_season_response(error: Optional[str] = None) -> Dict[str, Any]:
     return payload
 
 
+def _get_mock_matches_response() -> Dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    today_str = now.strftime("%Y-%m-%d")
+    yesterday_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+    
+    mock_matches = [
+        {
+            "id": 1,
+            "status": "IN_PLAY",
+            "utcDate": f"{today_str}T18:00:00Z",
+            "minute": 65,
+            "group": "A",
+            "homeTeam": {
+                "name": "Spain",
+                "shortName": "Spain",
+                "tla": "ESP",
+                "crest": "https://flagcdn.com/w320/es.png"
+            },
+            "awayTeam": {
+                "name": "Germany",
+                "shortName": "Germany",
+                "tla": "GER",
+                "crest": "https://flagcdn.com/w320/de.png"
+            },
+            "score": {
+                "fullTime": {"home": 2, "away": 1},
+                "halfTime": {"home": 1, "away": 0}
+            }
+        },
+        {
+            "id": 2,
+            "status": "IN_PLAY",
+            "utcDate": f"{today_str}T19:00:00Z",
+            "minute": 32,
+            "group": "B",
+            "homeTeam": {
+                "name": "Brazil",
+                "shortName": "Brazil",
+                "tla": "BRA",
+                "crest": "https://flagcdn.com/w320/br.png"
+            },
+            "awayTeam": {
+                "name": "Argentina",
+                "shortName": "Argentina",
+                "tla": "ARG",
+                "crest": "https://flagcdn.com/w320/ar.png"
+            },
+            "score": {
+                "fullTime": {"home": 0, "away": 0},
+                "halfTime": {"home": 0, "away": 0}
+            }
+        },
+        {
+            "id": 3,
+            "status": "SCHEDULED",
+            "utcDate": f"{today_str}T22:00:00Z",
+            "group": "C",
+            "homeTeam": {
+                "name": "England",
+                "shortName": "England",
+                "tla": "ENG",
+                "crest": "https://flagcdn.com/w320/gb-eng.png"
+            },
+            "awayTeam": {
+                "name": "United States",
+                "shortName": "USA",
+                "tla": "USA",
+                "crest": "https://flagcdn.com/w320/us.png"
+            },
+            "score": {
+                "fullTime": {"home": None, "away": None},
+                "halfTime": {"home": None, "away": None}
+            }
+        },
+        {
+            "id": 4,
+            "status": "FINISHED",
+            "utcDate": f"{yesterday_str}T15:00:00Z",
+            "group": "D",
+            "homeTeam": {
+                "name": "France",
+                "shortName": "France",
+                "tla": "FRA",
+                "crest": "https://flagcdn.com/w320/fr.png"
+            },
+            "awayTeam": {
+                "name": "Italy",
+                "shortName": "Italy",
+                "tla": "ITA",
+                "crest": "https://flagcdn.com/w320/it.png"
+            },
+            "score": {
+                "fullTime": {"home": 3, "away": 2},
+                "halfTime": {"home": 1, "away": 1}
+            }
+        }
+    ]
+    
+    return {
+        "mode": "today",
+        "label": "Today's Matches (Demo Mode)",
+        "matches": mock_matches,
+        "generated_at": _utc_now_iso(),
+        "stale": False,
+        "error": None
+    }
+
+
 def _read_cache(cache_key: str, *, allow_expired: bool = False) -> Optional[Dict[str, Any]]:
     if not supabase_client:
         return None
@@ -111,8 +219,9 @@ async def fetch_with_cache(
 
 @router.get("/matches")
 async def get_wc_matches():
-    if not settings.FOOTBALL_DATA_API_KEY.strip():
-        return _off_season_response("Scores unavailable")
+    api_key = settings.FOOTBALL_DATA_API_KEY.strip()
+    if not api_key or api_key.startswith("your_") or api_key.lower() == "mock":
+        return _get_mock_matches_response()
 
     today = get_utc_today()
     now = datetime.now(timezone.utc)
