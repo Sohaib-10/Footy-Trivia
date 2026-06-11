@@ -296,11 +296,18 @@ async def get_wc_matches():
                     
                     elapsed_minutes = int((now - match_time).total_seconds() / 60)
                     
-                    if elapsed_minutes < 125:
+                    if elapsed_minutes < 140:
                         # Match is IN_PLAY or PAUSED (halftime)
                         m["status"] = "IN_PLAY"
                         if is_mexico_sa:
-                            m["minute"] = min(90, max(1, elapsed_minutes - 27))
+                            real_elapsed = elapsed_minutes - 12
+                            if real_elapsed < 45:
+                                m["minute"] = max(1, real_elapsed)
+                            elif real_elapsed < 60:
+                                m["status"] = "PAUSED"
+                                m["minute"] = None
+                            else:
+                                m["minute"] = min(90, real_elapsed - 15)
                         else:
                             if elapsed_minutes < 45:
                                 m["minute"] = max(1, elapsed_minutes)
