@@ -285,21 +285,30 @@ async def get_wc_matches():
                     import random
                     # Deterministic goal times based on match ID
                     rng = random.Random(m.get("id") or 42)
-                    home_goals = [rng.randint(1, 90) for _ in range(rng.randint(0, 3))]
-                    away_goals = [rng.randint(1, 90) for _ in range(rng.randint(0, 2))]
+                    
+                    is_mexico_sa = (m.get("homeTeam") or {}).get("id") == 769
+                    if is_mexico_sa:
+                        home_goals = [23, 58]
+                        away_goals = []
+                    else:
+                        home_goals = [rng.randint(1, 90) for _ in range(rng.randint(0, 3))]
+                        away_goals = [rng.randint(1, 90) for _ in range(rng.randint(0, 2))]
                     
                     elapsed_minutes = int((now - match_time).total_seconds() / 60)
                     
-                    if elapsed_minutes < 105:
+                    if elapsed_minutes < 125:
                         # Match is IN_PLAY or PAUSED (halftime)
                         m["status"] = "IN_PLAY"
-                        if elapsed_minutes < 45:
-                            m["minute"] = max(1, elapsed_minutes)
-                        elif elapsed_minutes < 60:
-                            m["status"] = "PAUSED"
-                            m["minute"] = None
+                        if is_mexico_sa:
+                            m["minute"] = min(90, max(1, elapsed_minutes - 27))
                         else:
-                            m["minute"] = min(90, elapsed_minutes - 15)
+                            if elapsed_minutes < 45:
+                                m["minute"] = max(1, elapsed_minutes)
+                            elif elapsed_minutes < 60:
+                                m["status"] = "PAUSED"
+                                m["minute"] = None
+                            else:
+                                m["minute"] = min(90, elapsed_minutes - 15)
                             
                         curr_min = m["minute"] if m["minute"] is not None else 45
                         home_score = sum(1 for g in home_goals if g <= curr_min)
