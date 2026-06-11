@@ -219,6 +219,10 @@
             if (response.status === 401 && detail === 'Could not validate credentials') {
               throw new Error(detail);
             }
+            if (response.status === 403 && isVerificationRequiredError(detail)) {
+              clearAuthClientState();
+              throw new Error(detail);
+            }
             throw new Error(err.detail || 'API request failed');
           }
           if (state.user) touchSessionActivity();
@@ -252,6 +256,7 @@
         currentPage: 'home',
         quiz: { active: false, questions: [], idx: 0, score: 0, correct: 0, streak: 0, bestStreak: 0, hintPenalty: 1, timer: null, timeLeft: 15, mode: 'solo', diff: 'easy', hintsUsed: [], serverMode: false, sessionId: null, verifyKey: null, pendingSyncs: [], answerSyncQueue: [], submitting: false, answersSubmitted: 0 },
         user: null,
+        pendingVerifyEmail: '',
         transfer: { playerIdx: 0, guesses: [], maxGuesses: 5, revealed: false, hintsRevealed: 1 },
         theme: 'dark',
         sound: localStorage.getItem('footytrivia_sound') !== '0',
@@ -2600,6 +2605,23 @@
         return fallback;
       }
 
+      function isVerificationRequiredError(message) {
+        const text = String(message || '').toLowerCase();
+        return text.includes('verify your email') || text.includes('email address is not verified');
+      }
+
+      async function clearAuthClientState() {
+        try {
+          await fetchWithTimeout(`${API_BASE_URL}/api/auth/logout`, {
+            method: 'POST',
+            credentials: 'include',
+          }, 10000);
+        } catch (e) {
+          /* ignore */
+        }
+        forceLogout(null, false);
+      }
+
       async function readApiErrorMessage(res, fallback) {
         try {
           const data = await res.json();
@@ -2788,7 +2810,13 @@
 
         if (!tokenRes.ok) {
           const err = await tokenRes.json().catch(() => ({ detail: 'Invalid email or password' }));
-          throw new Error(authErrorMessage(err.detail, 'Invalid email or password'));
+          const message = authErrorMessage(err.detail, 'Invalid email or password');
+          if (tokenRes.status === 403 && isVerificationRequiredError(message)) {
+            await clearAuthClientState();
+          }
+          const verifyErr = new Error(message);
+          verifyErr.requiresVerification = isVerificationRequiredError(message);
+          throw verifyErr;
         }
 
         await tokenRes.json();
@@ -2845,6 +2873,9 @@
               false
             );
             showToast(msg, 'info');
+          } else if (isVerificationRequiredError(msg)) {
+            await clearAuthClientState();
+            showToast('Please verify your email before logging in.', 'warning');
           } else {
             localStorage.removeItem('footytrivia_token');
             localStorage.removeItem('footytrivia_refresh_token');
@@ -2918,13 +2949,14 @@
           const tokenInput = document.getElementById('auth-reset-token');
           if (tokenInput && state.pendingResetToken) tokenInput.value = state.pendingResetToken;
         } else if (type === 'resend-verify') {
+          const pendingEmail = state.pendingVerifyEmail || '';
           content.innerHTML = `
           <h2 class="modal-title">Verify Email</h2>
-          <div class="modal-sub">Resend the verification link to your inbox.</div>
+          <div class="modal-sub">Check your inbox for the verification link. You must verify before you can log in.</div>
           <form onsubmit="mockResendVerification(event)">
             <div class="form-group">
               <label class="form-label">EMAIL ADDRESS</label>
-              <input type="email" id="auth-email" class="form-input" required maxlength="${INPUT_LIMITS.email}" placeholder="you@example.com">
+              <input type="email" id="auth-email" class="form-input" required maxlength="${INPUT_LIMITS.email}" placeholder="you@example.com" value="${escapeHtml(pendingEmail)}">
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;justify-content:center">Resend Email</button>
           </form>
@@ -2935,7 +2967,7 @@
         } else {
           content.innerHTML = `
           <h2 class="modal-title">Create Account</h2>
-          <div class="modal-sub">Join the ultimate football trivia arena today.</div>
+          <div class="modal-sub">Join Footy-Trivia. You will need to verify your email before you can log in.</div>
           <form onsubmit="mockRegister(event)">
             <div class="form-group">
               <label class="form-label">USERNAME</label>
@@ -3018,13 +3050,15 @@
           }
 
           const registerData = await registerRes.json().catch(() => ({}));
+          await clearAuthClientState();
           setAuthFormError('');
           setAuthFormStatus('');
           closeModal();
+          state.pendingVerifyEmail = email;
           const verifyMsg = registerData.detail
             || `Account created! We sent a verification link to ${email}. Please verify before logging in.`;
           showToast(verifyMsg, 'success', 7000);
-          openModal('login');
+          openModal('resend-verify');
         } catch (err) {
           console.error(err);
           hidePleaseWait(true);
@@ -3058,7 +3092,12 @@
           showToast(`Welcome back, ${userObj.username}!`, 'success');
         } catch (err) {
           console.error(err);
-          showToast(err.message || (isNetworkError(err) ? networkErrorMessage() : 'Login failed'), 'error');
+          const message = err.message || (isNetworkError(err) ? networkErrorMessage() : 'Login failed');
+          showToast(message, 'error', err.requiresVerification ? 7000 : 4000);
+          if (err.requiresVerification) {
+            state.pendingVerifyEmail = email;
+            openModal('resend-verify');
+          }
         } finally {
           hidePleaseWait();
           setAuthSubmitting(e.target, false);

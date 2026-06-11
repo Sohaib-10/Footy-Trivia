@@ -55,6 +55,11 @@ async def _issue_password_reset_email(user: models.User, db: AsyncSession) -> No
 
 
 async def _start_user_session(user: models.User, db: AsyncSession) -> tuple[str, str, str]:
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email address before logging in.",
+        )
     session_token = auth.new_session_token()
     now = datetime.utcnow()
     user.session_token = session_token
@@ -145,13 +150,15 @@ async def register(user_data: schemas.UserCreate, db: AsyncSession = Depends(get
         logger.exception("Failed to send welcome verification email to %s", new_user.email)
 
     user_payload = schemas.UserRead.model_validate(new_user).model_dump(mode="json")
-    return JSONResponse(
+    response = JSONResponse(
         status_code=status.HTTP_201_CREATED,
         content={
             **user_payload,
             "detail": "Account created. Please verify your email before logging in.",
         },
     )
+    clear_auth_cookies(response)
+    return response
 
 @router.post("/verify-email")
 async def verify_email(body: schemas.EmailTokenRequest, db: AsyncSession = Depends(get_db)):
@@ -255,10 +262,14 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user account")
 
     if not user.is_verified:
-        raise HTTPException(
+        user.session_token = None
+        await db.commit()
+        response = JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Please verify your email address before logging in.",
+            content={"detail": "Please verify your email address before logging in."},
         )
+        clear_auth_cookies(response)
+        return response
 
     access_token, refresh_token, csrf_token = await _start_user_session(user, db)
     response = JSONResponse(content={"detail": "Login successful", "token_type": "bearer"})
@@ -288,10 +299,14 @@ async def refresh(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is inactive or not found")
 
     if not user.is_verified:
-        raise HTTPException(
+        user.session_token = None
+        await db.commit()
+        response = JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Please verify your email address before refreshing your session."
+            content={"detail": "Please verify your email address before refreshing your session."},
         )
+        clear_auth_cookies(response)
+        return response
 
     await auth.validate_user_session(user, payload, db)
 
