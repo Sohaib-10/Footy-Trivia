@@ -7087,124 +7087,253 @@
         return parseFloat(val.toFixed(decimalPlaces));
       }
 
+      function findWcPlayer(scorerName, teamName) {
+        if (!scorerName) return null;
+        const clean = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+        const scorerClean = clean(scorerName);
+        const scorerWords = scorerClean.split(/\s+/);
+        
+        let bestMatch = null;
+        let bestScore = 0;
+        
+        window.WC_PLAYERS.forEach(p => {
+          if (p.team !== teamName) return;
+          
+          const pClean = clean(p.name);
+          const pWords = pClean.split(/\s+/);
+          
+          if (pClean === scorerClean) {
+            bestMatch = p;
+            bestScore = 999;
+            return;
+          }
+          
+          let score = 0;
+          scorerWords.forEach(sw => {
+            if (pClean.includes(sw)) score += 2;
+          });
+          pWords.forEach(pw => {
+            if (scorerClean.includes(pw)) score += 2;
+          });
+          
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = p;
+          }
+        });
+        
+        return bestMatch;
+      }
+
       function enrichPlayerStats() {
         if (!window.WC_PLAYERS) return;
         
-        // Only enrich once to maintain consistency and speed
-        if (window.WC_PLAYERS[0] && window.WC_PLAYERS[0].appearances !== undefined) return;
-
+        const alreadyEnriched = window.WC_PLAYERS[0] && window.WC_PLAYERS[0].baseAppearances !== undefined;
+        
+        if (!alreadyEnriched) {
+          window.WC_PLAYERS.forEach(p => {
+            const seed = getSeed(p.name);
+            
+            const isGK = p.pos === 'Goalkeeper';
+            const isDF = p.pos === 'Defender';
+            const isMF = p.pos === 'Midfielder';
+            const isFW = p.pos === 'Forward';
+            
+            p.baseRating = p.form || getDeterministicVal(seed, 6.0, 9.5, 1);
+            p.baseAppearances = getDeterministicVal(seed, 3, 7);
+            p.baseMatchesStarted = getDeterministicVal(seed + 1, Math.max(1, p.baseAppearances - 2), p.baseAppearances);
+            p.baseMinutesPlayed = p.baseMatchesStarted * getDeterministicVal(seed + 2, 75, 90) + (p.baseAppearances - p.baseMatchesStarted) * getDeterministicVal(seed + 3, 15, 30);
+            
+            if (p.goals === undefined) {
+              if (isFW) p.baseGoals = getDeterministicVal(seed + 4, 1, 6);
+              else if (isMF) p.baseGoals = getDeterministicVal(seed + 4, 0, 3);
+              else if (isDF) p.baseGoals = getDeterministicVal(seed + 4, 0, 1);
+              else p.baseGoals = 0;
+            } else {
+              p.baseGoals = p.goals;
+            }
+            
+            if (p.assists === undefined) {
+              if (isFW) p.baseAssists = getDeterministicVal(seed + 5, 0, 3);
+              else if (isMF) p.baseAssists = getDeterministicVal(seed + 5, 1, 5);
+              else if (isDF) p.baseAssists = getDeterministicVal(seed + 5, 0, 2);
+              else p.baseAssists = 0;
+            } else {
+              p.baseAssists = p.assists;
+            }
+            
+            if (p.cleanSheets === undefined) {
+              if (isGK || isDF) p.baseCleanSheets = getDeterministicVal(seed + 6, 1, 4);
+              else p.baseCleanSheets = 0;
+            } else {
+              p.baseCleanSheets = p.cleanSheets;
+            }
+            
+            if (p.saves === undefined) {
+              if (isGK) p.baseSaves = getDeterministicVal(seed + 7, 8, 28);
+              else p.baseSaves = 0;
+            } else {
+              p.baseSaves = p.saves;
+            }
+            
+            if (isFW) {
+              p.baseShots = getDeterministicVal(seed + 8, 8, 25);
+              p.baseShotsOnTarget = Math.round(p.baseShots * getDeterministicVal(seed + 9, 0.4, 0.65, 2));
+            } else if (isMF) {
+              p.baseShots = getDeterministicVal(seed + 8, 3, 12);
+              p.baseShotsOnTarget = Math.round(p.baseShots * getDeterministicVal(seed + 9, 0.3, 0.5, 2));
+            } else if (isDF) {
+              p.baseShots = getDeterministicVal(seed + 8, 0, 4);
+              p.baseShotsOnTarget = Math.round(p.baseShots * getDeterministicVal(seed + 9, 0.2, 0.5, 2));
+            } else {
+              p.baseShots = 0;
+              p.baseShotsOnTarget = 0;
+            }
+            
+            if (isMF) {
+              p.baseKeyPasses = getDeterministicVal(seed + 10, 6, 22);
+              p.baseChancesCreated = Math.round(p.baseKeyPasses * getDeterministicVal(seed + 11, 1.1, 1.5, 2));
+            } else if (isFW) {
+              p.baseKeyPasses = getDeterministicVal(seed + 10, 3, 14);
+              p.baseChancesCreated = Math.round(p.baseKeyPasses * getDeterministicVal(seed + 11, 1.0, 1.4, 2));
+            } else if (isDF) {
+              p.baseKeyPasses = getDeterministicVal(seed + 10, 1, 5);
+              p.baseChancesCreated = Math.round(p.baseKeyPasses * getDeterministicVal(seed + 11, 1.0, 1.3, 2));
+            } else {
+              p.baseKeyPasses = 0;
+              p.baseChancesCreated = 0;
+            }
+            
+            if (isGK) p.basePassAccuracy = getDeterministicVal(seed + 12, 60, 78);
+            else if (isDF) p.basePassAccuracy = getDeterministicVal(seed + 12, 85, 94);
+            else if (isMF) p.basePassAccuracy = getDeterministicVal(seed + 12, 82, 92);
+            else p.basePassAccuracy = getDeterministicVal(seed + 12, 70, 85);
+            
+            if (isFW) p.baseSuccessfulDribbles = getDeterministicVal(seed + 13, 8, 28);
+            else if (isMF) p.baseSuccessfulDribbles = getDeterministicVal(seed + 13, 5, 18);
+            else if (isDF) p.baseSuccessfulDribbles = getDeterministicVal(seed + 13, 1, 6);
+            else p.baseSuccessfulDribbles = 0;
+            
+            if (isDF) {
+              p.baseTackles = getDeterministicVal(seed + 14, 10, 26);
+              p.baseInterceptions = getDeterministicVal(seed + 15, 8, 22);
+              p.baseClearances = getDeterministicVal(seed + 16, 15, 45);
+            } else if (isMF) {
+              p.baseTackles = getDeterministicVal(seed + 14, 6, 18);
+              p.baseInterceptions = getDeterministicVal(seed + 15, 5, 15);
+              p.baseClearances = getDeterministicVal(seed + 16, 2, 10);
+            } else if (isFW) {
+              p.baseTackles = getDeterministicVal(seed + 14, 1, 5);
+              p.baseInterceptions = getDeterministicVal(seed + 15, 0, 4);
+              p.baseClearances = getDeterministicVal(seed + 16, 0, 3);
+            } else {
+              p.baseTackles = 0;
+              p.baseInterceptions = 0;
+              p.baseClearances = 0;
+            }
+            
+            p.basePenaltiesScored = (p.baseGoals > 2 && (seed % 7 === 0)) ? getDeterministicVal(seed + 17, 1, 2) : 0;
+            p.basePenaltiesMissed = (p.basePenaltiesScored > 0 && (seed % 3 === 0)) ? 1 : 0;
+            p.baseFreeKickGoals = (p.baseGoals > 1 && (seed % 11 === 0)) ? 1 : 0;
+            p.baseOwnGoals = (seed % 31 === 0) ? 1 : 0;
+            
+            p.baseYellowCards = getDeterministicVal(seed + 18, 0, 3);
+            p.baseRedCards = (seed % 29 === 0) ? 1 : 0;
+            
+            p.baseFoulsCommitted = getDeterministicVal(seed + 19, 2, 14);
+            p.baseFoulsWon = getDeterministicVal(seed + 20, 2, 18);
+            
+            p.baseOffsides = isFW ? getDeterministicVal(seed + 21, 2, 10) : (isMF ? getDeterministicVal(seed + 21, 0, 2) : 0);
+            p.baseCrossesCompleted = (isMF || isFW) ? getDeterministicVal(seed + 22, 2, 12) : 0;
+            p.baseAerialDuelsWon = getDeterministicVal(seed + 23, 2, 24);
+            p.basePossessionWon = getDeterministicVal(seed + 24, 10, 48);
+          });
+        }
+        
+        // Reset to base stats first
         window.WC_PLAYERS.forEach(p => {
-          const seed = getSeed(p.name);
-          
-          const isGK = p.pos === 'Goalkeeper';
-          const isDF = p.pos === 'Defender';
-          const isMF = p.pos === 'Midfielder';
-          const isFW = p.pos === 'Forward';
-          
-          p.rating = p.form || getDeterministicVal(seed, 6.0, 9.5, 1);
-          
-          p.appearances = getDeterministicVal(seed, 3, 7);
-          p.matchesStarted = getDeterministicVal(seed + 1, Math.max(1, p.appearances - 2), p.appearances);
-          p.minutesPlayed = p.matchesStarted * getDeterministicVal(seed + 2, 75, 90) + (p.appearances - p.matchesStarted) * getDeterministicVal(seed + 3, 15, 30);
-          
-          if (p.goals === undefined) {
-            if (isFW) p.goals = getDeterministicVal(seed + 4, 1, 6);
-            else if (isMF) p.goals = getDeterministicVal(seed + 4, 0, 3);
-            else if (isDF) p.goals = getDeterministicVal(seed + 4, 0, 1);
-            else p.goals = 0;
-          }
-          
-          if (p.assists === undefined) {
-            if (isFW) p.assists = getDeterministicVal(seed + 5, 0, 3);
-            else if (isMF) p.assists = getDeterministicVal(seed + 5, 1, 5);
-            else if (isDF) p.assists = getDeterministicVal(seed + 5, 0, 2);
-            else p.assists = 0;
-          }
-          
-          if (p.cleanSheets === undefined) {
-            if (isGK) p.cleanSheets = getDeterministicVal(seed + 6, 1, 4);
-            else if (isDF) p.cleanSheets = getDeterministicVal(seed + 6, 1, 4);
-            else p.cleanSheets = 0;
-          }
-          
-          if (p.saves === undefined) {
-            if (isGK) p.saves = getDeterministicVal(seed + 7, 8, 28);
-            else p.saves = 0;
-          }
-          
-          if (isFW) {
-            p.shots = getDeterministicVal(seed + 8, 8, 25);
-            p.shotsOnTarget = Math.round(p.shots * getDeterministicVal(seed + 9, 0.4, 0.65, 2));
-          } else if (isMF) {
-            p.shots = getDeterministicVal(seed + 8, 3, 12);
-            p.shotsOnTarget = Math.round(p.shots * getDeterministicVal(seed + 9, 0.3, 0.5, 2));
-          } else if (isDF) {
-            p.shots = getDeterministicVal(seed + 8, 0, 4);
-            p.shotsOnTarget = Math.round(p.shots * getDeterministicVal(seed + 9, 0.2, 0.5, 2));
-          } else {
-            p.shots = 0;
-            p.shotsOnTarget = 0;
-          }
-          
-          if (isMF) {
-            p.keyPasses = getDeterministicVal(seed + 10, 6, 22);
-            p.chancesCreated = Math.round(p.keyPasses * getDeterministicVal(seed + 11, 1.1, 1.5, 2));
-          } else if (isFW) {
-            p.keyPasses = getDeterministicVal(seed + 10, 3, 14);
-            p.chancesCreated = Math.round(p.keyPasses * getDeterministicVal(seed + 11, 1.0, 1.4, 2));
-          } else if (isDF) {
-            p.keyPasses = getDeterministicVal(seed + 10, 1, 5);
-            p.chancesCreated = Math.round(p.keyPasses * getDeterministicVal(seed + 11, 1.0, 1.3, 2));
-          } else {
-            p.keyPasses = 0;
-            p.chancesCreated = 0;
-          }
-          
-          if (isGK) p.passAccuracy = getDeterministicVal(seed + 12, 60, 78);
-          else if (isDF) p.passAccuracy = getDeterministicVal(seed + 12, 85, 94);
-          else if (isMF) p.passAccuracy = getDeterministicVal(seed + 12, 82, 92);
-          else p.passAccuracy = getDeterministicVal(seed + 12, 70, 85);
-          
-          if (isFW) p.successfulDribbles = getDeterministicVal(seed + 13, 8, 28);
-          else if (isMF) p.successfulDribbles = getDeterministicVal(seed + 13, 5, 18);
-          else if (isDF) p.successfulDribbles = getDeterministicVal(seed + 13, 1, 6);
-          else p.successfulDribbles = 0;
-          
-          if (isDF) {
-            p.tackles = getDeterministicVal(seed + 14, 10, 26);
-            p.interceptions = getDeterministicVal(seed + 15, 8, 22);
-            p.clearances = getDeterministicVal(seed + 16, 15, 45);
-          } else if (isMF) {
-            p.tackles = getDeterministicVal(seed + 14, 6, 18);
-            p.interceptions = getDeterministicVal(seed + 15, 5, 15);
-            p.clearances = getDeterministicVal(seed + 16, 2, 10);
-          } else if (isFW) {
-            p.tackles = getDeterministicVal(seed + 14, 1, 5);
-            p.interceptions = getDeterministicVal(seed + 15, 0, 4);
-            p.clearances = getDeterministicVal(seed + 16, 0, 3);
-          } else {
-            p.tackles = 0;
-            p.interceptions = 0;
-            p.clearances = 0;
-          }
-          
-          p.penaltiesScored = (p.goals > 2 && (seed % 7 === 0)) ? getDeterministicVal(seed + 17, 1, 2) : 0;
-          p.penaltiesMissed = (p.penaltiesScored > 0 && (seed % 3 === 0)) ? 1 : 0;
-          p.freeKickGoals = (p.goals > 1 && (seed % 11 === 0)) ? 1 : 0;
-          p.ownGoals = (seed % 31 === 0) ? 1 : 0;
-          
-          p.yellowCards = getDeterministicVal(seed + 18, 0, 3);
-          p.redCards = (seed % 29 === 0) ? 1 : 0;
-          
-          p.foulsCommitted = getDeterministicVal(seed + 19, 2, 14);
-          p.foulsWon = getDeterministicVal(seed + 20, 2, 18);
-          
-          p.offsides = isFW ? getDeterministicVal(seed + 21, 2, 10) : (isMF ? getDeterministicVal(seed + 21, 0, 2) : 0);
-          p.crossesCompleted = (isMF || isFW) ? getDeterministicVal(seed + 22, 2, 12) : 0;
-          p.aerialDuelsWon = getDeterministicVal(seed + 23, 2, 24);
-          p.possessionWon = getDeterministicVal(seed + 24, 10, 48);
-          p.distanceCovered = getDeterministicVal(seed + 25, p.minutesPlayed * 0.10, p.minutesPlayed * 0.14, 1);
+          p.rating = p.baseRating;
+          p.appearances = p.baseAppearances;
+          p.matchesStarted = p.baseMatchesStarted;
+          p.minutesPlayed = p.baseMinutesPlayed;
+          p.goals = p.baseGoals;
+          p.assists = p.baseAssists;
+          p.cleanSheets = p.baseCleanSheets;
+          p.saves = p.baseSaves;
+          p.shots = p.baseShots;
+          p.shotsOnTarget = p.baseShotsOnTarget;
+          p.keyPasses = p.baseKeyPasses;
+          p.chancesCreated = p.baseChancesCreated;
+          p.passAccuracy = p.basePassAccuracy;
+          p.successfulDribbles = p.baseSuccessfulDribbles;
+          p.tackles = p.baseTackles;
+          p.interceptions = p.baseInterceptions;
+          p.clearances = p.baseClearances;
+          p.penaltiesScored = p.basePenaltiesScored;
+          p.penaltiesMissed = p.basePenaltiesMissed;
+          p.freeKickGoals = p.baseFreeKickGoals;
+          p.ownGoals = p.baseOwnGoals;
+          p.yellowCards = p.baseYellowCards;
+          p.redCards = p.baseRedCards;
+          p.foulsCommitted = p.baseFoulsCommitted;
+          p.foulsWon = p.baseFoulsWon;
+          p.offsides = p.baseOffsides;
+          p.crossesCompleted = p.baseCrossesCompleted;
+          p.aerialDuelsWon = p.baseAerialDuelsWon;
+          p.possessionWon = p.basePossessionWon;
+          p.distanceCovered = parseFloat((p.minutesPlayed * 0.11).toFixed(1));
         });
+        
+        // Add dynamic stats from today's matches
+        if (window.WC_TODAY_MATCHES && window.WC_TODAY_MATCHES.length > 0) {
+          const teamsPlayed = new Set();
+          
+          window.WC_TODAY_MATCHES.forEach(m => {
+            const homeT = m.homeTeam ? (m.homeTeam.shortName || m.homeTeam.name) : '';
+            const awayT = m.awayTeam ? (m.awayTeam.shortName || m.awayTeam.name) : '';
+            
+            const mapTeamName = (t) => {
+              if (t === 'USA') return 'United States';
+              if (t === 'KOR') return 'South Korea';
+              if (t === 'BIH') return 'Bosnia & Herzegovina';
+              if (t === 'CZE') return 'Czechia';
+              if (t === 'CAN') return 'Canada';
+              if (t === 'PAR') return 'Paraguay';
+              return t;
+            };
+            
+            const normHome = mapTeamName(homeT);
+            const normAway = mapTeamName(awayT);
+            
+            if (normHome) teamsPlayed.add(normHome);
+            if (normAway) teamsPlayed.add(normAway);
+            
+            // Goals and scorers
+            if (m.goals && m.goals.length > 0) {
+              m.goals.forEach(g => {
+                const scorerName = g.scorer;
+                const scorerTeam = g.team === 'home' ? normHome : normAway;
+                const player = findWcPlayer(scorerName, scorerTeam);
+                if (player) {
+                  player.goals += 1;
+                }
+              });
+            }
+          });
+          
+          // Increment appearances, minutes, distance, and update rating for playing teams
+          window.WC_PLAYERS.forEach(p => {
+            if (teamsPlayed.has(p.team)) {
+              p.appearances += 1;
+              p.minutesPlayed += 90;
+              p.distanceCovered = parseFloat((p.minutesPlayed * 0.11).toFixed(1));
+              
+              const seed = getSeed(p.name);
+              const matchRating = 6.0 + (seed % 35) / 10; // 6.0 to 9.5
+              p.rating = parseFloat(((p.baseRating * p.baseAppearances + matchRating) / p.appearances).toFixed(1));
+            }
+          });
+        }
       }
 
       function populateTeamDropdown() {
@@ -7234,7 +7363,6 @@
       }
 
       function initAnalyticsTab() {
-        if (document.getElementById('wc-analytics')?.classList.contains('wc-analytics-locked')) return;
         populateTeamDropdown();
         
         document.getElementById('wc-analytics-search').value = '';

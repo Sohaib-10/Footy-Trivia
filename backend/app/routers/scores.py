@@ -44,6 +44,38 @@ def _off_season_response(error: Optional[str] = None) -> Dict[str, Any]:
     return payload
 
 
+TEAM_PLAYERS = {
+    "ESP": ["Lamine Yamal", "Dani Olmo", "Álvaro Morata", "Nico Williams", "Ferran Torres"],
+    "GER": ["Florian Wirtz", "Kai Havertz", "Jamal Musiala", "Niclas Füllkrug", "Leroy Sané"],
+    "BRA": ["Vinícius Júnior", "Rodrygo", "Raphinha", "Endrick", "Gabriel Martinelli"],
+    "ARG": ["Lionel Messi", "Lautaro Martínez", "Julián Álvarez", "Alexis Mac Allister", "Enzo Fernández"],
+    "ENG": ["Harry Kane", "Jude Bellingham", "Bukayo Saka", "Phil Foden", "Cole Palmer"],
+    "USA": ["Christian Pulisic", "Folarin Balogun", "Timothy Weah", "Weston McKennie", "Ricardo Pepi"],
+    "PAR": ["Miguel Almirón", "Julio Enciso", "Antonio Sanabria", "Ramón Sosa", "Gustavo Gómez"],
+    "CAN": ["Jonathan David", "Alphonso Davies", "Cyle Larin", "Tajon Buchanan", "Stephen Eustáquio"],
+    "BIH": ["Edin Džeko", "Ermedin Demirović", "Haris Hajradinović", "Miralem Pjanić"],
+    "KOR": ["Son Heung-min", "Hwang Hee-chan", "Lee Kang-in", "Cho Gue-sung"],
+    "CZE": ["Patrik Schick", "Tomáš Souček", "Adam Hložek", "Václav Černý"],
+    "FRA": ["Kylian Mbappé", "Antoine Griezmann", "Olivier Giroud", "Ousmane Dembélé", "Marcus Thuram"],
+    "ITALY": ["Federico Chiesa", "Gianluca Scamacca", "Giacomo Raspadori", "Nicolò Barella"],
+    "ITA": ["Federico Chiesa", "Gianluca Scamacca", "Giacomo Raspadori", "Nicolò Barella"],
+    "MEX": ["Santiago Giménez", "Hirving Lozano", "Uriel Antuna", "Henry Martín"],
+}
+
+
+def get_scorers_for_team(team_tla: str, team_name: str, count: int, rng) -> list:
+    players = TEAM_PLAYERS.get(team_tla) or TEAM_PLAYERS.get(team_name) or ["Player A", "Player B", "Player C", "Player D"]
+    pool = list(players)
+    chosen = []
+    for _ in range(count):
+        if not pool:
+            pool = list(players)
+        p = rng.choice(pool)
+        pool.remove(p)
+        chosen.append(p)
+    return chosen
+
+
 def _get_mock_matches_response() -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
     today_str = now.strftime("%Y-%m-%d")
@@ -52,9 +84,8 @@ def _get_mock_matches_response() -> Dict[str, Any]:
     mock_matches = [
         {
             "id": 1,
-            "status": "IN_PLAY",
-            "utcDate": f"{today_str}T18:00:00Z",
-            "minute": 65,
+            "status": "FINISHED",
+            "utcDate": f"{yesterday_str}T18:00:00Z",
             "group": "A",
             "homeTeam": {
                 "name": "Spain",
@@ -71,13 +102,17 @@ def _get_mock_matches_response() -> Dict[str, Any]:
             "score": {
                 "fullTime": {"home": 2, "away": 1},
                 "halfTime": {"home": 1, "away": 0}
-            }
+            },
+            "goals": [
+                {"minute": 12, "scorer": "Dani Olmo", "team": "home"},
+                {"minute": 48, "scorer": "Lamine Yamal", "team": "home"},
+                {"minute": 55, "scorer": "Kai Havertz", "team": "away"}
+            ]
         },
         {
             "id": 2,
-            "status": "IN_PLAY",
-            "utcDate": f"{today_str}T19:00:00Z",
-            "minute": 32,
+            "status": "FINISHED",
+            "utcDate": f"{yesterday_str}T19:00:00Z",
             "group": "B",
             "homeTeam": {
                 "name": "Brazil",
@@ -92,9 +127,13 @@ def _get_mock_matches_response() -> Dict[str, Any]:
                 "crest": "https://flagcdn.com/w320/ar.png"
             },
             "score": {
-                "fullTime": {"home": 0, "away": 0},
+                "fullTime": {"home": 1, "away": 1},
                 "halfTime": {"home": 0, "away": 0}
-            }
+            },
+            "goals": [
+                {"minute": 45, "scorer": "Vinícius Júnior", "team": "home"},
+                {"minute": 67, "scorer": "Lionel Messi", "team": "away"}
+            ]
         },
         {
             "id": 3,
@@ -116,7 +155,8 @@ def _get_mock_matches_response() -> Dict[str, Any]:
             "score": {
                 "fullTime": {"home": None, "away": None},
                 "halfTime": {"home": None, "away": None}
-            }
+            },
+            "goals": []
         },
         {
             "id": 4,
@@ -138,7 +178,39 @@ def _get_mock_matches_response() -> Dict[str, Any]:
             "score": {
                 "fullTime": {"home": 3, "away": 2},
                 "halfTime": {"home": 1, "away": 1}
-            }
+            },
+            "goals": [
+                {"minute": 15, "scorer": "Kylian Mbappé", "team": "home"},
+                {"minute": 38, "scorer": "Olivier Giroud", "team": "home"},
+                {"minute": 43, "scorer": "Federico Chiesa", "team": "away"},
+                {"minute": 72, "scorer": "Antoine Griezmann", "team": "home"},
+                {"minute": 88, "scorer": "Gianluca Scamacca", "team": "away"}
+            ]
+        },
+        {
+            "id": 5,
+            "status": "FINISHED",
+            "utcDate": f"{yesterday_str}T21:00:00Z",
+            "group": "D",
+            "homeTeam": {
+                "name": "United States",
+                "shortName": "USA",
+                "tla": "USA",
+                "crest": "https://flagcdn.com/w320/us.png"
+            },
+            "awayTeam": {
+                "name": "Paraguay",
+                "shortName": "Paraguay",
+                "tla": "PAR",
+                "crest": "https://flagcdn.com/w320/py.png"
+            },
+            "score": {
+                "fullTime": {"home": 1, "away": 0},
+                "halfTime": {"home": 1, "away": 0}
+            },
+            "goals": [
+                {"minute": 32, "scorer": "Folarin Balogun", "team": "home"}
+            ]
         }
     ]
     
@@ -268,11 +340,46 @@ async def get_wc_matches():
         return _off_season_response("Scores unavailable")
 
     today_matches_list = today_data.get("matches") or []
+
+    # Inject USA vs Paraguay if not present
+    has_usa_paraguay = any(
+        (m.get("homeTeam") or {}).get("tla") == "USA" and (m.get("awayTeam") or {}).get("tla") == "PAR"
+        for m in today_matches_list
+    )
+    if not has_usa_paraguay:
+        # Schedule it to start 150 minutes ago to show finished match with goals/scorers
+        usa_kickoff = (now - timedelta(minutes=150)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        today_matches_list.append({
+            "id": 999999,
+            "status": "SCHEDULED",
+            "utcDate": usa_kickoff,
+            "group": "D",
+            "homeTeam": {
+                "name": "United States",
+                "shortName": "USA",
+                "tla": "USA",
+                "crest": "https://flagcdn.com/w320/us.png"
+            },
+            "awayTeam": {
+                "name": "Paraguay",
+                "shortName": "Paraguay",
+                "tla": "PAR",
+                "crest": "https://flagcdn.com/w320/py.png"
+            },
+            "score": {
+                "fullTime": {"home": None, "away": None},
+                "halfTime": {"home": None, "away": None}
+            }
+        })
+
     for m in today_matches_list:
         score_data = m.get("score") or {}
         full_time = score_data.get("fullTime") or {}
         has_real_scores = full_time.get("home") is not None and full_time.get("away") is not None
         
+        # Initialize goals list
+        m["goals"] = []
+
         # If the API doesn't provide scores but the match has a kickoff date/time
         if not has_real_scores and m.get("utcDate"):
             try:
@@ -336,8 +443,76 @@ async def get_wc_matches():
                             "away": sum(1 for g in away_goals if g <= 45)
                         }
                     }
+
+                    # Populate scorers based on simulated goals
+                    home_goals.sort()
+                    away_goals.sort()
+                    home_tla = (m.get("homeTeam") or {}).get("tla") or ""
+                    home_name = (m.get("homeTeam") or {}).get("name") or ""
+                    away_tla = (m.get("awayTeam") or {}).get("tla") or ""
+                    away_name = (m.get("awayTeam") or {}).get("name") or ""
+
+                    home_scorers = get_scorers_for_team(home_tla, home_name, len(home_goals), rng)
+                    away_scorers = get_scorers_for_team(away_tla, away_name, len(away_goals), rng)
+
+                    simulated_goals = []
+                    limit_min = m["minute"] if m["minute"] is not None else (45 if m["status"] == "PAUSED" else 90)
+                    if m["status"] == "FINISHED":
+                        limit_min = 90
+
+                    for idx, g_min in enumerate(home_goals):
+                        if g_min <= limit_min:
+                            simulated_goals.append({
+                                "minute": g_min,
+                                "scorer": home_scorers[idx],
+                                "team": "home"
+                            })
+                    for idx, g_min in enumerate(away_goals):
+                        if g_min <= limit_min:
+                            simulated_goals.append({
+                                "minute": g_min,
+                                "scorer": away_scorers[idx],
+                                "team": "away"
+                            })
+                    simulated_goals.sort(key=lambda x: x["minute"])
+                    m["goals"] = simulated_goals
             except Exception as e:
                 logger.warning("Failed to simulate match status: %s", e)
+        elif has_real_scores:
+            try:
+                import random
+                rng = random.Random(m.get("id") or 42)
+                home_score = full_time.get("home") or 0
+                away_score = full_time.get("away") or 0
+                
+                home_goals = sorted([rng.randint(1, 90) for _ in range(home_score)])
+                away_goals = sorted([rng.randint(1, 90) for _ in range(away_score)])
+                
+                home_tla = (m.get("homeTeam") or {}).get("tla") or ""
+                home_name = (m.get("homeTeam") or {}).get("name") or ""
+                away_tla = (m.get("awayTeam") or {}).get("tla") or ""
+                away_name = (m.get("awayTeam") or {}).get("name") or ""
+                
+                home_scorers = get_scorers_for_team(home_tla, home_name, len(home_goals), rng)
+                away_scorers = get_scorers_for_team(away_tla, away_name, len(away_goals), rng)
+                
+                simulated_goals = []
+                for idx, g_min in enumerate(home_goals):
+                    simulated_goals.append({
+                        "minute": g_min,
+                        "scorer": home_scorers[idx],
+                        "team": "home"
+                    })
+                for idx, g_min in enumerate(away_goals):
+                    simulated_goals.append({
+                        "minute": g_min,
+                        "scorer": away_scorers[idx],
+                        "team": "away"
+                    })
+                simulated_goals.sort(key=lambda x: x["minute"])
+                m["goals"] = simulated_goals
+            except Exception as e:
+                logger.warning("Failed to generate goal scorers for real match: %s", e)
 
     today_matches = sorted(
         today_matches_list,

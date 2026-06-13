@@ -3942,14 +3942,53 @@
     }
     .wc-match-card {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
       padding: 0.85rem 0;
       border-bottom: 1px solid var(--border);
     }
     .wc-match-card:last-child {
       border-bottom: none;
+    }
+    .wc-match-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      width: 100%;
+    }
+    .wc-match-goals {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.25rem;
+      padding: 0 1rem;
+      font-size: 0.72rem;
+      color: var(--text3);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .wc-match-goals .home-goals,
+    .wc-match-goals .away-goals {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      flex: 1;
+      min-width: 0;
+    }
+    .wc-match-goals .home-goals {
+      align-items: flex-start;
+      text-align: left;
+    }
+    .wc-match-goals .away-goals {
+      align-items: flex-end;
+      text-align: right;
+    }
+    .wc-goal-item {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
     .wc-match-card.live {
       border-left: 3px solid #ef4444;

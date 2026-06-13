@@ -1222,6 +1222,7 @@
         { name: 'Kuchta', team: 'Czechia', pos: 'Forward', subPos: 'Striker', club: 'AC Sparta Praha', formIndicator: 'Squad', stats: '2 Goals, 1 Assists', age: 29, goals: 2, assists: 1, caps: 5, marketValue: 25, popularity: 72, form: 7.8 },
         { name: 'Schick', team: 'Czechia', pos: 'Forward', subPos: 'Striker', club: 'Bayer 04 Leverkusen', formIndicator: 'Squad', stats: '2 Goals, 1 Assists', age: 30, goals: 2, assists: 1, caps: 5, marketValue: 25, popularity: 72, form: 7.8 },
         { name: 'Sulc', team: 'Czechia', pos: 'Forward', subPos: 'Striker', club: 'Olympique Lyonnais', formIndicator: 'Squad', stats: '2 Goals, 1 Assists', age: 25, goals: 2, assists: 1, caps: 5, marketValue: 25, popularity: 72, form: 7.8 },
+        { name: 'Václav Černý', team: 'Czechia', pos: 'Forward', subPos: 'Winger', club: 'VfL Wolfsburg', formIndicator: 'Squad', stats: '2 Goals, 1 Assists', age: 28, goals: 2, assists: 1, caps: 5, marketValue: 25, popularity: 72, form: 7.8 },
         // DR Congo
         { name: 'Epolo', team: 'DR Congo', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'Standard Liège', formIndicator: 'Squad', stats: '8 CS, 60 Saves', age: 21, goals: 0, assists: 0, caps: 5, marketValue: 15, popularity: 78, form: 8.2, cleanSheets: 8, saves: 60, savePct: 74 },
         { name: 'Fayulu', team: 'DR Congo', pos: 'Goalkeeper', subPos: 'Goalkeeper', club: 'FC Noah', formIndicator: 'Squad', stats: '8 CS, 60 Saves', age: 26, goals: 0, assists: 0, caps: 5, marketValue: 15, popularity: 72, form: 7.8, cleanSheets: 8, saves: 60, savePct: 74 },

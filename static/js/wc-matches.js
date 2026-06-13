@@ -103,7 +103,10 @@
 
     var home = match.homeTeam || {};
     var away = match.awayTeam || {};
-    card.appendChild(createTeamBlock(home, 'home'));
+
+    var row = document.createElement('div');
+    row.className = 'wc-match-row';
+    row.appendChild(createTeamBlock(home, 'home'));
 
     var center = document.createElement('div');
     center.className = 'wc-match-center';
@@ -164,8 +167,37 @@
       }
     }
 
-    card.appendChild(center);
-    card.appendChild(createTeamBlock(away, 'away'));
+    row.appendChild(center);
+    row.appendChild(createTeamBlock(away, 'away'));
+    card.appendChild(row);
+
+    // Goal scorers display
+    if (match.goals && match.goals.length > 0) {
+      var goalsEl = document.createElement('div');
+      goalsEl.className = 'wc-match-goals';
+
+      var homeGoalsEl = document.createElement('div');
+      homeGoalsEl.className = 'home-goals';
+
+      var awayGoalsEl = document.createElement('div');
+      awayGoalsEl.className = 'away-goals';
+
+      match.goals.forEach(function (g) {
+        var item = document.createElement('div');
+        item.className = 'wc-goal-item';
+        item.innerHTML = '⚽ ' + g.scorer + ' (' + g.minute + "')";
+        if (g.team === 'home') {
+          homeGoalsEl.appendChild(item);
+        } else if (g.team === 'away') {
+          awayGoalsEl.appendChild(item);
+        }
+      });
+
+      goalsEl.appendChild(homeGoalsEl);
+      goalsEl.appendChild(awayGoalsEl);
+      card.appendChild(goalsEl);
+    }
+
     return card;
   }
 
@@ -266,6 +298,7 @@
       var res = await fetch(resolveApiBaseUrl() + '/api/wc/matches', { credentials: 'omit' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       var data = await res.json();
+      window.WC_TODAY_MATCHES = data.matches || [];
       renderMatches(container, data);
       unlockMatchdayTab();
     } catch (err) {
