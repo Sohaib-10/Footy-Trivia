@@ -380,6 +380,7 @@
           syncWcMobileNavSub(activeTabId);
         } else {
           resetWcMobileNavSub();
+          stopStandingsPolling();
         }
         const wcToggle = document.querySelector('.wc-mobile-nav-toggle');
         if (wcToggle) wcToggle.classList.toggle('active', page === 'worldcup');
@@ -4491,13 +4492,55 @@
         return thirds;
       }
 
-      function renderBestThirdPlacedTable() {
-        const thirds = getBestThirdPlacedTeams();
-        const manualQual = getConfirmedManualThirdPlace();
+      function getRealBestThirdPlacedTeams() {
+        if (!window.WC_STANDINGS || window.WC_STANDINGS.length === 0) {
+          return getBestThirdPlacedTeams(); // Fallback to prediction-based
+        }
+        const thirds = [];
+        window.WC_STANDINGS.forEach(group => {
+          // In the real standings, the team at index 2 (position 3) is the third placed team!
+          const row = group.table[2];
+          if (!row) return;
+          const teamName = row.team.shortName || row.team.name;
+          const groupLetter = group.name.replace('Group ', '');
+          
+          // Get FIFA ranking
+          const teamObjFromData = wcTeams().find(t => t.name === teamName) || null;
+          const fifaRank = teamObjFromData ? teamObjFromData.ranking : 999;
+          
+          thirds.push({
+            name: teamName,
+            groupKey: groupLetter,
+            pts: row.points || 0,
+            gd: row.goalDifference || 0,
+            gf: row.goalsFor || 0,
+            ga: row.goalsAgainst || 0,
+            w: row.won || 0,
+            d: row.draw || 0,
+            l: row.lost || 0,
+            fifaRank: fifaRank
+          });
+        });
+        
+        // Sort them according to official FIFA tiebreakers
+        thirds.sort((a, b) => {
+          if (b.pts !== a.pts) return b.pts - a.pts;
+          if (b.gd !== a.gd) return b.gd - a.gd;
+          if (b.gf !== a.gf) return b.gf - a.gf;
+          if (b.w !== a.w) return b.w - a.w;
+          if (a.fifaRank !== b.fifaRank) return a.fifaRank - b.fifaRank;
+          return getSeed(b.name) - getSeed(a.name);
+        });
+        
+        return thirds;
+      }
 
+      function renderBestThirdPlacedTable() {
         // 1. Predictions Tab Table
         const tbodyPred = document.getElementById('best-third-place-table-body');
         if (tbodyPred) {
+          const thirds = getBestThirdPlacedTeams();
+          const manualQual = getConfirmedManualThirdPlace();
           tbodyPred.innerHTML = '';
           thirds.forEach((item, idx) => {
             const rank = idx + 1;
@@ -4526,10 +4569,11 @@
         // 2. Dashboard Tab Table
         const tbodyDash = document.getElementById('dashboard-best-third-place-table-body');
         if (tbodyDash) {
+          const thirds = getRealBestThirdPlacedTeams();
           tbodyDash.innerHTML = '';
           thirds.forEach((item, idx) => {
             const rank = idx + 1;
-            const isQualified = manualQual ? manualQual.includes(item.groupKey) : rank <= 8;
+            const isQualified = rank <= 8;
             const statusText = isQualified ? 'Qualified for Round of 32' : 'Eliminated';
             const statusStyle = isQualified 
               ? 'background:rgba(16,185,129,0.15); color:#10b981; font-weight:700; border-radius:4px; padding:0.25rem 0.75rem; font-size:0.75rem; display:inline-block; border: 1px solid rgba(16,185,129,0.3);'
@@ -4551,6 +4595,35 @@
             `;
             tbodyDash.appendChild(row);
           });
+        }
+      }
+
+      let standingsPollInterval = null;
+      window.WC_STANDINGS = [];
+
+      async function fetchAndRenderStandings() {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/wc/standings`, { credentials: 'omit' });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.json();
+          window.WC_STANDINGS = data.standings || [];
+          renderGroupStandings();
+          renderBestThirdPlacedTable();
+        } catch (err) {
+          console.error('Failed to fetch group standings:', err);
+        }
+      }
+
+      function startStandingsPolling() {
+        if (standingsPollInterval) return;
+        fetchAndRenderStandings();
+        standingsPollInterval = setInterval(fetchAndRenderStandings, 60000);
+      }
+
+      function stopStandingsPolling() {
+        if (standingsPollInterval) {
+          clearInterval(standingsPollInterval);
+          standingsPollInterval = null;
         }
       }
 
@@ -4590,6 +4663,73 @@
       function renderGroupStandings() {
         const container = document.getElementById('wc-dashboard-groups');
         if (!container) return;
+
+        // Use real standings if available
+        if (window.WC_STANDINGS && window.WC_STANDINGS.length > 0) {
+          container.innerHTML = '';
+          window.WC_STANDINGS.forEach(group => {
+            const card = document.createElement('div');
+            card.className = 'wc-card';
+            
+            let maxPlayed = 0;
+            group.table.forEach(t => {
+              if (t.playedGames > maxPlayed) maxPlayed = t.playedGames;
+            });
+            const matchdayLabel = maxPlayed > 0 ? `Matchday ${maxPlayed}` : 'Matchday 1';
+
+            let html = `
+              <div class="wc-card-title">${group.name} <span style="font-size:0.75rem; color:var(--gold)">${matchdayLabel}</span></div>
+              <table class="wc-table">
+                <thead>
+                  <tr>
+                    <th>Team</th>
+                    <th style="text-align:center;">MP</th>
+                    <th style="text-align:center;">W</th>
+                    <th style="text-align:center;">D</th>
+                    <th style="text-align:center;">L</th>
+                    <th style="text-align:center;">GF</th>
+                    <th style="text-align:center;">GA</th>
+                    <th style="text-align:center;">GD</th>
+                    <th style="text-align:center;">Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+            `;
+            
+            group.table.forEach(row => {
+              const teamName = row.team.shortName || row.team.name;
+              const gdSign = row.goalDifference > 0 ? '+' : '';
+              html += `
+                <tr>
+                  <td>
+                    <div class="wc-team" style="display:flex; align-items:center; gap:0.5rem;">
+                      ${getFlagImg(teamName)}
+                      <span>${teamName}</span>
+                    </div>
+                  </td>
+                  <td style="text-align:center;">${row.playedGames}</td>
+                  <td style="text-align:center;">${row.won}</td>
+                  <td style="text-align:center;">${row.draw}</td>
+                  <td style="text-align:center;">${row.lost}</td>
+                  <td style="text-align:center;">${row.goalsFor}</td>
+                  <td style="text-align:center;">${row.goalsAgainst}</td>
+                  <td style="text-align:center;">${gdSign}${row.goalDifference}</td>
+                  <td style="text-align:center; font-weight:bold;">${row.points}</td>
+                </tr>
+              `;
+            });
+            
+            html += `
+                </tbody>
+              </table>
+            `;
+            card.innerHTML = html;
+            container.appendChild(card);
+          });
+          return;
+        }
+
+        // Fallback: render default predicted/default layout
         ensureValidGroupPredictions();
         container.innerHTML = '';
         Object.keys(groupPredictions).forEach(groupKey => {
@@ -8278,6 +8418,7 @@
           switchWCTab('dashboard', dashboardBtn);
           return;
         }
+        stopStandingsPolling();
         document.querySelectorAll('.wc-tab-content').forEach(el => el.style.display = 'none');
         document.querySelectorAll('.wc-tab').forEach(el => el.classList.remove('active'));
         const target = document.getElementById('wc-' + tabId);
@@ -8289,6 +8430,7 @@
         }
         syncWcMobileNavSub(tabId);
         if (tabId === 'dashboard') {
+          startStandingsPolling();
           renderGroupStandings();
           renderBestThirdPlacedTable();
         } else if (tabId === 'predictions') {

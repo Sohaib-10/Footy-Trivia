@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/wc", tags=["world-cup-scores"])
 
 FOOTBALL_DATA_BASE = "https://api.football-data.org/v4/competitions/WC/matches"
+FOOTBALL_DATA_STANDINGS = "https://api.football-data.org/v4/competitions/WC/standings"
 STATUS_PRIORITY = {"IN_PLAY": 0, "PAUSED": 1, "FINISHED": 2, "SCHEDULED": 3, "TIMED": 4}
 MODE_LABELS = {
     "today": "Today's Matches",
@@ -543,3 +544,153 @@ async def get_wc_matches():
         "generated_at": _utc_now_iso(),
         "stale": stale,
     }
+
+
+# ─── Standings ───────────────────────────────────────────────────────────────
+
+def _get_mock_standings() -> list:
+    """Fallback standings reflecting real WC 2026 Matchday 1 results."""
+    return [
+        {"group": "GROUP_A", "name": "Group A", "table": [
+            {"team": {"name": "Mexico", "shortName": "Mexico", "tla": "MEX", "crest": "https://flagcdn.com/w320/mx.png"}, "position": 1, "playedGames": 1, "won": 1, "draw": 0, "lost": 0, "goalsFor": 2, "goalsAgainst": 0, "goalDifference": 2, "points": 3},
+            {"team": {"name": "Korea Republic", "shortName": "South Korea", "tla": "KOR", "crest": "https://flagcdn.com/w320/kr.png"}, "position": 2, "playedGames": 1, "won": 1, "draw": 0, "lost": 0, "goalsFor": 2, "goalsAgainst": 1, "goalDifference": 1, "points": 3},
+            {"team": {"name": "Czechia", "shortName": "Czechia", "tla": "CZE", "crest": "https://flagcdn.com/w320/cz.png"}, "position": 3, "playedGames": 1, "won": 0, "draw": 0, "lost": 1, "goalsFor": 1, "goalsAgainst": 2, "goalDifference": -1, "points": 0},
+            {"team": {"name": "South Africa", "shortName": "South Africa", "tla": "RSA", "crest": "https://flagcdn.com/w320/za.png"}, "position": 4, "playedGames": 1, "won": 0, "draw": 0, "lost": 1, "goalsFor": 0, "goalsAgainst": 2, "goalDifference": -2, "points": 0},
+        ]},
+        {"group": "GROUP_B", "name": "Group B", "table": [
+            {"team": {"name": "Canada", "shortName": "Canada", "tla": "CAN", "crest": "https://flagcdn.com/w320/ca.png"}, "position": 1, "playedGames": 1, "won": 0, "draw": 1, "lost": 0, "goalsFor": 1, "goalsAgainst": 1, "goalDifference": 0, "points": 1},
+            {"team": {"name": "Bosnia-Herzegovina", "shortName": "Bosnia-H.", "tla": "BIH", "crest": "https://flagcdn.com/w320/ba.png"}, "position": 2, "playedGames": 1, "won": 0, "draw": 1, "lost": 0, "goalsFor": 1, "goalsAgainst": 1, "goalDifference": 0, "points": 1},
+            {"team": {"name": "Switzerland", "shortName": "Switzerland", "tla": "SUI", "crest": "https://flagcdn.com/w320/ch.png"}, "position": 3, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Qatar", "shortName": "Qatar", "tla": "QAT", "crest": "https://flagcdn.com/w320/qa.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+        ]},
+        {"group": "GROUP_C", "name": "Group C", "table": [
+            {"team": {"name": "Brazil", "shortName": "Brazil", "tla": "BRA", "crest": "https://flagcdn.com/w320/br.png"}, "position": 1, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Morocco", "shortName": "Morocco", "tla": "MAR", "crest": "https://flagcdn.com/w320/ma.png"}, "position": 2, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Haiti", "shortName": "Haiti", "tla": "HAI", "crest": "https://flagcdn.com/w320/ht.png"}, "position": 3, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Scotland", "shortName": "Scotland", "tla": "SCO", "crest": "https://flagcdn.com/w320/gb-sct.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+        ]},
+        {"group": "GROUP_D", "name": "Group D", "table": [
+            {"team": {"name": "United States", "shortName": "USA", "tla": "USA", "crest": "https://flagcdn.com/w320/us.png"}, "position": 1, "playedGames": 1, "won": 1, "draw": 0, "lost": 0, "goalsFor": 1, "goalsAgainst": 0, "goalDifference": 1, "points": 3},
+            {"team": {"name": "Paraguay", "shortName": "Paraguay", "tla": "PAR", "crest": "https://flagcdn.com/w320/py.png"}, "position": 2, "playedGames": 1, "won": 0, "draw": 0, "lost": 1, "goalsFor": 0, "goalsAgainst": 1, "goalDifference": -1, "points": 0},
+            {"team": {"name": "Australia", "shortName": "Australia", "tla": "AUS", "crest": "https://flagcdn.com/w320/au.png"}, "position": 3, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Türkiye", "shortName": "Türkiye", "tla": "TUR", "crest": "https://flagcdn.com/w320/tr.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+        ]},
+        {"group": "GROUP_E", "name": "Group E", "table": [
+            {"team": {"name": "Germany", "shortName": "Germany", "tla": "GER", "crest": "https://flagcdn.com/w320/de.png"}, "position": 1, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Ecuador", "shortName": "Ecuador", "tla": "ECU", "crest": "https://flagcdn.com/w320/ec.png"}, "position": 2, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Ivory Coast", "shortName": "Ivory Coast", "tla": "CIV", "crest": "https://flagcdn.com/w320/ci.png"}, "position": 3, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Curaçao", "shortName": "Curaçao", "tla": "CUW", "crest": "https://flagcdn.com/w320/cw.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+        ]},
+        {"group": "GROUP_F", "name": "Group F", "table": [
+            {"team": {"name": "Netherlands", "shortName": "Netherlands", "tla": "NED", "crest": "https://flagcdn.com/w320/nl.png"}, "position": 1, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Japan", "shortName": "Japan", "tla": "JPN", "crest": "https://flagcdn.com/w320/jp.png"}, "position": 2, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Tunisia", "shortName": "Tunisia", "tla": "TUN", "crest": "https://flagcdn.com/w320/tn.png"}, "position": 3, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Sweden", "shortName": "Sweden", "tla": "SWE", "crest": "https://flagcdn.com/w320/se.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+        ]},
+        {"group": "GROUP_G", "name": "Group G", "table": [
+            {"team": {"name": "Belgium", "shortName": "Belgium", "tla": "BEL", "crest": "https://flagcdn.com/w320/be.png"}, "position": 1, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Iran", "shortName": "Iran", "tla": "IRN", "crest": "https://flagcdn.com/w320/ir.png"}, "position": 2, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Egypt", "shortName": "Egypt", "tla": "EGY", "crest": "https://flagcdn.com/w320/eg.png"}, "position": 3, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "New Zealand", "shortName": "New Zealand", "tla": "NZL", "crest": "https://flagcdn.com/w320/nz.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+        ]},
+        {"group": "GROUP_H", "name": "Group H", "table": [
+            {"team": {"name": "Spain", "shortName": "Spain", "tla": "ESP", "crest": "https://flagcdn.com/w320/es.png"}, "position": 1, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Uruguay", "shortName": "Uruguay", "tla": "URU", "crest": "https://flagcdn.com/w320/uy.png"}, "position": 2, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Saudi Arabia", "shortName": "Saudi Arabia", "tla": "KSA", "crest": "https://flagcdn.com/w320/sa.png"}, "position": 3, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Cape Verde", "shortName": "Cape Verde", "tla": "CPV", "crest": "https://flagcdn.com/w320/cv.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+        ]},
+        {"group": "GROUP_I", "name": "Group I", "table": [
+            {"team": {"name": "France", "shortName": "France", "tla": "FRA", "crest": "https://flagcdn.com/w320/fr.png"}, "position": 1, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Senegal", "shortName": "Senegal", "tla": "SEN", "crest": "https://flagcdn.com/w320/sn.png"}, "position": 2, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Norway", "shortName": "Norway", "tla": "NOR", "crest": "https://flagcdn.com/w320/no.png"}, "position": 3, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Iraq", "shortName": "Iraq", "tla": "IRQ", "crest": "https://flagcdn.com/w320/iq.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+        ]},
+        {"group": "GROUP_J", "name": "Group J", "table": [
+            {"team": {"name": "Argentina", "shortName": "Argentina", "tla": "ARG", "crest": "https://flagcdn.com/w320/ar.png"}, "position": 1, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Algeria", "shortName": "Algeria", "tla": "ALG", "crest": "https://flagcdn.com/w320/dz.png"}, "position": 2, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Austria", "shortName": "Austria", "tla": "AUT", "crest": "https://flagcdn.com/w320/at.png"}, "position": 3, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Jordan", "shortName": "Jordan", "tla": "JOR", "crest": "https://flagcdn.com/w320/jo.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+        ]},
+        {"group": "GROUP_K", "name": "Group K", "table": [
+            {"team": {"name": "Portugal", "shortName": "Portugal", "tla": "POR", "crest": "https://flagcdn.com/w320/pt.png"}, "position": 1, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "DR Congo", "shortName": "DR Congo", "tla": "COD", "crest": "https://flagcdn.com/w320/cd.png"}, "position": 2, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Uzbekistan", "shortName": "Uzbekistan", "tla": "UZB", "crest": "https://flagcdn.com/w320/uz.png"}, "position": 3, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Colombia", "shortName": "Colombia", "tla": "COL", "crest": "https://flagcdn.com/w320/co.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+        ]},
+        {"group": "GROUP_L", "name": "Group L", "table": [
+            {"team": {"name": "England", "shortName": "England", "tla": "ENG", "crest": "https://flagcdn.com/w320/gb-eng.png"}, "position": 1, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Croatia", "shortName": "Croatia", "tla": "CRO", "crest": "https://flagcdn.com/w320/hr.png"}, "position": 2, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Ghana", "shortName": "Ghana", "tla": "GHA", "crest": "https://flagcdn.com/w320/gh.png"}, "position": 3, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Panama", "shortName": "Panama", "tla": "PAN", "crest": "https://flagcdn.com/w320/pa.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+        ]},
+    ]
+
+
+@router.get("/standings")
+async def get_wc_standings():
+    """Return group standings — live from football-data.org or mock fallback."""
+    api_key = settings.FOOTBALL_DATA_API_KEY.strip()
+    if not api_key or api_key.startswith("your_") or api_key.lower() == "mock":
+        return {"standings": _get_mock_standings(), "stale": False, "generated_at": _utc_now_iso()}
+
+    # Try API with Supabase cache
+    try:
+        cached = _read_cache("wc_standings")
+        if cached is not None:
+            return {"standings": _normalize_standings(cached), "stale": False, "generated_at": _utc_now_iso()}
+
+        headers = {"X-Auth-Token": api_key}
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            res = await client.get(FOOTBALL_DATA_STANDINGS, headers=headers)
+
+        if res.status_code == 200:
+            payload = res.json()
+            _write_cache("wc_standings", payload, 120)  # cache 2 minutes
+            return {"standings": _normalize_standings(payload), "stale": False, "generated_at": _utc_now_iso()}
+
+        if res.status_code == 429:
+            stale_payload = _read_cache("wc_standings", allow_expired=True)
+            if stale_payload is not None:
+                return {"standings": _normalize_standings(stale_payload), "stale": True, "generated_at": _utc_now_iso()}
+
+        # Fallback to mock
+        logger.warning("Standings API returned %d, using mock", res.status_code)
+    except Exception:
+        logger.exception("Failed to fetch standings from API")
+
+    return {"standings": _get_mock_standings(), "stale": False, "generated_at": _utc_now_iso()}
+
+
+def _normalize_standings(api_data: dict) -> list:
+    """Convert football-data.org standings format to our simplified format."""
+    raw = api_data.get("standings") or []
+    result = []
+    for group in raw:
+        if group.get("type") != "TOTAL":
+            continue
+        table = []
+        for entry in group.get("table", []):
+            team = entry.get("team", {})
+            table.append({
+                "team": {
+                    "name": team.get("name", ""),
+                    "shortName": team.get("shortName", ""),
+                    "tla": team.get("tla", ""),
+                    "crest": team.get("crest", ""),
+                },
+                "position": entry.get("position", 0),
+                "playedGames": entry.get("playedGames", 0),
+                "won": entry.get("won", 0),
+                "draw": entry.get("draw", 0),
+                "lost": entry.get("lost", 0),
+                "goalsFor": entry.get("goalsFor", 0),
+                "goalsAgainst": entry.get("goalsAgainst", 0),
+                "goalDifference": entry.get("goalDifference", 0),
+                "points": entry.get("points", 0),
+            })
+        result.append({
+            "group": group.get("group", ""),
+            "name": (group.get("group", "") or "").replace("GROUP_", "Group "),
+            "table": table,
+        })
+    return result
