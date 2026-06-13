@@ -369,17 +369,8 @@
         }
         if (page === 'worldcup') {
           refreshWorldCupViews();
-          const pendingTab = window._pendingWcTab;
-          delete window._pendingWcTab;
-          const activeTabBtn = pendingTab
-            ? document.querySelector(`.wc-nav-tabs .wc-tab[onclick*="switchWCTab('${pendingTab}'"]`)
-            : document.querySelector('.wc-nav-tabs .wc-tab.active');
-          const activeTabId = pendingTab
-            || (activeTabBtn ? activeTabBtn.getAttribute('onclick').match(/'([^']+)'/)[1] : 'dashboard');
-          switchWCTab(activeTabId, activeTabBtn);
-          syncWcMobileNavSub(activeTabId);
+          switchWCTab('analytics', document.querySelector('.wc-nav-tabs .wc-tab[onclick*="analytics"]'));
         } else {
-          resetWcMobileNavSub();
           stopStandingsPolling();
         }
         const wcToggle = document.querySelector('.wc-mobile-nav-toggle');
