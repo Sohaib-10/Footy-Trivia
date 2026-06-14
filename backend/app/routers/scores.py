@@ -458,37 +458,6 @@ async def get_wc_matches():
         filtered_today.append(m)
     today_matches_list = filtered_today
 
-    # Inject USA vs Paraguay if not present
-    has_usa_paraguay = any(
-        (m.get("homeTeam") or {}).get("tla") == "USA" and (m.get("awayTeam") or {}).get("tla") == "PAR"
-        for m in today_matches_list
-    )
-    if not has_usa_paraguay:
-        # Schedule it to start 75 minutes ago to show live match with goals/scorers
-        usa_kickoff = (now - timedelta(minutes=75)).strftime("%Y-%m-%dT%H:%M:%SZ")
-        today_matches_list.append({
-            "id": 999999,
-            "status": "SCHEDULED",
-            "utcDate": usa_kickoff,
-            "group": "D",
-            "homeTeam": {
-                "name": "United States",
-                "shortName": "USA",
-                "tla": "USA",
-                "crest": "https://flagcdn.com/w320/us.png"
-            },
-            "awayTeam": {
-                "name": "Paraguay",
-                "shortName": "Paraguay",
-                "tla": "PAR",
-                "crest": "https://flagcdn.com/w320/py.png"
-            },
-            "score": {
-                "fullTime": {"home": None, "away": None},
-                "halfTime": {"home": None, "away": None}
-            }
-        })
-
     for m in today_matches_list:
         score_data = m.get("score") or {}
         full_time = score_data.get("fullTime") or {}
