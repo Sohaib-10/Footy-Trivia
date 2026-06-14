@@ -342,10 +342,10 @@
     var activeMatch = null;
     if (liveMatches.length > 0) {
       activeMatch = liveMatches[0];
-    } else if (finishedMatches.length > 0) {
-      activeMatch = finishedMatches[finishedMatches.length - 1];
     } else if (scheduledMatches.length > 0) {
       activeMatch = scheduledMatches[0];
+    } else if (finishedMatches.length > 0) {
+      activeMatch = finishedMatches[finishedMatches.length - 1];
     }
     
     if (!activeMatch) {
