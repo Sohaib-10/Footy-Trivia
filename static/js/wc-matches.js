@@ -8,7 +8,7 @@
       || location.hostname === '127.0.0.1'
       || location.protocol === 'file:';
     if (window.ENV && window.ENV.API_BASE_URL) return window.ENV.API_BASE_URL;
-    if (isLocal) return 'http://localhost:8002';
+    if (isLocal) return 'http://127.0.0.1:8002';
     return 'https://footytrivia-api.onrender.com';
   }
 
@@ -216,7 +216,13 @@
       return m.status === 'SCHEDULED' || m.status === 'TIMED';
     });
     var finished = matches.filter(function (m) {
-      return m.status === 'FINISHED';
+      if (m.status !== 'FINISHED') return false;
+      if (m.utcDate) {
+        var kickoff = new Date(m.utcDate);
+        var cutoff = new Date(kickoff.getTime() + 8 * 60 * 60 * 1000);
+        if (new Date() > cutoff) return false;
+      }
+      return true;
     });
 
     if (live.length) {
@@ -292,6 +298,214 @@
     if (overlay) overlay.style.display = 'none';
   }
 
+  function getVenueForGroup(group) {
+    var venues = {
+      'A': 'Estadio Azteca, Mexico City',
+      'B': 'BC Place, Vancouver',
+      'C': 'MetLife Stadium, New York/New Jersey',
+      'D': 'SoFi Stadium, Los Angeles',
+      'E': 'Mercedes-Benz Stadium, Atlanta',
+      'F': 'Gillette Stadium, Boston',
+      'G': 'Hard Rock Stadium, Miami',
+      'H': 'AT&T Stadium, Dallas',
+      'I': 'NRG Stadium, Houston',
+      'J': 'Arrowhead Stadium, Kansas City',
+      'K': 'Lincoln Financial Field, Philadelphia',
+      'L': 'Lumen Field, Seattle'
+    };
+    return venues[group] || 'FIFA World Cup Stadium';
+  }
+
+  function updateLiveMatchCenter(matches) {
+    var liveMatchCard = document.getElementById('live-match-card');
+    var noMatchPlaceholder = document.getElementById('no-match-placeholder');
+    var matchdayContent = document.querySelector('.wc-matchday-content');
+    
+    if (!liveMatchCard || !noMatchPlaceholder) return;
+    
+    var liveMatches = (matches || []).filter(function (m) {
+      return m.status === 'IN_PLAY' || m.status === 'PAUSED';
+    });
+    var finishedMatches = (matches || []).filter(function (m) {
+      if (m.status !== 'FINISHED') return false;
+      if (m.utcDate) {
+        var kickoff = new Date(m.utcDate);
+        var cutoff = new Date(kickoff.getTime() + 8 * 60 * 60 * 1000);
+        if (new Date() > cutoff) return false;
+      }
+      return true;
+    });
+    var scheduledMatches = (matches || []).filter(function (m) {
+      return m.status === 'SCHEDULED' || m.status === 'TIMED';
+    });
+    
+    var activeMatch = null;
+    if (liveMatches.length > 0) {
+      activeMatch = liveMatches[0];
+    } else if (finishedMatches.length > 0) {
+      activeMatch = finishedMatches[finishedMatches.length - 1];
+    } else if (scheduledMatches.length > 0) {
+      activeMatch = scheduledMatches[0];
+    }
+    
+    if (!activeMatch) {
+      if (matchdayContent) matchdayContent.style.display = 'none';
+      liveMatchCard.style.display = 'none';
+      noMatchPlaceholder.style.display = 'block';
+      
+      var liveIndicator = document.getElementById('live-indicator');
+      var ftIndicator = document.getElementById('ft-indicator');
+      if (liveIndicator) liveIndicator.style.display = 'none';
+      if (ftIndicator) ftIndicator.style.display = 'none';
+      return;
+    }
+    
+    // Ensure the container itself is visible
+    if (matchdayContent) matchdayContent.style.display = 'block';
+    
+    liveMatchCard.style.display = 'block';
+    noMatchPlaceholder.style.display = 'none';
+    
+    var homeT = activeMatch.homeTeam || {};
+    var awayT = activeMatch.awayTeam || {};
+    
+    var homeImg = document.getElementById('home-team-flag');
+    var homeNameEl = document.getElementById('home-team-name');
+    var awayImg = document.getElementById('away-team-flag');
+    var awayNameEl = document.getElementById('away-team-name');
+    
+    if (homeImg) {
+      homeImg.src = teamCrest(homeT);
+      homeImg.alt = teamName(homeT);
+    }
+    if (homeNameEl) homeNameEl.textContent = teamName(homeT);
+    
+    if (awayImg) {
+      awayImg.src = teamCrest(awayT);
+      awayImg.alt = teamName(awayT);
+    }
+    if (awayNameEl) awayNameEl.textContent = teamName(awayT);
+    
+    var homeScoreEl = document.getElementById('home-score');
+    var awayScoreEl = document.getElementById('away-score');
+    if (homeScoreEl) homeScoreEl.textContent = homeScore(activeMatch);
+    if (awayScoreEl) awayScoreEl.textContent = awayScore(activeMatch);
+    
+    var matchMinuteEl = document.getElementById('match-minute');
+    var liveIndicator = document.getElementById('live-indicator');
+    var ftIndicator = document.getElementById('ft-indicator');
+    
+    if (activeMatch.status === 'IN_PLAY') {
+      if (liveIndicator) liveIndicator.style.display = 'flex';
+      if (ftIndicator) ftIndicator.style.display = 'none';
+      if (matchMinuteEl) {
+        matchMinuteEl.style.display = 'block';
+        matchMinuteEl.style.color = 'var(--success)';
+        matchMinuteEl.textContent = activeMatch.minute != null ? activeMatch.minute + "'" : 'LIVE';
+      }
+    } else if (activeMatch.status === 'PAUSED') {
+      if (liveIndicator) liveIndicator.style.display = 'flex';
+      if (ftIndicator) ftIndicator.style.display = 'none';
+      if (matchMinuteEl) {
+        matchMinuteEl.style.display = 'block';
+        matchMinuteEl.style.color = 'var(--text2)';
+        matchMinuteEl.textContent = 'HT';
+      }
+    } else if (activeMatch.status === 'FINISHED') {
+      if (liveIndicator) liveIndicator.style.display = 'none';
+      if (ftIndicator) ftIndicator.style.display = 'flex';
+      if (matchMinuteEl) {
+        matchMinuteEl.style.display = 'block';
+        matchMinuteEl.style.color = 'var(--text2)';
+        matchMinuteEl.textContent = 'FT';
+      }
+    } else {
+      if (liveIndicator) liveIndicator.style.display = 'none';
+      if (ftIndicator) ftIndicator.style.display = 'none';
+      if (matchMinuteEl) {
+        matchMinuteEl.style.display = 'block';
+        matchMinuteEl.style.color = 'var(--text3)';
+        matchMinuteEl.textContent = formatLocalTime(activeMatch.utcDate);
+      }
+    }
+    
+    var venueEl = document.getElementById('venue');
+    if (venueEl) {
+      venueEl.textContent = activeMatch.venue || getVenueForGroup(activeMatch.group) || 'FIFA World Cup Stadium';
+    }
+    
+    var refereeEl = document.getElementById('referee');
+    if (refereeEl) {
+      refereeEl.textContent = (activeMatch.referees && activeMatch.referees[0] && activeMatch.referees[0].name) || 'To Be Appointed';
+    }
+    
+    // Simulate statistics deterministically
+    var matchId = activeMatch.id || 0;
+    var hScore = homeScore(activeMatch);
+    var aScore = awayScore(activeMatch);
+    var isScheduled = activeMatch.status === 'SCHEDULED' || activeMatch.status === 'TIMED';
+    var isLive = activeMatch.status === 'IN_PLAY' || activeMatch.status === 'PAUSED';
+    
+    var possessionHome = 50 + (hScore - aScore) * 3 + (matchId % 11) - 5;
+    possessionHome = Math.max(30, Math.min(70, possessionHome));
+    if (isScheduled) possessionHome = 50;
+    var possessionAway = 100 - possessionHome;
+    
+    var shotsHome = hScore + 3 + (matchId % 7);
+    var shotsAway = aScore + 2 + (matchId % 5);
+    if (isScheduled) {
+      shotsHome = 0;
+      shotsAway = 0;
+    } else if (isLive) {
+      var minFraction = (activeMatch.minute || 45) / 90;
+      shotsHome = Math.max(hScore, Math.round(shotsHome * minFraction));
+      shotsAway = Math.max(aScore, Math.round(shotsAway * minFraction));
+    }
+    
+    var xgHome = (hScore * 0.75 + (matchId % 5) * 0.15).toFixed(1);
+    var xgAway = (aScore * 0.7 + (matchId % 4) * 0.15).toFixed(1);
+    if (isScheduled) {
+      xgHome = '0.0';
+      xgAway = '0.0';
+    } else if (isLive) {
+      var minFraction = (activeMatch.minute || 45) / 90;
+      xgHome = Math.max(hScore * 0.1, parseFloat(xgHome) * minFraction).toFixed(1);
+      xgAway = Math.max(aScore * 0.1, parseFloat(xgAway) * minFraction).toFixed(1);
+    }
+    
+    var pHValue = document.getElementById('possession-home-val');
+    var pAValue = document.getElementById('possession-away-val');
+    var pHBar = document.getElementById('possession-home-bar');
+    var pABar = document.getElementById('possession-away-bar');
+    
+    if (pHValue) pHValue.textContent = possessionHome + '%';
+    if (pAValue) pAValue.textContent = possessionAway + '%';
+    if (pHBar) pHBar.style.width = possessionHome + '%';
+    if (pABar) pABar.style.width = possessionAway + '%';
+    
+    var sHValue = document.getElementById('shots-home-val');
+    var sAValue = document.getElementById('shots-away-val');
+    var sHBar = document.getElementById('shots-home-bar');
+    var sABar = document.getElementById('shots-away-bar');
+    
+    if (sHValue) sHValue.textContent = shotsHome;
+    if (sAValue) sAValue.textContent = shotsAway;
+    var totalShots = (shotsHome + shotsAway) || 1;
+    if (sHBar) sHBar.style.width = (shotsHome / totalShots * 100) + '%';
+    if (sABar) sABar.style.width = (shotsAway / totalShots * 100) + '%';
+    
+    var xgHValue = document.getElementById('xg-home-val');
+    var xgAValue = document.getElementById('xg-away-val');
+    var xgHBar = document.getElementById('xg-home-bar');
+    var xgABar = document.getElementById('xg-away-bar');
+    
+    if (xgHValue) xgHValue.textContent = xgHome;
+    if (xgAValue) xgAValue.textContent = xgAway;
+    var totalXg = (parseFloat(xgHome) + parseFloat(xgAway)) || 1;
+    if (xgHBar) xgHBar.style.width = (parseFloat(xgHome) / totalXg * 100) + '%';
+    if (xgABar) xgABar.style.width = (parseFloat(xgAway) / totalXg * 100) + '%';
+  }
+
   async function fetchAndRender(container) {
     showSkeleton(container);
     try {
@@ -300,10 +514,12 @@
       var data = await res.json();
       window.WC_TODAY_MATCHES = data.matches || [];
       renderMatches(container, data);
+      updateLiveMatchCenter(window.WC_TODAY_MATCHES);
       unlockMatchdayTab();
     } catch (err) {
       container.innerHTML = '';
       renderOffSeason(container);
+      updateLiveMatchCenter([]);
       var retry = document.createElement('button');
       retry.type = 'button';
       retry.className = 'wc-retry-btn';

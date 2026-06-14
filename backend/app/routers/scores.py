@@ -46,21 +46,110 @@ def _off_season_response(error: Optional[str] = None) -> Dict[str, Any]:
 
 
 TEAM_PLAYERS = {
-    "ESP": ["Lamine Yamal", "Dani Olmo", "Álvaro Morata", "Nico Williams", "Ferran Torres"],
-    "GER": ["Florian Wirtz", "Kai Havertz", "Jamal Musiala", "Niclas Füllkrug", "Leroy Sané"],
-    "BRA": ["Vinícius Júnior", "Rodrygo", "Raphinha", "Endrick", "Gabriel Martinelli"],
-    "ARG": ["Lionel Messi", "Lautaro Martínez", "Julián Álvarez", "Alexis Mac Allister", "Enzo Fernández"],
-    "ENG": ["Harry Kane", "Jude Bellingham", "Bukayo Saka", "Phil Foden", "Cole Palmer"],
-    "USA": ["Christian Pulisic", "Folarin Balogun", "Timothy Weah", "Weston McKennie", "Ricardo Pepi"],
-    "PAR": ["Miguel Almirón", "Julio Enciso", "Antonio Sanabria", "Ramón Sosa", "Gustavo Gómez"],
-    "CAN": ["Jonathan David", "Alphonso Davies", "Cyle Larin", "Tajon Buchanan", "Stephen Eustáquio"],
-    "BIH": ["Edin Džeko", "Ermedin Demirović", "Haris Hajradinović", "Miralem Pjanić"],
-    "KOR": ["Son Heung-min", "Hwang Hee-chan", "Lee Kang-in", "Cho Gue-sung"],
-    "CZE": ["Patrik Schick", "Tomáš Souček", "Adam Hložek", "Václav Černý"],
-    "FRA": ["Kylian Mbappé", "Antoine Griezmann", "Olivier Giroud", "Ousmane Dembélé", "Marcus Thuram"],
-    "ITALY": ["Federico Chiesa", "Gianluca Scamacca", "Giacomo Raspadori", "Nicolò Barella"],
-    "ITA": ["Federico Chiesa", "Gianluca Scamacca", "Giacomo Raspadori", "Nicolò Barella"],
-    "MEX": ["Santiago Giménez", "Hirving Lozano", "Uriel Antuna", "Henry Martín"],
+    "Algeria": ["Aouar","Bentaleb","Boudaoui","Chaibi","Maza","Titraoui","Zerrouki","Amoura","Benbouali","Boulbina","Ghedjemis","Gouiri","Hadj Moussa","Mahrez"],
+    "ALG": ["Aouar","Bentaleb","Boudaoui","Chaibi","Maza","Titraoui","Zerrouki","Amoura","Benbouali","Boulbina","Ghedjemis","Gouiri","Hadj Moussa","Mahrez"],
+    "Argentina": ["Alexis Mac Allister","Barco","De Paul","Enzo Fernández","Gonzalez","Lo Celso","Palacios","Paredes","Alejandro Garnacho","Almada","Julián Álvarez","Lautaro Martínez","Lionel Messi","Lopez","Paz","Simeone"],
+    "ARG": ["Alexis Mac Allister","Barco","De Paul","Enzo Fernández","Gonzalez","Lo Celso","Palacios","Paredes","Alejandro Garnacho","Almada","Julián Álvarez","Lautaro Martínez","Lionel Messi","Lopez","Paz","Simeone"],
+    "Australia": ["Devlin","Irvine","Metcalfe","Okon-engstler","Oneill","Hrustic","Irankunda","Leckie","Mabil","Toure","Velupillay","Volpato"],
+    "AUS": ["Devlin","Irvine","Metcalfe","Okon-engstler","Oneill","Hrustic","Irankunda","Leckie","Mabil","Toure","Velupillay","Volpato"],
+    "Austria": ["Baumgartner","Chukwuemeka","Grillitsch","Laimer","Prass","Sabitzer","Schmid","Seiwald","Wanner","Arnautovic","Gregoritsch","Kalajdzic","Wimmer"],
+    "AUT": ["Baumgartner","Chukwuemeka","Grillitsch","Laimer","Prass","Sabitzer","Schmid","Seiwald","Wanner","Arnautovic","Gregoritsch","Kalajdzic","Wimmer"],
+    "Belgium": ["Kevin De Bruyne","Moreira","Onana","Raskin","Saelemaekers","Tielemans","Vanaken","Witsel","De Ketelaere","Jeremy Doku","Lukaku","Lukebakio","Trossard"],
+    "BEL": ["Kevin De Bruyne","Moreira","Onana","Raskin","Saelemaekers","Tielemans","Vanaken","Witsel","De Ketelaere","Jeremy Doku","Lukaku","Lukebakio","Trossard"],
+    "Bosnia & Herzegovina": ["Basic","Burnic","Gigovic","Hadziahmetovic","Memic","Sunjic","Tahirovic","Alajbegovic","Bajraktarevic","Bazdar","Demirovic","Dzeko","Lukic","Tabakovic"],
+    "BIH": ["Basic","Burnic","Gigovic","Hadziahmetovic","Memic","Sunjic","Tahirovic","Alajbegovic","Bajraktarevic","Bazdar","Demirovic","Dzeko","Lukic","Tabakovic"],
+    "Bosnia and Herzegovina": ["Basic","Burnic","Gigovic","Hadziahmetovic","Memic","Sunjic","Tahirovic","Alajbegovic","Bajraktarevic","Bazdar","Demirovic","Dzeko","Lukic","Tabakovic"],
+    "Bosnia And Herzegovina": ["Basic","Burnic","Gigovic","Hadziahmetovic","Memic","Sunjic","Tahirovic","Alajbegovic","Bajraktarevic","Bazdar","Demirovic","Dzeko","Lukic","Tabakovic"],
+    "Brazil": ["Bruno Guimarães","Casemiro","Danilo Santos","Fabinho","Lucas Paqueta","Endrick","Esley","Gabriel","Igor Thiago","Luiz","Matheus Cunha","Neymar Jr","Raphinha","Rodrygo","Vinicius Jr"],
+    "BRA": ["Bruno Guimarães","Casemiro","Danilo Santos","Fabinho","Lucas Paqueta","Endrick","Esley","Gabriel","Igor Thiago","Luiz","Matheus Cunha","Neymar Jr","Raphinha","Rodrygo","Vinicius Jr"],
+    "Canada": ["Choiniere","Eustaquio","Kone","Millar","Osorio","Saliba","Shaffelburg","Ahmed","Aterman","Buchanan","Jonathan David","Larin","Oluwaseyi"],
+    "CAN": ["Choiniere","Eustaquio","Kone","Millar","Osorio","Saliba","Shaffelburg","Ahmed","Aterman","Buchanan","Jonathan David","Larin","Oluwaseyi"],
+    "Cape Verde": ["Deroy Duarte","Garry","Jamiro Monteiro","Joao Paulo","Jovane","Kevin Pina","Laros Duarte","Nuno Da Costa","Telmo","Willy Semedo","Yannick","Agner Pina","Dailon Livramento","Gilson","Ryan Mendes"],
+    "CPV": ["Deroy Duarte","Garry","Jamiro Monteiro","Joao Paulo","Jovane","Kevin Pina","Laros Duarte","Nuno Da Costa","Telmo","Willy Semedo","Yannick","Agner Pina","Dailon Livramento","Gilson","Ryan Mendes"],
+    "Cabo Verde": ["Deroy Duarte","Garry","Jamiro Monteiro","Joao Paulo","Jovane","Kevin Pina","Laros Duarte","Nuno Da Costa","Telmo","Willy Semedo","Yannick","Agner Pina","Dailon Livramento","Gilson","Ryan Mendes"],
+    "Colombia": ["Carrascal","Castano","James Rodríguez","Lerma","Portilla","Quintero","Rios","Campaz","Cordoba","Hernandez","Luis Díaz","Suarez"],
+    "COL": ["Carrascal","Castano","James Rodríguez","Lerma","Portilla","Quintero","Rios","Campaz","Cordoba","Hernandez","Luis Díaz","Suarez"],
+    "Croatia": ["Baturina","Fruk","Kovacic","Luka Modric","Moro","Pasalic","Sucic","Vlasic","Budimir","Kramaric","Matanovic","Perisic"],
+    "CRO": ["Baturina","Fruk","Kovacic","Luka Modric","Moro","Pasalic","Sucic","Vlasic","Budimir","Kramaric","Matanovic","Perisic"],
+    "Curaçao": ["Bacuna","Chong","Comenencia","Felida","Martha","Roemeratoe","Antonisse","Gorre","Hansen","Kastaneer","Kuwas","Locadia","Margaritha","Noslin"],
+    "CUW": ["Bacuna","Chong","Comenencia","Felida","Martha","Roemeratoe","Antonisse","Gorre","Hansen","Kastaneer","Kuwas","Locadia","Margaritha","Noslin"],
+    "Czechia": ["Cerv","Darida","Provod","Sadilek","Sochurek","Sojka","Soucek","Chory","Chytil","Hlozek","Kuchta","Schick","Sulc","Václav Černý"],
+    "CZE": ["Cerv","Darida","Provod","Sadilek","Sochurek","Sojka","Soucek","Chory","Chytil","Hlozek","Kuchta","Schick","Sulc","Václav Černý"],
+    "DR Congo": ["Bongonda","Mbuku","Moutoussamy","Mukau","Pickel","Sadiki","Tshibola","An-bissaka","Bakambu","Banza","Cipenga","Elia","Kakuta","Mayele","Wissa"],
+    "COD": ["Bongonda","Mbuku","Moutoussamy","Mukau","Pickel","Sadiki","Tshibola","An-bissaka","Bakambu","Banza","Cipenga","Elia","Kakuta","Mayele","Wissa"],
+    "Congo DR": ["Bongonda","Mbuku","Moutoussamy","Mukau","Pickel","Sadiki","Tshibola","An-bissaka","Bakambu","Banza","Cipenga","Elia","Kakuta","Mayele","Wissa"],
+    "Ecuador": ["Alcivar","Castillo","Franco","Minda","Paez","Valencia","Vite","Angulo","Arevalo","Caicedo","Plata","Rodriguez","Yeboah"],
+    "ECU": ["Alcivar","Castillo","Franco","Minda","Paez","Valencia","Vite","Angulo","Arevalo","Caicedo","Plata","Rodriguez","Yeboah"],
+    "Egypt": ["Emam Ashour","Hamdy Fathy","Mahmoud","Marawan Attia","Mohanad Lashin","Mostafa Zico","Nabil Donga","Haissem Hassan","Hamza","Ibrahim","Mohamed Salah","Omar Marmoush","Trezeguet","Zizo"],
+    "EGY": ["Emam Ashour","Hamdy Fathy","Mahmoud","Marawan Attia","Mohanad Lashin","Mostafa Zico","Nabil Donga","Haissem Hassan","Hamza","Ibrahim","Mohamed Salah","Omar Marmoush","Trezeguet","Zizo"],
+    "England": ["Anderson","Declan Rice","Eze","Jude Bellingham","Kobbie Mainoo","Rogers","Bukayo Saka","Cole Palmer","Gordon","Harry Kane","Madueke","Phil Foden","Rashford","Toney","Watkins"],
+    "ENG": ["Anderson","Declan Rice","Eze","Jude Bellingham","Kobbie Mainoo","Rogers","Bukayo Saka","Cole Palmer","Gordon","Harry Kane","Madueke","Phil Foden","Rashford","Toney","Watkins"],
+    "France": ["Akliouche","Cherki","Kante","Kone","Rabiot","Tchouameni","Warren Zaïre-Emery","Antoine Griezmann","Barcola","Dembele","Doue","Kylian Mbappé","Mateta","Mathys Tel","Olise","Thuram"],
+    "FRA": ["Akliouche","Cherki","Kante","Kone","Rabiot","Tchouameni","Warren Zaïre-Emery","Antoine Griezmann","Barcola","Dembele","Doue","Kylian Mbappé","Mateta","Mathys Tel","Olise","Thuram"],
+    "Germany": ["Aleksandar Pavlovic","Amiri","Florian Wirtz","Goretzka","Gross","Jamal Musiala","Joshua Kimmich","Leweling","Nmecha","Ouedraogo","Sane","Stiller","Beier","Kai Havertz","Woltemade"],
+    "GER": ["Aleksandar Pavlovic","Amiri","Florian Wirtz","Goretzka","Gross","Jamal Musiala","Joshua Kimmich","Leweling","Nmecha","Ouedraogo","Sane","Stiller","Beier","Kai Havertz","Woltemade"],
+    "Ghana": ["Boakye","Owusu","Partey","Semenyo","Sibo","Yirenkyi","Adu","Ayew","Baah","Issahaku","Nuamah","Sulemana","Thomas-asante","Williams"],
+    "GHA": ["Boakye","Owusu","Partey","Semenyo","Sibo","Yirenkyi","Adu","Ayew","Baah","Issahaku","Nuamah","Sulemana","Thomas-asante","Williams"],
+    "Haiti": ["Bellegarde","Jean Jacques","Sainte","Simon","Casimir","Deedson","Etienne","Fortune","Isidor","Joseph","Nazon","Pierrot","Providence"],
+    "HAI": ["Bellegarde","Jean Jacques","Sainte","Simon","Casimir","Deedson","Etienne","Fortune","Isidor","Joseph","Nazon","Pierrot","Providence"],
+    "Iran": ["Cheshmi","Ezatolahi","Ghoddos","Ghorbani","Jahanbakhsh","Mohebbi","Torabi","Alipour","Dargahi","Ghayedi","Hosseinzadeh","Moghanloo","Taremi"],
+    "IRN": ["Cheshmi","Ezatolahi","Ghoddos","Ghorbani","Jahanbakhsh","Mohebbi","Torabi","Alipour","Dargahi","Ghayedi","Hosseinzadeh","Moghanloo","Taremi"],
+    "IR Iran": ["Cheshmi","Ezatolahi","Ghoddos","Ghorbani","Jahanbakhsh","Mohebbi","Torabi","Alipour","Dargahi","Ghayedi","Hosseinzadeh","Moghanloo","Taremi"],
+    "Iraq": ["Aimar Sher","Amir Alammari","Ibrahim Bayesh","Kevin Yakob","Youssef Amyn","Zaid Ismael","Zidane Iqbal","Ahmed","Ali Alhamadi","Ali Jasim","Ali Yousif","Aymen","Marko Farji","Mohanad Ali"],
+    "IRQ": ["Aimar Sher","Amir Alammari","Ibrahim Bayesh","Kevin Yakob","Youssef Amyn","Zaid Ismael","Zidane Iqbal","Ahmed","Ali Alhamadi","Ali Jasim","Ali Yousif","Aymen","Marko Farji","Mohanad Ali"],
+    "Ivory Coast": ["Guiagon","Kessie","Sangare","Seri","Adingra","Bonny","Diakite","Diallo","Guessand","Pepe","Toure","Wahi"],
+    "CIV": ["Guiagon","Kessie","Sangare","Seri","Adingra","Bonny","Diakite","Diallo","Guessand","Pepe","Toure","Wahi"],
+    "Côte D'Ivoire": ["Guiagon","Kessie","Sangare","Seri","Adingra","Bonny","Diakite","Diallo","Guessand","Pepe","Toure","Wahi"],
+    "Japan": ["Doan","Endo","Kamada","Maeda","Nakamura","Sano","Tanaka","Atanabe","Goto","Kaoru Mitoma","Ogawa","Takefusa Kubo","Ueda"],
+    "JPN": ["Doan","Endo","Kamada","Maeda","Nakamura","Sano","Tanaka","Atanabe","Goto","Kaoru Mitoma","Ogawa","Takefusa Kubo","Ueda"],
+    "Jordan": ["Amer Jamous","Ibrahim Sadeh","Mohammad Aldaoud","Mohannad Abutaha","Nizar Alrashdan","Noor Alrawabdeh","Rajaei Ayed","Ali Azaizeh","Ali Olwan","Ibrahim Sabra","Mahmoud Almardi","Mohammad","Mousa Altamari","Odeh Fakhoury"],
+    "JOR": ["Amer Jamous","Ibrahim Sadeh","Mohammad Aldaoud","Mohannad Abutaha","Nizar Alrashdan","Noor Alrawabdeh","Rajaei Ayed","Ali Azaizeh","Ali Olwan","Ibrahim Sabra","Mahmoud Almardi","Mohammad","Mousa Altamari","Odeh Fakhoury"],
+    "Mexico": ["Edson Álvarez","Fidalgo","Lira","Mora","Pineda","Romo","Vargas","Alvarado","Gonzalez","Huerta","Jimenez","Martinez","Quinones","Santiago Giménez","Vega"],
+    "MEX": ["Edson Álvarez","Fidalgo","Lira","Mora","Pineda","Romo","Vargas","Alvarado","Gonzalez","Huerta","Jimenez","Martinez","Quinones","Santiago Giménez","Vega"],
+    "Morocco": ["Amrabat","Bouaddi","El Aynaoui","El Khannouss","El Mourabet","Ounahi","Saibari","Talbi","Amaimouni","Brahim Díaz","El Kaabi","Ezzalzouli","Rahimi"],
+    "MAR": ["Amrabat","Bouaddi","El Aynaoui","El Khannouss","El Mourabet","Ounahi","Saibari","Talbi","Amaimouni","Brahim Díaz","El Kaabi","Ezzalzouli","Rahimi"],
+    "Netherlands": ["De Jong","De Roon","Gravenberch","Kluivert","Koopmeiners","Reijnders","Ries","Til","Xavi Simons","Brobbey","Cody Gakpo","Depay","Ieffer","Lang","Malen","Summerville","Weghorst"],
+    "NED": ["De Jong","De Roon","Gravenberch","Kluivert","Koopmeiners","Reijnders","Ries","Til","Xavi Simons","Brobbey","Cody Gakpo","Depay","Ieffer","Lang","Malen","Summerville","Weghorst"],
+    "New Zealand": ["Bayliss","Bell","Garbett","Just","Mccowatt","Old","Rufer","Singh","Stamenic","Thomas","Barbarouses","Randall","Waine","Wood"],
+    "NZL": ["Bayliss","Bell","Garbett","Just","Mccowatt","Old","Rufer","Singh","Stamenic","Thomas","Barbarouses","Randall","Waine","Wood"],
+    "Norway": ["Aasgaard","Aursnes","Berg","Berge","Bobb","Hauge","Martin Ødegaard","Odegaard","Schjelderup","Thorsby","Thorstvedt","Erling Haaland","Nusa","Sorloth","Strand Larsen"],
+    "NOR": ["Aasgaard","Aursnes","Berg","Berge","Bobb","Hauge","Martin Ødegaard","Odegaard","Schjelderup","Thorsby","Thorstvedt","Erling Haaland","Nusa","Sorloth","Strand Larsen"],
+    "Panama": ["Barcenas","Carrasquilla","Diaz","Godoy","Martinez","Quintero","Rodriguez","Yanis","Fajardo","Londono","Waterman"],
+    "PAN": ["Barcenas","Carrasquilla","Diaz","Godoy","Martinez","Quintero","Rodriguez","Yanis","Fajardo","Londono","Waterman"],
+    "Paraguay": ["Almiron","Bobadilla","Caballero","Cubas","Galarza","Gomez","Mauricio","Ojeda","Sosa","Arce","Avalos","Enciso","Pitta","Romero Gamarra","Sanabria"],
+    "PAR": ["Almiron","Bobadilla","Caballero","Cubas","Galarza","Gomez","Mauricio","Ojeda","Sosa","Arce","Avalos","Enciso","Pitta","Romero Gamarra","Sanabria"],
+    "Portugal": ["Bernardo Silva","Bruno Fernandes","João Neves","Matheus","Vitinha","Cristiano Ronaldo","Francisco Trincao","Goncalo Guedes","Goncalo Ramos","Joao Felix","Pedro Neto","Rafael Leão"],
+    "POR": ["Bernardo Silva","Bruno Fernandes","João Neves","Matheus","Vitinha","Cristiano Ronaldo","Francisco Trincao","Goncalo Guedes","Goncalo Ramos","Joao Felix","Pedro Neto","Rafael Leão"],
+    "Qatar": ["Abdulaziz Hatem","Ahmed Alganehi","Ahmed Fathy","Assim Madibo","Karim Boudiaf","Ahmed Alaaeldin","Akram Afif","Almoez Ali","Edmilson","Hassan Alhaydos","Mohammed Muntari","Tahsin Jamshid","Yusuf Abdurisag"],
+    "QAT": ["Abdulaziz Hatem","Ahmed Alganehi","Ahmed Fathy","Assim Madibo","Karim Boudiaf","Ahmed Alaaeldin","Akram Afif","Almoez Ali","Edmilson","Hassan Alhaydos","Mohammed Muntari","Tahsin Jamshid","Yusuf Abdurisag"],
+    "Saudi Arabia": ["Abdullah Alkhaibari","Ala Alhajji","Mohamed Kanno","Musab Aljuwayr","Nasser Aldawsari","Ziyad Aljohani","Abdullah Alhamddan","Aiman Yahya","Feras Albrikan","Khalid Alghannam","Saleh","Salem Aldawsari","Sultan Mandash"],
+    "KSA": ["Abdullah Alkhaibari","Ala Alhajji","Mohamed Kanno","Musab Aljuwayr","Nasser Aldawsari","Ziyad Aljohani","Abdullah Alhamddan","Aiman Yahya","Feras Albrikan","Khalid Alghannam","Saleh","Salem Aldawsari","Sultan Mandash"],
+    "Scotland": ["Christie","Ferguson","Fletcher","Mcginn","Mclean","Mctominay","Adams","Curtis","Dykes","Gannon-doak","Hirst","Shankland","Stewart"],
+    "SCO": ["Christie","Ferguson","Fletcher","Mcginn","Mclean","Mctominay","Adams","Curtis","Dykes","Gannon-doak","Hirst","Shankland","Stewart"],
+    "Senegal": ["Camara Lamine","Ciss","Diarra","Gueye","Ndiaye","Diao","Dieng","Mane","Mbaye","Nicolas Jackson"],
+    "SEN": ["Camara Lamine","Ciss","Diarra","Gueye","Ndiaye","Diao","Dieng","Mane","Mbaye","Nicolas Jackson"],
+    "South Africa": ["Adams","Mbatha","Mokoena","Sithole","Zwane","Appollis","Foster","Makgopa","Maseko","Mofokeng","Moremi","Rayners","Sebelebele"],
+    "RSA": ["Adams","Mbatha","Mokoena","Sithole","Zwane","Appollis","Foster","Makgopa","Maseko","Mofokeng","Moremi","Rayners","Sebelebele"],
+    "South Korea": ["Bae","Eom","Hwang","Paik","Yang","Cho","Oh","Son Heung-min"],
+    "KOR": ["Bae","Eom","Hwang","Paik","Yang","Cho","Oh","Son Heung-min"],
+    "Korea Republic": ["Bae","Eom","Hwang","Paik","Yang","Cho","Oh","Son Heung-min"],
+    "Spain": ["Baena","Dani Olmo","Gavi","Merino","Pedri","Rodri","Ruiz","Zubimendi","Lamine Yamal","Munoz","Nico Williams","Oyarzabal","Pino","Torres"],
+    "ESP": ["Baena","Dani Olmo","Gavi","Merino","Pedri","Rodri","Ruiz","Zubimendi","Lamine Yamal","Munoz","Nico Williams","Oyarzabal","Pino","Torres"],
+    "Sweden": ["Ayari","Bergvall","Karlstrom","Nygren","Sema","Svanberg","Zeneli","Elanga","Gyokeres","Isak","Nilsson"],
+    "SWE": ["Ayari","Bergvall","Karlstrom","Nygren","Sema","Svanberg","Zeneli","Elanga","Gyokeres","Isak","Nilsson"],
+    "Switzerland": ["Aebischer","Freuler","Jashari","Manzambi","Rieder","Sow","Xhaka","Zakaria","Embolo","Fassnacht","Idmer","Ndoye","Okafor","Vargas","Zeki Amdouni"],
+    "SUI": ["Aebischer","Freuler","Jashari","Manzambi","Rieder","Sow","Xhaka","Zakaria","Embolo","Fassnacht","Idmer","Ndoye","Okafor","Vargas","Zeki Amdouni"],
+    "Tunisia": ["Ayari","Gharbi","Hadj Mahmoud","Khedira","Mejbri","Skhiri","Slimane","Achouri","Chaouat","Elloumi","Mastouri","Saad"],
+    "TUN": ["Ayari","Gharbi","Hadj Mahmoud","Khedira","Mejbri","Skhiri","Slimane","Achouri","Chaouat","Elloumi","Mastouri","Saad"],
+    "Türkiye": ["Arda Güler","Ayhan","Calhanoglu","Kokcu","Ozcan","Yuksek","Akgun","Akturkoglu","Aydin","Kahveci","Kenan Yildiz","Yilmaz"],
+    "TUR": ["Arda Güler","Ayhan","Calhanoglu","Kokcu","Ozcan","Yuksek","Akgun","Akturkoglu","Aydin","Kahveci","Kenan Yildiz","Yilmaz"],
+    "Turkey": ["Arda Güler","Ayhan","Calhanoglu","Kokcu","Ozcan","Yuksek","Akgun","Akturkoglu","Aydin","Kahveci","Kenan Yildiz","Yilmaz"],
+    "United States": ["Adams","Berhalter","Reyna","Roldan","Tillman","Weston McKennie","Aaronson","Balogun","Christian Pulisic","Pepi","Weah","Wright"],
+    "USA": ["Adams","Berhalter","Reyna","Roldan","Tillman","Weston McKennie","Aaronson","Balogun","Christian Pulisic","Pepi","Weah","Wright"],
+    "Uruguay": ["Federico Valverde","Darwin Núñez"],
+    "URU": ["Federico Valverde","Darwin Núñez"],
+    "Uzbekistan": ["Esanov","Fayzullaev","Ganiev","Iskanderov","Khamdamov","Masharipov","Mozgovoy","Shukurov","Urunov","Xamrobekov","Amonov","Sergeev","Shomurodov"],
+    "UZB": ["Esanov","Fayzullaev","Ganiev","Iskanderov","Khamdamov","Masharipov","Mozgovoy","Shukurov","Urunov","Xamrobekov","Amonov","Sergeev","Shomurodov"],
 }
 
 
@@ -215,6 +304,19 @@ def _get_mock_matches_response() -> Dict[str, Any]:
         }
     ]
     
+    filtered_mock = []
+    for m in mock_matches:
+        if m.get("status") == "FINISHED" and m.get("utcDate"):
+            try:
+                match_time_str = m["utcDate"].replace("Z", "+00:00")
+                match_time = datetime.fromisoformat(match_time_str)
+                if now > match_time + timedelta(hours=8):
+                    continue
+            except Exception:
+                pass
+        filtered_mock.append(m)
+    mock_matches = filtered_mock
+
     return {
         "mode": "today",
         "label": "Today's Matches (Demo Mode)",
@@ -342,14 +444,28 @@ async def get_wc_matches():
 
     today_matches_list = today_data.get("matches") or []
 
+    # Filter out finished matches that completed more than 6 hours ago (approx 8 hours since kickoff)
+    filtered_today = []
+    for m in today_matches_list:
+        if m.get("status") == "FINISHED" and m.get("utcDate"):
+            try:
+                match_time_str = m["utcDate"].replace("Z", "+00:00")
+                match_time = datetime.fromisoformat(match_time_str)
+                if now > match_time + timedelta(hours=8):
+                    continue
+            except Exception:
+                pass
+        filtered_today.append(m)
+    today_matches_list = filtered_today
+
     # Inject USA vs Paraguay if not present
     has_usa_paraguay = any(
         (m.get("homeTeam") or {}).get("tla") == "USA" and (m.get("awayTeam") or {}).get("tla") == "PAR"
         for m in today_matches_list
     )
     if not has_usa_paraguay:
-        # Schedule it to start 150 minutes ago to show finished match with goals/scorers
-        usa_kickoff = (now - timedelta(minutes=150)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        # Schedule it to start 75 minutes ago to show live match with goals/scorers
+        usa_kickoff = (now - timedelta(minutes=75)).strftime("%Y-%m-%dT%H:%M:%SZ")
         today_matches_list.append({
             "id": 999999,
             "status": "SCHEDULED",
@@ -486,6 +602,23 @@ async def get_wc_matches():
                 home_score = full_time.get("home") or 0
                 away_score = full_time.get("away") or 0
                 
+                # If the match is live (IN_PLAY or PAUSED), calculate running minute
+                if m.get("status") in ("IN_PLAY", "PAUSED"):
+                    if m.get("minute") is None and m.get("utcDate"):
+                        try:
+                            match_time_str = m["utcDate"].replace("Z", "+00:00")
+                            match_time = datetime.fromisoformat(match_time_str)
+                            elapsed = int((now - match_time).total_seconds() / 60)
+                            if elapsed < 45:
+                                m["minute"] = max(1, elapsed)
+                            elif elapsed < 60:
+                                m["status"] = "PAUSED"
+                                m["minute"] = None
+                            else:
+                                m["minute"] = min(90, elapsed - 15)
+                        except Exception:
+                            pass
+                
                 home_goals = sorted([rng.randint(1, 90) for _ in range(home_score)])
                 away_goals = sorted([rng.randint(1, 90) for _ in range(away_score)])
                 
@@ -497,19 +630,25 @@ async def get_wc_matches():
                 home_scorers = get_scorers_for_team(home_tla, home_name, len(home_goals), rng)
                 away_scorers = get_scorers_for_team(away_tla, away_name, len(away_goals), rng)
                 
+                limit_min = m.get("minute") if m.get("minute") is not None else (45 if m.get("status") == "PAUSED" else 90)
+                if m.get("status") == "FINISHED":
+                    limit_min = 90
+                
                 simulated_goals = []
                 for idx, g_min in enumerate(home_goals):
-                    simulated_goals.append({
-                        "minute": g_min,
-                        "scorer": home_scorers[idx],
-                        "team": "home"
-                    })
+                    if g_min <= limit_min:
+                        simulated_goals.append({
+                            "minute": g_min,
+                            "scorer": home_scorers[idx],
+                            "team": "home"
+                        })
                 for idx, g_min in enumerate(away_goals):
-                    simulated_goals.append({
-                        "minute": g_min,
-                        "scorer": away_scorers[idx],
-                        "team": "away"
-                    })
+                    if g_min <= limit_min:
+                        simulated_goals.append({
+                            "minute": g_min,
+                            "scorer": away_scorers[idx],
+                            "team": "away"
+                        })
                 simulated_goals.sort(key=lambda x: x["minute"])
                 m["goals"] = simulated_goals
             except Exception as e:
@@ -570,8 +709,8 @@ def _get_mock_standings() -> list:
             {"team": {"name": "Scotland", "shortName": "Scotland", "tla": "SCO", "crest": "https://flagcdn.com/w320/gb-sct.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
         ]},
         {"group": "GROUP_D", "name": "Group D", "table": [
-            {"team": {"name": "United States", "shortName": "USA", "tla": "USA", "crest": "https://flagcdn.com/w320/us.png"}, "position": 1, "playedGames": 1, "won": 1, "draw": 0, "lost": 0, "goalsFor": 1, "goalsAgainst": 0, "goalDifference": 1, "points": 3},
-            {"team": {"name": "Paraguay", "shortName": "Paraguay", "tla": "PAR", "crest": "https://flagcdn.com/w320/py.png"}, "position": 2, "playedGames": 1, "won": 0, "draw": 0, "lost": 1, "goalsFor": 0, "goalsAgainst": 1, "goalDifference": -1, "points": 0},
+            {"team": {"name": "United States", "shortName": "USA", "tla": "USA", "crest": "https://flagcdn.com/w320/us.png"}, "position": 1, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
+            {"team": {"name": "Paraguay", "shortName": "Paraguay", "tla": "PAR", "crest": "https://flagcdn.com/w320/py.png"}, "position": 2, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
             {"team": {"name": "Australia", "shortName": "Australia", "tla": "AUS", "crest": "https://flagcdn.com/w320/au.png"}, "position": 3, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
             {"team": {"name": "Türkiye", "shortName": "Türkiye", "tla": "TUR", "crest": "https://flagcdn.com/w320/tr.png"}, "position": 4, "playedGames": 0, "won": 0, "draw": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
         ]},
@@ -626,18 +765,115 @@ def _get_mock_standings() -> list:
     ]
 
 
+def apply_matches_to_standings(standings: list, matches: list, apply_finished: bool = False) -> list:
+    import copy
+    standings = copy.deepcopy(standings)
+    
+    # Map team identifiers to standings table entries
+    team_map = {}
+    for group in standings:
+        for entry in group.get("table", []):
+            team = entry.get("team", {})
+            tla = (team.get("tla") or "").upper()
+            name = (team.get("name") or "").lower()
+            short_name = (team.get("shortName") or "").lower()
+            if tla:
+                team_map[tla] = entry
+            if name:
+                team_map[name] = entry
+            if short_name:
+                team_map[short_name] = entry
+
+    for m in matches:
+        status = m.get("status")
+        # Only apply live matches, or also finished matches if apply_finished is True
+        if status in ("IN_PLAY", "PAUSED") or (apply_finished and status == "FINISHED"):
+            score = m.get("score") or {}
+            full_time = score.get("fullTime") or {}
+            home_score = full_time.get("home")
+            away_score = full_time.get("away")
+            
+            if home_score is None or away_score is None:
+                continue
+                
+            home_team = m.get("homeTeam") or {}
+            away_team = m.get("awayTeam") or {}
+            
+            home_tla = (home_team.get("tla") or "").upper()
+            home_name = (home_team.get("name") or "").lower()
+            home_short = (home_team.get("shortName") or "").lower()
+            
+            away_tla = (away_team.get("tla") or "").upper()
+            away_name = (away_team.get("name") or "").lower()
+            away_short = (away_team.get("shortName") or "").lower()
+            
+            home_entry = team_map.get(home_tla) or team_map.get(home_name) or team_map.get(home_short)
+            away_entry = team_map.get(away_tla) or team_map.get(away_name) or team_map.get(away_short)
+            
+            if home_entry and away_entry:
+                home_entry["playedGames"] += 1
+                away_entry["playedGames"] += 1
+                
+                home_entry["goalsFor"] += home_score
+                home_entry["goalsAgainst"] += away_score
+                home_entry["goalDifference"] = home_entry["goalsFor"] - home_entry["goalsAgainst"]
+                
+                away_entry["goalsFor"] += away_score
+                away_entry["goalsAgainst"] += home_score
+                away_entry["goalDifference"] = away_entry["goalsFor"] - away_entry["goalsAgainst"]
+                
+                if home_score > away_score:
+                    home_entry["won"] += 1
+                    home_entry["points"] += 3
+                    away_entry["lost"] += 1
+                elif home_score < away_score:
+                    away_entry["won"] += 1
+                    away_entry["points"] += 3
+                    home_entry["lost"] += 1
+                else:
+                    home_entry["draw"] += 1
+                    home_entry["points"] += 1
+                    away_entry["draw"] += 1
+                    away_entry["points"] += 1
+
+    # Re-sort groups by points desc, goalDifference desc, goalsFor desc, then name asc
+    for group in standings:
+        table = group.get("table", [])
+        table.sort(key=lambda x: (
+            -x.get("points", 0),
+            -x.get("goalDifference", 0),
+            -x.get("goalsFor", 0),
+            (x.get("team", {}).get("name") or "").lower()
+        ))
+        for idx, entry in enumerate(table, 1):
+            entry["position"] = idx
+
+    return standings
+
+
 @router.get("/standings")
 async def get_wc_standings():
     """Return group standings — live from football-data.org or mock fallback."""
+    try:
+        matches_data = await get_wc_matches()
+        today_matches = matches_data.get("matches") or []
+    except Exception:
+        logger.exception("Failed to get matches for standings update")
+        today_matches = []
+
     api_key = settings.FOOTBALL_DATA_API_KEY.strip()
     if not api_key or api_key.startswith("your_") or api_key.lower() == "mock":
-        return {"standings": _get_mock_standings(), "stale": False, "generated_at": _utc_now_iso()}
+        standings = _get_mock_standings()
+        standings = apply_matches_to_standings(standings, today_matches, apply_finished=True)
+        return {"standings": standings, "stale": False, "generated_at": _utc_now_iso()}
 
     # Try API with Supabase cache
     try:
         cached = _read_cache("wc_standings")
         if cached is not None:
-            return {"standings": _normalize_standings(cached), "stale": False, "generated_at": _utc_now_iso()}
+            standings = _normalize_standings(cached)
+            standings = apply_matches_to_standings(standings, today_matches, apply_finished=False)
+            return {"standings": standings, "stale": False, "generated_at": _utc_now_iso()}
 
         headers = {"X-Auth-Token": api_key}
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -646,19 +882,25 @@ async def get_wc_standings():
         if res.status_code == 200:
             payload = res.json()
             _write_cache("wc_standings", payload, 120)  # cache 2 minutes
-            return {"standings": _normalize_standings(payload), "stale": False, "generated_at": _utc_now_iso()}
+            standings = _normalize_standings(payload)
+            standings = apply_matches_to_standings(standings, today_matches, apply_finished=False)
+            return {"standings": standings, "stale": False, "generated_at": _utc_now_iso()}
 
         if res.status_code == 429:
             stale_payload = _read_cache("wc_standings", allow_expired=True)
             if stale_payload is not None:
-                return {"standings": _normalize_standings(stale_payload), "stale": True, "generated_at": _utc_now_iso()}
+                standings = _normalize_standings(stale_payload)
+                standings = apply_matches_to_standings(standings, today_matches, apply_finished=False)
+                return {"standings": standings, "stale": True, "generated_at": _utc_now_iso()}
 
         # Fallback to mock
         logger.warning("Standings API returned %d, using mock", res.status_code)
     except Exception:
         logger.exception("Failed to fetch standings from API")
 
-    return {"standings": _get_mock_standings(), "stale": False, "generated_at": _utc_now_iso()}
+    standings = _get_mock_standings()
+    standings = apply_matches_to_standings(standings, today_matches, apply_finished=True)
+    return {"standings": standings, "stale": False, "generated_at": _utc_now_iso()}
 
 
 def _normalize_standings(api_data: dict) -> list:

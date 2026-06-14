@@ -3,7 +3,7 @@
       // LEADERBOARD_DATA loaded from data.js
       // CATEGORIES_DATA loaded from data.js
       // TRANSFER_PLAYERS loaded from data.js
-      const LOCAL_API_URL = 'http://localhost:8002';
+      const LOCAL_API_URL = 'http://127.0.0.1:8002';
       const PRODUCTION_API_URL = 'https://footytrivia-api.onrender.com';
 
       function resolveApiBaseUrl() {
@@ -8433,6 +8433,10 @@
           startStandingsPolling();
           renderGroupStandings();
           renderBestThirdPlacedTable();
+        } else if (tabId === 'matchday') {
+          if (typeof window.initWCMatches === 'function') {
+            window.initWCMatches('wc-matches');
+          }
         } else if (tabId === 'predictions') {
           syncPredictionCenterGuestUI();
           awardPredictions = normalizeAwardPredictions(awardPredictions);
