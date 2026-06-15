@@ -7555,12 +7555,11 @@
                 return { player: p, weight: w };
               });
               
-              let goalSeed = getSeed(teamName) + 200;
               for (let i = 0; i < remainingGoals; i++) {
                 const totalW = weights.reduce((sum, item) => sum + item.weight, 0);
                 if (totalW <= 0) break;
                 
-                let randVal = getDeterministicVal(goalSeed++, 0, totalW * 100) / 100;
+                let randVal = getDeterministicVal(getSeed(teamName + "_goal_" + i), 0, totalW * 100) / 100;
                 let cumulative = 0;
                 let selected = weights[0].player;
                 for (const item of weights) {
@@ -7588,12 +7587,11 @@
                 return { player: p, weight: w };
               });
               
-              let assistSeed = getSeed(teamName) + 300;
               for (let i = 0; i < totalAssists; i++) {
                 const totalW = weights.reduce((sum, item) => sum + item.weight, 0);
                 if (totalW <= 0) break;
                 
-                let randVal = getDeterministicVal(assistSeed++, 0, totalW * 100) / 100;
+                let randVal = getDeterministicVal(getSeed(teamName + "_assist_" + i), 0, totalW * 100) / 100;
                 let cumulative = 0;
                 let selected = weights[0].player;
                 for (const item of weights) {
