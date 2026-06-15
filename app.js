@@ -7268,13 +7268,16 @@
       function enrichPlayerStats() {
         if (!window.WC_PLAYERS) return;
         
-        const mapTeamName = (t) => {
-          if (t === 'USA') return 'United States';
-          if (t === 'KOR') return 'South Korea';
-          if (t === 'BIH') return 'Bosnia & Herzegovina';
-          if (t === 'CZE') return 'Czechia';
-          if (t === 'CAN') return 'Canada';
-          if (t === 'PAR') return 'Paraguay';
+        const mapTeamName = (t, tla) => {
+          if (tla === 'USA' || t === 'USA' || t === 'United States') return 'United States';
+          if (tla === 'KOR' || t === 'Korea Republic' || t === 'South Korea') return 'South Korea';
+          if (tla === 'BIH' || t === 'Bosnia-Herzegovina' || t === 'Bosnia-H.' || t === 'Bosnia & Herzegovina') return 'Bosnia & Herzegovina';
+          if (tla === 'CZE' || t === 'Czechia') return 'Czechia';
+          if (tla === 'CAN' || t === 'Canada') return 'Canada';
+          if (tla === 'PAR' || t === 'Paraguay') return 'Paraguay';
+          if (tla === 'TUR' || t === 'Turkey' || t === 'Türkiye' || t === 'Trkiye') return 'Trkiye';
+          if (tla === 'CIV' || t === "Côte d'Ivoire" || t === 'Ivory Coast') return 'Ivory Coast';
+          if (tla === 'COD' || t === 'Congo DR' || t === 'DR Congo') return 'DR Congo';
           return t;
         };
 
@@ -7298,7 +7301,7 @@
             if (group.table) {
               group.table.forEach(row => {
                 const teamName = row.team.shortName || row.team.name;
-                const normName = mapTeamName(teamName);
+                const normName = mapTeamName(teamName, row.team.tla);
                 if (teamStats[normName]) {
                   teamStats[normName].played = row.playedGames || 0;
                   teamStats[normName].goalsFor = row.goalsFor || 0;
@@ -7333,8 +7336,8 @@
           window.WC_TODAY_MATCHES.forEach(m => {
             const homeT = m.homeTeam ? (m.homeTeam.shortName || m.homeTeam.name) : '';
             const awayT = m.awayTeam ? (m.awayTeam.shortName || m.awayTeam.name) : '';
-            const normHome = mapTeamName(homeT);
-            const normAway = mapTeamName(awayT);
+            const normHome = mapTeamName(homeT, m.homeTeam ? m.homeTeam.tla : undefined);
+            const normAway = mapTeamName(awayT, m.awayTeam ? m.awayTeam.tla : undefined);
             
             if (normHome) teamsActiveToday.add(normHome);
             if (normAway) teamsActiveToday.add(normAway);
@@ -7684,7 +7687,7 @@
         });
       }
 
-      function initAnalyticsTab() {
+      async function initAnalyticsTab() {
         populateTeamDropdown();
         
         document.getElementById('wc-analytics-search').value = '';
@@ -7694,8 +7697,35 @@
         document.getElementById('wc-analytics-position').value = 'all';
         document.getElementById('wc-analytics-stage').value = 'all';
         
+        // Initial render with currently cached/local data
         filterAnalyticsData();
         setupCanvasInteraction();
+
+        // Dynamically fetch live tournament stats if they are empty
+        try {
+          const promises = [];
+          if (!window.WC_STANDINGS || window.WC_STANDINGS.length === 0) {
+            promises.push(
+              fetch(`${API_BASE_URL}/api/wc/standings`, { credentials: 'omit' })
+                .then(r => r.json())
+                .then(d => { window.WC_STANDINGS = d.standings || []; })
+            );
+          }
+          if (!window.WC_TODAY_MATCHES || window.WC_TODAY_MATCHES.length === 0) {
+            promises.push(
+              fetch(`${API_BASE_URL}/api/wc/matches`, { credentials: 'omit' })
+                .then(r => r.json())
+                .then(d => { window.WC_TODAY_MATCHES = d.matches || []; })
+            );
+          }
+          if (promises.length > 0) {
+            await Promise.all(promises);
+            populateTeamDropdown();
+            filterAnalyticsData();
+          }
+        } catch (err) {
+          console.error('Failed to pre-fetch standings/matches for analytics:', err);
+        }
       }
 
       function onGroupFilterChange() {
