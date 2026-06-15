@@ -108,8 +108,8 @@
       </button>
       <div class="wc-mobile-nav-sub" id="wc-mobile-nav-sub">
         <button type="button" class="wc-mobile-tab" data-wc-tab="dashboard" onclick="switchWCTabFromMobile('dashboard')">Dashboard</button>
-        <button type="button" class="wc-mobile-tab" data-wc-tab="predictions" onclick="switchWCTabFromMobile('predictions')">Prediction Center</button>
         <button type="button" class="wc-mobile-tab" data-wc-tab="matchday" onclick="switchWCTabFromMobile('matchday')">Matchday Hub</button>
+        <button type="button" class="wc-mobile-tab" data-wc-tab="predictions" onclick="switchWCTabFromMobile('predictions')">Prediction Center</button>
         <button type="button" class="wc-mobile-tab" data-wc-tab="bracket" onclick="switchWCTabFromMobile('bracket')">Knockout Bracket</button>
         <button type="button" class="wc-mobile-tab" data-wc-tab="analytics" onclick="switchWCTabFromMobile('analytics')">Analytics</button>
         <button type="button" class="wc-mobile-tab" data-wc-tab="leaderboard" onclick="switchWCTabFromMobile('leaderboard')">Leaderboard</button>
@@ -1505,8 +1505,8 @@
       <nav class="wc-nav-tabs-bar" id="wc-nav-tabs-bar" aria-label="World Cup sections">
         <div class="wc-nav-tabs" id="wc-nav-tabs">
           <button class="wc-tab active" onclick="switchWCTab('dashboard', this)">Dashboard</button>
-          <button class="wc-tab" onclick="switchWCTab('predictions', this)">Prediction Center</button>
           <button class="wc-tab" onclick="switchWCTab('matchday', this)">Matchday Hub</button>
+          <button class="wc-tab" onclick="switchWCTab('predictions', this)">Prediction Center</button>
           <button class="wc-tab" onclick="switchWCTab('bracket', this)">Knockout Bracket</button>
           <button class="wc-tab" onclick="switchWCTab('analytics', this)">Analytics</button>
           <button class="wc-tab" onclick="switchWCTab('leaderboard', this)">Leaderboard</button>
@@ -1650,84 +1650,85 @@
 
         <!-- MATCHDAY TAB -->
         <div id="wc-matchday" class="wc-tab-content" style="display:none">
-          <div id="wc-matches" class="wc-widget">
-            <div class="wc-skeleton">Loading World Cup matches...</div>
-          </div>
-          <div class="wc-matchday-content" style="display:none">
-          <div class="wc-grid">
-            <div class="wc-card" style="grid-column: 1 / -1;">
-              <div class="wc-card-title">
-                <span>Live Match Center</span>
-                <span id="live-indicator" style="display:flex;align-items:center;gap:0.5rem;color:var(--success);font-size:0.8rem;animation:pulse 2s infinite">
-                  <span style="width:8px;height:8px;background:var(--success);border-radius:50%;display:inline-block"></span>LIVE
-                </span>
-                <span id="ft-indicator" style="display:none;color:var(--text2);font-size:0.8rem;font-weight:700">FT</span>
-              </div>
-              
-              <div id="live-match-card">
-                <div style="display:flex;justify-content:center;align-items:center;gap:2rem;padding:2rem 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
-                  <div style="text-align:center">
-                    <div style="margin-bottom:0.5rem"><img id="home-team-flag" src="https://flagcdn.com/w80/es.png" alt="Spain" style="width:48px; height:auto; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
-                    <div id="home-team-name" style="font-family:var(--font-display);font-weight:700;font-size:1.2rem">Spain</div>
-                  </div>
-                  <div style="text-align:center">
-                    <div style="font-size:3rem;font-weight:800;font-family:var(--font-display);color:var(--gold)"><span id="home-score">2</span> - <span id="away-score">1</span></div>
-                    <div id="match-minute" style="font-size:0.9rem;color:var(--success);margin-top:0.5rem;font-weight:700">76'</div>
-                  </div>
-                  <div style="text-align:center">
-                    <div style="margin-bottom:0.5rem"><img id="away-team-flag" src="https://flagcdn.com/w80/uy.png" alt="Uruguay" style="width:48px; height:auto; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
-                    <div id="away-team-name" style="font-family:var(--font-display);font-weight:700;font-size:1.2rem">Uruguay</div>
-                  </div>
+          <div class="wc-matchday-content" style="display:none; margin-bottom: 1.5rem;">
+            <div class="wc-grid">
+              <div class="wc-card" style="grid-column: 1 / -1;">
+                <div class="wc-card-title">
+                  <span>Live Match Center</span>
+                  <span id="live-indicator" style="display:flex;align-items:center;gap:0.5rem;color:var(--success);font-size:0.8rem;animation:pulse 2s infinite">
+                    <span style="width:8px;height:8px;background:var(--success);border-radius:50%;display:inline-block"></span>LIVE
+                  </span>
+                  <span id="ft-indicator" style="display:none;color:var(--text2);font-size:0.8rem;font-weight:700">FT</span>
                 </div>
-                <div style="padding-top:1.5rem;max-width:600px;margin:0 auto">
-                  <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:1rem"><span style="color:var(--text2)">Venue:</span> <span id="venue">MetLife Stadium, New York/New Jersey</span></div>
-                  <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:2rem"><span style="color:var(--text2)">Referee:</span> <span id="referee">Szymon Marciniak</span></div>
-                  
-                  <div class="wc-stat-row" style="border:none;padding-bottom:0.2rem">
-                    <div id="possession-home-val" style="font-weight:700">62%</div>
-                    <div style="flex:1;text-align:center;color:var(--text2);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em">Possession</div>
-                    <div id="possession-away-val" style="font-weight:700">38%</div>
+                
+                <div id="live-match-card">
+                  <div style="display:flex;justify-content:center;align-items:center;gap:2rem;padding:2rem 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+                    <div style="text-align:center">
+                      <div style="margin-bottom:0.5rem"><img id="home-team-flag" src="https://flagcdn.com/w80/es.png" alt="Spain" style="width:48px; height:auto; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+                      <div id="home-team-name" style="font-family:var(--font-display);font-weight:700;font-size:1.2rem">Spain</div>
+                    </div>
+                    <div style="text-align:center">
+                      <div style="font-size:3rem;font-weight:800;font-family:var(--font-display);color:var(--gold)"><span id="home-score">2</span> - <span id="away-score">1</span></div>
+                      <div id="match-minute" style="font-size:0.9rem;color:var(--success);margin-top:0.5rem;font-weight:700">76'</div>
+                    </div>
+                    <div style="text-align:center">
+                      <div style="margin-bottom:0.5rem"><img id="away-team-flag" src="https://flagcdn.com/w80/uy.png" alt="Uruguay" style="width:48px; height:auto; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+                      <div id="away-team-name" style="font-family:var(--font-display);font-weight:700;font-size:1.2rem">Uruguay</div>
+                    </div>
                   </div>
-                  <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-bottom:1.5rem">
-                    <div id="possession-home-bar" style="width:62%;background:var(--gold)"></div>
-                    <div id="possession-away-bar" style="width:38%;background:#3b82f6"></div>
-                  </div>
-                  
-                  <div class="wc-stat-row" style="border:none;padding-bottom:0.2rem">
-                    <div id="shots-home-val" style="font-weight:700">14</div>
-                    <div style="flex:1;text-align:center;color:var(--text2);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em">Shots</div>
-                    <div id="shots-away-val" style="font-weight:700">8</div>
-                  </div>
-                  <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-bottom:1.5rem">
-                    <div id="shots-home-bar" style="width:63%;background:var(--gold)"></div>
-                    <div id="shots-away-bar" style="width:37%;background:#3b82f6"></div>
-                  </div>
-                  
-                  <div id="xg-row-container">
+                  <div style="padding-top:1.5rem;max-width:600px;margin:0 auto">
+                    <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:1rem"><span style="color:var(--text2)">Venue:</span> <span id="venue">MetLife Stadium, New York/New Jersey</span></div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:2rem"><span style="color:var(--text2)">Referee:</span> <span id="referee">Szymon Marciniak</span></div>
+                    
                     <div class="wc-stat-row" style="border:none;padding-bottom:0.2rem">
-                      <div id="xg-home-val" style="font-weight:700">2.1</div>
-                      <div style="flex:1;text-align:center;color:var(--text2);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em">Expected Goals (xG)</div>
-                      <div id="xg-away-val" style="font-weight:700">0.9</div>
+                      <div id="possession-home-val" style="font-weight:700">62%</div>
+                      <div style="flex:1;text-align:center;color:var(--text2);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em">Possession</div>
+                      <div id="possession-away-val" style="font-weight:700">38%</div>
                     </div>
                     <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-bottom:1.5rem">
-                      <div id="xg-home-bar" style="width:70%;background:var(--gold)"></div>
-                      <div id="xg-away-bar" style="width:30%;background:#3b82f6"></div>
+                      <div id="possession-home-bar" style="width:62%;background:var(--gold)"></div>
+                      <div id="possession-away-bar" style="width:38%;background:#3b82f6"></div>
+                    </div>
+                    
+                    <div class="wc-stat-row" style="border:none;padding-bottom:0.2rem">
+                      <div id="shots-home-val" style="font-weight:700">14</div>
+                      <div style="flex:1;text-align:center;color:var(--text2);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em">Shots</div>
+                      <div id="shots-away-val" style="font-weight:700">8</div>
+                    </div>
+                    <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-bottom:1.5rem">
+                      <div id="shots-home-bar" style="width:63%;background:var(--gold)"></div>
+                      <div id="shots-away-bar" style="width:37%;background:#3b82f6"></div>
+                    </div>
+                    
+                    <div id="xg-row-container">
+                      <div class="wc-stat-row" style="border:none;padding-bottom:0.2rem">
+                        <div id="xg-home-val" style="font-weight:700">2.1</div>
+                        <div style="flex:1;text-align:center;color:var(--text2);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em">Expected Goals (xG)</div>
+                        <div id="xg-away-val" style="font-weight:700">0.9</div>
+                      </div>
+                      <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-bottom:1.5rem">
+                        <div id="xg-home-bar" style="width:70%;background:var(--gold)"></div>
+                        <div id="xg-away-bar" style="width:30%;background:#3b82f6"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- Placeholder when no match is live -->
-              <div id="no-match-placeholder" style="display:none;text-align:center;padding:3rem 0;color:var(--text2)">
-                <div style="font-size:2.5rem;margin-bottom:1rem">🏟️</div>
-                <div style="font-weight:700;font-size:1.1rem;color:var(--text)">No Live Matches Right Now</div>
-                <div style="font-size:0.85rem;margin-top:0.25rem">Check back during matchdays to track live scores and stats!</div>
-              </div>
+                <!-- Placeholder when no match is live -->
+                <div id="no-match-placeholder" style="display:none;text-align:center;padding:3rem 0;color:var(--text2)">
+                  <div style="font-size:2.5rem;margin-bottom:1rem">🏟️</div>
+                  <div style="font-weight:700;font-size:1.1rem;color:var(--text)">No Live Matches Right Now</div>
+                  <div style="font-size:0.85rem;margin-top:0.25rem">Check back during matchdays to track live scores and stats!</div>
+                </div>
 
-              <!-- Last updated / status indicator -->
-              <div id="live-match-status-text" style="font-size:0.72rem;color:var(--text3);text-align:center;margin-top:1rem;display:none"></div>
+                <!-- Last updated / status indicator -->
+                <div id="live-match-status-text" style="font-size:0.72rem;color:var(--text3);text-align:center;margin-top:1rem;display:none"></div>
+              </div>
             </div>
           </div>
+          
+          <div id="wc-matches" class="wc-widget">
+            <div class="wc-skeleton">Loading World Cup matches...</div>
           </div>
         </div>
 
