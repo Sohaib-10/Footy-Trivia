@@ -7469,7 +7469,7 @@
             
             // Saves (only primary Goalkeeper)
             if (isGK && p === primaryGK) {
-              p.saves = GA * 2 + getDeterministicVal(seed + 3, 2, 5) * P;
+              p.saves = Math.round(GA * 0.8 + getDeterministicVal(seed + 3, 1, 3) * P);
             } else {
               p.saves = 0;
             }
@@ -7606,6 +7606,16 @@
             }
           }
           
+          // Fix performance metrics logical consistency
+          teamPlayers.forEach(p => {
+            if (p.appearances > 0) {
+              p.shotsOnTarget = Math.max(p.shotsOnTarget || 0, p.goals || 0);
+              p.shots = Math.max(p.shots || 0, p.shotsOnTarget || 0);
+              p.keyPasses = Math.max(p.keyPasses || 0, p.assists || 0);
+              p.chancesCreated = Math.max(p.chancesCreated || 0, p.keyPasses || 0);
+            }
+          });
+
           // Calculate rating and update penalty stats
           teamPlayers.forEach(p => {
             if (p.appearances > 0) {
