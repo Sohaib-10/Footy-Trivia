@@ -1,4 +1,5 @@
 """World Cup 2026 live scores — football-data.org with Supabase cache."""
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, Tuple
@@ -403,7 +404,12 @@ async def get_wc_matches():
     stale = False
 
     try:
-        today_data, today_stale = await fetch_with_cache(
+        date_from_up = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+        date_to_up = (now + timedelta(days=3)).strftime("%Y-%m-%d")
+        date_from_rec = (now - timedelta(days=3)).strftime("%Y-%m-%d")
+        date_to_rec = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+
+        today_coro = fetch_with_cache(
             f"wc_today_{today}",
             {
                 "status": "SCHEDULED,IN_PLAY,PAUSED,FINISHED",
@@ -411,11 +417,7 @@ async def get_wc_matches():
                 "dateTo": today,
             },
         )
-        stale = stale or today_stale
-
-        date_from_up = (now + timedelta(days=1)).strftime("%Y-%m-%d")
-        date_to_up = (now + timedelta(days=3)).strftime("%Y-%m-%d")
-        upcoming_data, upcoming_stale = await fetch_with_cache(
+        upcoming_coro = fetch_with_cache(
             f"wc_upcoming_{date_from_up}_{date_to_up}",
             {
                 "status": "SCHEDULED,TIMED",
@@ -423,11 +425,7 @@ async def get_wc_matches():
                 "dateTo": date_to_up,
             },
         )
-        stale = stale or upcoming_stale
-
-        date_from_rec = (now - timedelta(days=3)).strftime("%Y-%m-%d")
-        date_to_rec = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-        recent_data, recent_stale = await fetch_with_cache(
+        recent_coro = fetch_with_cache(
             f"wc_recent_{date_from_rec}_{date_to_rec}",
             {
                 "status": "FINISHED",
@@ -435,7 +433,11 @@ async def get_wc_matches():
                 "dateTo": date_to_rec,
             },
         )
-        stale = stale or recent_stale
+
+        (today_data, today_stale), (upcoming_data, upcoming_stale), (recent_data, recent_stale) = await asyncio.gather(
+            today_coro, upcoming_coro, recent_coro
+        )
+        stale = today_stale or upcoming_stale or recent_stale
     except HTTPException:
         raise
     except Exception:
@@ -823,12 +825,30 @@ def apply_matches_to_standings(standings: list, matches: list, apply_finished: b
 @router.get("/standings")
 async def get_wc_standings():
     """Return group standings — live from football-data.org or mock fallback."""
-    try:
-        matches_data = await get_wc_matches()
-        today_matches = matches_data.get("matches") or []
-    except Exception:
-        logger.exception("Failed to get matches for standings update")
-        today_matches = []
+    api_key = settings.FOOTBALL_DATA_API_KEY.strip()
+    is_mock = not api_key or api_key.startswith("your_") or api_key.lower() == "mock"
+    
+    today_matches = []
+    if is_mock:
+        try:
+            mock_res = _get_mock_matches_response()
+            today_matches = mock_res.get("matches") or []
+        except Exception:
+            pass
+    else:
+        try:
+            today = get_utc_today()
+            today_data, today_stale = await fetch_with_cache(
+                f"wc_today_{today}",
+                {
+                    "status": "SCHEDULED,IN_PLAY,PAUSED,FINISHED",
+                    "dateFrom": today,
+                    "dateTo": today,
+                },
+            )
+            today_matches = today_data.get("matches") or []
+        except Exception:
+            logger.exception("Failed to get today's matches for standings update")
 
     api_key = settings.FOOTBALL_DATA_API_KEY.strip()
     if not api_key or api_key.startswith("your_") or api_key.lower() == "mock":

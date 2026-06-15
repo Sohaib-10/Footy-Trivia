@@ -2,6 +2,7 @@
   'use strict';
 
   var pollTimer = null;
+  var retryTimer = null;
 
   function resolveApiBaseUrl() {
     var isLocal = location.hostname === 'localhost'
@@ -506,7 +507,18 @@
     if (xgABar) xgABar.style.width = (parseFloat(xgAway) / totalXg * 100) + '%';
   }
 
+  function startRegularPolling(container) {
+    if (pollTimer) return;
+    pollTimer = setInterval(function () {
+      fetchAndRender(container);
+    }, 60000);
+  }
+
   async function fetchAndRender(container) {
+    if (retryTimer) {
+      clearTimeout(retryTimer);
+      retryTimer = null;
+    }
     showSkeleton(container);
     try {
       var res = await fetch(resolveApiBaseUrl() + '/api/wc/matches', { credentials: 'omit' });
@@ -516,16 +528,31 @@
       renderMatches(container, data);
       updateLiveMatchCenter(window.WC_TODAY_MATCHES);
       unlockMatchdayTab();
+      
+      startRegularPolling(container);
     } catch (err) {
+      console.error('Failed to fetch matches:', err);
       container.innerHTML = '';
-      renderOffSeason(container);
+      
+      var errWrap = document.createElement('div');
+      errWrap.className = 'wc-offseason wc-error-state';
+      errWrap.innerHTML =
+        '<span class="wc-loader-spinner" style="font-size: 2rem; display: block; margin-bottom: 0.5rem; animation: wc-pulse 1.5s infinite;">⏳</span>' +
+        '<p style="font-weight: 800; font-size: 1.05rem; margin: 0.25rem 0;">Server is warming up...</p>' +
+        '<p class="wc-dates" style="font-size: 0.82rem; max-width: 320px; margin: 0.25rem auto 0; line-height: 1.4;">' +
+          'The server is taking a moment to respond. Retrying automatically in 5 seconds...' +
+        '</p>';
+      container.appendChild(errWrap);
+      
       updateLiveMatchCenter([]);
-      var retry = document.createElement('button');
-      retry.type = 'button';
-      retry.className = 'wc-retry-btn';
-      retry.textContent = 'Retry';
-      retry.addEventListener('click', function () { fetchAndRender(container); });
-      container.appendChild(retry);
+      
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      retryTimer = setTimeout(function () {
+        fetchAndRender(container);
+      }, 5000);
     }
   }
 
@@ -533,10 +560,15 @@
     var container = document.getElementById(containerId);
     if (!container) return;
 
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    if (retryTimer) {
+      clearTimeout(retryTimer);
+      retryTimer = null;
+    }
+
     fetchAndRender(container);
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(function () {
-      fetchAndRender(container);
-    }, 60000);
   };
 })();
