@@ -7267,6 +7267,59 @@
 
       function enrichPlayerStats() {
         if (!window.WC_PLAYERS) return;
+
+        const REAL_STATS = {
+          "balogun": { goals: 2 },
+          "kai havertz": { goals: 2 },
+          "ayari": { goals: 2 },
+          "diallo": { goals: 1 },
+          "summerville": { goals: 1 },
+          "kamada": { goals: 1 },
+          "jamal musiala": { goals: 1 },
+          "mcginn": { goals: 1 },
+          "quinones": { goals: 1 },
+          "nakamura": { goals: 1 },
+          "svanberg": { goals: 1 },
+          "mauricio": { goals: 1 },
+          "brown": { goals: 1 },
+          "irankunda": { goals: 1 },
+          "rekik": { goals: 1 },
+          "isak": { assists: 2 },
+          "kimmich": { assists: 2 },
+          "gravenberch": { assists: 2 },
+          "freeman": { assists: 1 },
+          "brahim diaz": { assists: 1 },
+          "brahim daz": { assists: 1 },
+          "christian pulisic": { assists: 1 },
+          "lira": { assists: 1 },
+          "florian wirtz": { assists: 1 },
+          "mejbri": { assists: 1 },
+          "hwang": { assists: 1 },
+          "ogawa": { assists: 1 },
+          "okon-engstler": { assists: 1 },
+          "alvarado": { assists: 1 },
+          "gyokeres": { assists: 1 },
+          "hickey": { yellowCards: 1 },
+          "casemiro": { yellowCards: 1 },
+          "gomez": { yellowCards: 1 },
+          "curtis": { yellowCards: 1 },
+          "jassem gaber": { yellowCards: 1 },
+          "alonso": { yellowCards: 1 },
+          "mclean": { yellowCards: 1 },
+          "de fougerolles": { yellowCards: 1 },
+          "mahmoud abunada": { yellowCards: 1 },
+          "van de ven": { yellowCards: 1 },
+          "pedri": { yellowCards: 1 },
+          "khedira": { yellowCards: 1 },
+          "roger": { yellowCards: 1 },
+          "mokoena": { yellowCards: 1 },
+          "adams": { yellowCards: 1 },
+          "montes": { redCards: 1 },
+          "zwane": { redCards: 1 },
+          "sithole": { redCards: 1 }
+        };
+
+        const normalizeName = (s) => s ? s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 -]/g, "").toLowerCase() : "";
         
         const mapTeamName = (t, tla) => {
           if (tla === 'USA' || t === 'USA' || t === 'United States') return 'United States';
@@ -7391,8 +7444,11 @@
             const isMF = p.pos === 'Midfielder';
             const isFW = p.pos === 'Forward';
             
-            p.goals = preAssignedGoals[p.name] || 0;
-            p.assists = 0;
+            const normKey = normalizeName(p.name);
+            const real = REAL_STATS[normKey] || {};
+            
+            p.goals = real.goals !== undefined ? real.goals : (preAssignedGoals[p.name] || 0);
+            p.assists = real.assists !== undefined ? real.assists : 0;
             
             if (P === 0) {
               // No matches played yet
@@ -7530,9 +7586,8 @@
               else if (isMF) p.passAccuracy = getDeterministicVal(seed + 14, 82, 92);
               else p.passAccuracy = getDeterministicVal(seed + 14, 70, 85);
               
-              p.yellowCards = getDeterministicVal(seed + 15, 0, 1) + (seed % 19 === 0 ? 1 : 0);
-              p.yellowCards = Math.min(p.yellowCards, Math.ceil(app / 2));
-              p.redCards = (seed % 47 === 0 && app > 1) ? 1 : 0;
+              p.yellowCards = real.yellowCards !== undefined ? real.yellowCards : 0;
+              p.redCards = real.redCards !== undefined ? real.redCards : 0;
               p.ownGoals = (seed % 101 === 0 && app > 1) ? 1 : 0;
               
               p.foulsCommitted = app * getDeterministicVal(seed + 16, 1, 2);
@@ -7543,71 +7598,7 @@
             }
           });
           
-          // Distribute remaining goals
-          let totalPreAssigned = teamPlayers.reduce((sum, p) => sum + p.goals, 0);
-          let remainingGoals = Math.max(0, GF - totalPreAssigned);
-          
-          if (remainingGoals > 0) {
-            const eligibleScorers = teamPlayers.filter(p => p.pos !== 'Goalkeeper' && p.appearances > 0);
-            if (eligibleScorers.length > 0) {
-              const weights = eligibleScorers.map(p => {
-                let w = p.popularity || 70;
-                if (p.pos === 'Forward') w *= 3.0;
-                else if (p.pos === 'Midfielder') w *= 1.0;
-                else if (p.pos === 'Defender') w *= 0.1;
-                return { player: p, weight: w };
-              });
-              
-              for (let i = 0; i < remainingGoals; i++) {
-                const totalW = weights.reduce((sum, item) => sum + item.weight, 0);
-                if (totalW <= 0) break;
-                
-                let randVal = getDeterministicVal(getSeed(teamName + "_goal_" + i), 0, totalW * 100) / 100;
-                let cumulative = 0;
-                let selected = weights[0].player;
-                for (const item of weights) {
-                  cumulative += item.weight;
-                  if (randVal <= cumulative) {
-                    selected = item.player;
-                    break;
-                  }
-                }
-                selected.goals++;
-              }
-            }
-          }
-          
-          // Distribute assists (at most GF, let's say ~70% of GF)
-          const totalAssists = Math.round(GF * 0.7);
-          if (totalAssists > 0) {
-            const eligibleAssisters = teamPlayers.filter(p => p.pos !== 'Goalkeeper' && p.appearances > 0);
-            if (eligibleAssisters.length > 0) {
-              const weights = eligibleAssisters.map(p => {
-                let w = p.popularity || 70;
-                if (p.pos === 'Midfielder') w *= 3.0;
-                else if (p.pos === 'Forward') w *= 1.5;
-                else if (p.pos === 'Defender') w *= 0.5;
-                return { player: p, weight: w };
-              });
-              
-              for (let i = 0; i < totalAssists; i++) {
-                const totalW = weights.reduce((sum, item) => sum + item.weight, 0);
-                if (totalW <= 0) break;
-                
-                let randVal = getDeterministicVal(getSeed(teamName + "_assist_" + i), 0, totalW * 100) / 100;
-                let cumulative = 0;
-                let selected = weights[0].player;
-                for (const item of weights) {
-                  cumulative += item.weight;
-                  if (randVal <= cumulative) {
-                    selected = item.player;
-                    break;
-                  }
-                }
-                selected.assists++;
-              }
-            }
-          }
+          // Real-world statistics are mapped directly from REAL_STATS, no deterministic distribution needed.
           
           // Fix performance metrics logical consistency
           teamPlayers.forEach(p => {
