@@ -264,6 +264,7 @@
         selectedMode: 'solo',
         selectedDiff: 'easy',
       };
+      window.state = state;
 
       let sfxContext = null;
       function getSfxContext() {
@@ -8540,6 +8541,22 @@
       window.switchWCTab = switchWCTab;
       window.renderWCLeaderboard = renderWCLeaderboard;
       window.requireLoginForPredictions = requireLoginForPredictions;
+      window.moveTeam = moveTeam;
+      window.saveMatchPrediction = saveMatchPrediction;
+      window.submitGroupPredictions = submitGroupPredictions;
+      window.resetPredictions = resetPredictions;
+      window.confirmThirdPlaceQualifiers = confirmThirdPlaceQualifiers;
+      window.submitAwardPredictions = submitAwardPredictions;
+      window.resetAwardPredictions = resetAwardPredictions;
+      window.closeSelectorModalOutside = closeSelectorModalOutside;
+      window.closeSelectorModal = closeSelectorModal;
+      window.openSelectorModal = openSelectorModal;
+      window.filterSelectorItems = filterSelectorItems;
+      window.clearModalSearch = clearModalSearch;
+      window.applyFilters = applyFilters;
+      window.selectSelectorItemFromModal = selectSelectorItemFromModal;
+      window.selectPositionFilter = selectPositionFilter;
+      window.toggleThirdPlaceTeam = toggleThirdPlaceTeam;
 
       function requireLoginForBracket() {
         if (state.user) return true;
