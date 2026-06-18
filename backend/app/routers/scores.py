@@ -387,6 +387,9 @@ async def fetch_with_cache(
     if res.status_code == 429:
         stale_payload = _read_cache(cache_key, allow_expired=True)
         if stale_payload is not None:
+            # Rate limit cooldown: write back the stale payload with 60s expiration
+            # to prevent hitting the API again immediately on subsequent requests.
+            _write_cache(cache_key, stale_payload, 60)
             return stale_payload, True
         raise HTTPException(status_code=429, detail="Rate limited and no cached data available")
 
@@ -416,7 +419,7 @@ async def get_wc_matches():
                 "dateFrom": today,
                 "dateTo": today,
             },
-            ttl_seconds=25,
+            ttl_seconds=60,
         )
         upcoming_coro = fetch_with_cache(
             f"wc_upcoming_{date_from_up}_{date_to_up}",
@@ -595,8 +598,14 @@ async def get_wc_matches():
                     home_score_val = full_time.get("home") or 0
                     away_score_val = full_time.get("away") or 0
 
-                    home_goal_mins = sorted([rng.randint(1, 90) for _ in range(home_score_val)])
-                    away_goal_mins = sorted([rng.randint(1, 90) for _ in range(away_score_val)])
+                    limit_min = m.get("minute") if m.get("minute") is not None else (45 if m.get("status") == "PAUSED" else 90)
+                    if m.get("status") == "FINISHED":
+                        limit_min = 90
+
+                    # Generate goal minutes bounded by the current limit_min to guarantee
+                    # all goal events are shown and align with the current match score
+                    home_goal_mins = sorted([rng.randint(1, limit_min) for _ in range(home_score_val)])
+                    away_goal_mins = sorted([rng.randint(1, limit_min) for _ in range(away_score_val)])
 
                     home_tla = (m.get("homeTeam") or {}).get("tla") or ""
                     home_name = (m.get("homeTeam") or {}).get("name") or ""
@@ -605,10 +614,6 @@ async def get_wc_matches():
 
                     home_scorers = get_scorers_for_team(home_tla, home_name, len(home_goal_mins), rng)
                     away_scorers = get_scorers_for_team(away_tla, away_name, len(away_goal_mins), rng)
-
-                    limit_min = m.get("minute") if m.get("minute") is not None else (45 if m.get("status") == "PAUSED" else 90)
-                    if m.get("status") == "FINISHED":
-                        limit_min = 90
 
                     sim_goals = []
                     for idx, g_min in enumerate(home_goal_mins):
