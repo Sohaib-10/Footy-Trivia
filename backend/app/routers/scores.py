@@ -355,19 +355,8 @@ def _get_mock_matches_response() -> Dict[str, Any]:
                     }
 
                     # Populate scorers based on simulated goals
-                    home_rng = random.Random(f"{m.get('id') or 42}_home")
-                    away_rng = random.Random(f"{m.get('id') or 42}_away")
-                    
-                    home_potential = sorted([home_rng.randint(1, 90) for _ in range(15)])
-                    away_potential = sorted([away_rng.randint(1, 90) for _ in range(15)])
-                    
-                    limit_min = m["minute"] if m["minute"] is not None else (45 if m["status"] == "PAUSED" else 90)
-                    if m["status"] == "FINISHED":
-                        limit_min = 90
-                        
-                    home_goal_mins = [min(limit_min, home_potential[i]) for i in range(home_score)]
-                    away_goal_mins = [min(limit_min, away_potential[i]) for i in range(away_score)]
-
+                    home_goals.sort()
+                    away_goals.sort()
                     home_tla = (m.get("homeTeam") or {}).get("tla") or ""
                     home_name = (m.get("homeTeam") or {}).get("name") or ""
                     away_tla = (m.get("awayTeam") or {}).get("tla") or ""
@@ -375,22 +364,28 @@ def _get_mock_matches_response() -> Dict[str, Any]:
 
                     home_scorers_rng = random.Random(f"{m.get('id') or 42}_home_scorers")
                     away_scorers_rng = random.Random(f"{m.get('id') or 42}_away_scorers")
-                    home_scorers = get_scorers_for_team(home_tla, home_name, len(home_goal_mins), home_scorers_rng)
-                    away_scorers = get_scorers_for_team(away_tla, away_name, len(away_goal_mins), away_scorers_rng)
+                    home_scorers = get_scorers_for_team(home_tla, home_name, len(home_goals), home_scorers_rng)
+                    away_scorers = get_scorers_for_team(away_tla, away_name, len(away_goals), away_scorers_rng)
 
                     simulated_goals = []
-                    for idx, g_min in enumerate(home_goal_mins):
-                        simulated_goals.append({
-                            "minute": g_min,
-                            "scorer": home_scorers[idx],
-                            "team": "home"
-                        })
-                    for idx, g_min in enumerate(away_goal_mins):
-                        simulated_goals.append({
-                            "minute": g_min,
-                            "scorer": away_scorers[idx],
-                            "team": "away"
-                        })
+                    limit_min = m["minute"] if m["minute"] is not None else (45 if m["status"] == "PAUSED" else 90)
+                    if m["status"] == "FINISHED":
+                        limit_min = 90
+
+                    for idx, g_min in enumerate(home_goals):
+                        if g_min <= limit_min:
+                            simulated_goals.append({
+                                "minute": g_min,
+                                "scorer": home_scorers[idx],
+                                "team": "home"
+                            })
+                    for idx, g_min in enumerate(away_goals):
+                        if g_min <= limit_min:
+                            simulated_goals.append({
+                                "minute": g_min,
+                                "scorer": away_scorers[idx],
+                                "team": "away"
+                            })
                     simulated_goals.sort(key=lambda x: x["minute"])
                     m["goals"] = simulated_goals
             except Exception as e:
