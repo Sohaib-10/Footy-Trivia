@@ -37,7 +37,10 @@
   }
 
   function groupLabel(match) {
-    if (match.group) return 'Group ' + match.group;
+    if (match.group) {
+      var g = match.group.replace(/^GROUP_/i, '');
+      return 'Group ' + g;
+    }
     if (match.competition && match.competition.name) return match.competition.name;
     return '';
   }
@@ -509,9 +512,18 @@
 
   function startRegularPolling(container) {
     if (pollTimer) return;
+    var hasLive = (window.WC_TODAY_MATCHES || []).some(function (m) {
+      return m.status === 'IN_PLAY' || m.status === 'PAUSED';
+    });
+    var interval = hasLive ? 30000 : 120000;
     pollTimer = setInterval(function () {
+      // Re-check for live matches and adjust interval
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
       fetchAndRender(container);
-    }, 60000);
+    }, interval);
   }
 
   async function fetchAndRender(container) {

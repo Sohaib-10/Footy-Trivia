@@ -416,6 +416,7 @@ async def get_wc_matches():
                 "dateFrom": today,
                 "dateTo": today,
             },
+            ttl_seconds=25,
         )
         upcoming_coro = fetch_with_cache(
             f"wc_upcoming_{date_from_up}_{date_to_up}",
@@ -465,8 +466,9 @@ async def get_wc_matches():
         full_time = score_data.get("fullTime") or {}
         has_real_scores = full_time.get("home") is not None and full_time.get("away") is not None
         
-        # Initialize goals list
-        m["goals"] = []
+        # Preserve real goals from API; only initialize if missing
+        if "goals" not in m or m["goals"] is None:
+            m["goals"] = []
 
         # If the API doesn't provide scores but the match has a kickoff date/time
         if not has_real_scores and m.get("utcDate"):
@@ -567,63 +569,58 @@ async def get_wc_matches():
             except Exception as e:
                 logger.warning("Failed to simulate match status: %s", e)
         elif has_real_scores:
-            try:
-                import random
-                rng = random.Random(m.get("id") or 42)
-                home_score = full_time.get("home") or 0
-                away_score = full_time.get("away") or 0
-                
-                # If the match is live (IN_PLAY or PAUSED), calculate running minute
-                if m.get("status") in ("IN_PLAY", "PAUSED"):
-                    if m.get("minute") is None and m.get("utcDate"):
-                        try:
-                            match_time_str = m["utcDate"].replace("Z", "+00:00")
-                            match_time = datetime.fromisoformat(match_time_str)
-                            elapsed = int((now - match_time).total_seconds() / 60)
-                            if elapsed < 45:
-                                m["minute"] = max(1, elapsed)
-                            elif elapsed < 60:
-                                m["status"] = "PAUSED"
-                                m["minute"] = None
-                            else:
-                                m["minute"] = min(90, elapsed - 15)
-                        except Exception:
-                            pass
-                
-                home_goals = sorted([rng.randint(1, 90) for _ in range(home_score)])
-                away_goals = sorted([rng.randint(1, 90) for _ in range(away_score)])
-                
-                home_tla = (m.get("homeTeam") or {}).get("tla") or ""
-                home_name = (m.get("homeTeam") or {}).get("name") or ""
-                away_tla = (m.get("awayTeam") or {}).get("tla") or ""
-                away_name = (m.get("awayTeam") or {}).get("name") or ""
-                
-                home_scorers = get_scorers_for_team(home_tla, home_name, len(home_goals), rng)
-                away_scorers = get_scorers_for_team(away_tla, away_name, len(away_goals), rng)
-                
-                limit_min = m.get("minute") if m.get("minute") is not None else (45 if m.get("status") == "PAUSED" else 90)
-                if m.get("status") == "FINISHED":
-                    limit_min = 90
-                
-                simulated_goals = []
-                for idx, g_min in enumerate(home_goals):
-                    if g_min <= limit_min:
-                        simulated_goals.append({
-                            "minute": g_min,
-                            "scorer": home_scorers[idx],
-                            "team": "home"
-                        })
-                for idx, g_min in enumerate(away_goals):
-                    if g_min <= limit_min:
-                        simulated_goals.append({
-                            "minute": g_min,
-                            "scorer": away_scorers[idx],
-                            "team": "away"
-                        })
-                simulated_goals.sort(key=lambda x: x["minute"])
-                m["goals"] = simulated_goals
-            except Exception as e:
-                logger.warning("Failed to generate goal scorers for real match: %s", e)
+            # Real scores exist from the API — preserve them as-is.
+            # Only calculate the running minute if the API didn't provide one.
+            if m.get("status") in ("IN_PLAY", "PAUSED"):
+                if m.get("minute") is None and m.get("utcDate"):
+                    try:
+                        match_time_str = m["utcDate"].replace("Z", "+00:00")
+                        match_time = datetime.fromisoformat(match_time_str)
+                        elapsed = int((now - match_time).total_seconds() / 60)
+                        if elapsed < 45:
+                            m["minute"] = max(1, elapsed)
+                        elif elapsed < 60:
+                            m["status"] = "PAUSED"
+                            m["minute"] = None
+                        else:
+                            m["minute"] = min(90, elapsed - 15)
+                    except Exception:
+                        pass
+            # If the API provided real goal events, keep them.
+            # Otherwise, generate display-only goal scorers from team rosters.
+            if not m.get("goals"):
+                try:
+                    import random
+                    rng = random.Random(m.get("id") or 42)
+                    home_score_val = full_time.get("home") or 0
+                    away_score_val = full_time.get("away") or 0
+
+                    home_goal_mins = sorted([rng.randint(1, 90) for _ in range(home_score_val)])
+                    away_goal_mins = sorted([rng.randint(1, 90) for _ in range(away_score_val)])
+
+                    home_tla = (m.get("homeTeam") or {}).get("tla") or ""
+                    home_name = (m.get("homeTeam") or {}).get("name") or ""
+                    away_tla = (m.get("awayTeam") or {}).get("tla") or ""
+                    away_name = (m.get("awayTeam") or {}).get("name") or ""
+
+                    home_scorers = get_scorers_for_team(home_tla, home_name, len(home_goal_mins), rng)
+                    away_scorers = get_scorers_for_team(away_tla, away_name, len(away_goal_mins), rng)
+
+                    limit_min = m.get("minute") if m.get("minute") is not None else (45 if m.get("status") == "PAUSED" else 90)
+                    if m.get("status") == "FINISHED":
+                        limit_min = 90
+
+                    sim_goals = []
+                    for idx, g_min in enumerate(home_goal_mins):
+                        if g_min <= limit_min:
+                            sim_goals.append({"minute": g_min, "scorer": home_scorers[idx], "team": "home"})
+                    for idx, g_min in enumerate(away_goal_mins):
+                        if g_min <= limit_min:
+                            sim_goals.append({"minute": g_min, "scorer": away_scorers[idx], "team": "away"})
+                    sim_goals.sort(key=lambda x: x["minute"])
+                    m["goals"] = sim_goals
+                except Exception as e:
+                    logger.warning("Failed to generate fallback goal scorers: %s", e)
 
     today_matches = sorted(
         today_matches_list,

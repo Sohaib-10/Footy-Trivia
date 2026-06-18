@@ -4676,7 +4676,7 @@
             group.table.forEach(t => {
               if (t.playedGames > maxPlayed) maxPlayed = t.playedGames;
             });
-            const matchdayLabel = maxPlayed > 0 ? `Matchday ${maxPlayed}` : 'Matchday 1';
+            const matchdayLabel = maxPlayed > 1 ? `Matchday ${maxPlayed}` : 'Matchday 2';
 
             let html = `
               <div class="wc-card-title">${group.name} <span style="font-size:0.75rem; color:var(--gold)">${matchdayLabel}</span></div>
@@ -4739,7 +4739,7 @@
           const card = document.createElement('div');
           card.className = 'wc-card';
           let html = `
-            <div class="wc-card-title">${group.name} <span style="font-size:0.75rem; color:var(--gold)">Matchday 1</span></div>
+            <div class="wc-card-title">${group.name} <span style="font-size:0.75rem; color:var(--gold)">Matchday 2</span></div>
             <table class="wc-table">
               <thead>
                 <tr>
