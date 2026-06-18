@@ -34,3 +34,45 @@ def test_display_mode_today_priority():
     assert sorted_matches[0]["status"] == "IN_PLAY"
     assert sorted_matches[1]["status"] == "FINISHED"
     assert sorted_matches[2]["status"] == "SCHEDULED"
+
+
+def test_mock_matches_goal_stability():
+    from unittest.mock import patch
+    import datetime as dt
+    from app.routers.scores import _get_mock_matches_response
+    
+    # 2026-06-18 is a Thursday, the scheduled date for England vs USA in the mock matches
+    fixed_now_1 = dt.datetime(2026, 6, 18, 22, 30, 0, tzinfo=dt.timezone.utc)
+    
+    with patch("app.routers.scores.datetime") as mock_dt:
+        mock_dt.now.return_value = fixed_now_1
+        mock_dt.fromisoformat = dt.datetime.fromisoformat
+        
+        response_1 = _get_mock_matches_response()
+        
+    # Find England vs USA match (id: 3)
+    eng_match_1 = next(m for m in response_1["matches"] if m["id"] == 3)
+    assert eng_match_1["status"] == "IN_PLAY"
+    assert eng_match_1["minute"] == 30
+    goals_1 = eng_match_1["goals"]
+    
+    # Second time: 40 minutes elapsed (minute 40)
+    fixed_now_2 = dt.datetime(2026, 6, 18, 22, 40, 0, tzinfo=dt.timezone.utc)
+    with patch("app.routers.scores.datetime") as mock_dt:
+        mock_dt.now.return_value = fixed_now_2
+        mock_dt.fromisoformat = dt.datetime.fromisoformat
+        
+        response_2 = _get_mock_matches_response()
+        
+    eng_match_2 = next(m for m in response_2["matches"] if m["id"] == 3)
+    assert eng_match_2["status"] == "IN_PLAY"
+    assert eng_match_2["minute"] == 40
+    goals_2 = eng_match_2["goals"]
+    
+    # Verify goals in goals_1 remain completely identical in goals_2
+    for g1 in goals_1:
+        # find matching goal in goals_2 by team and scorer
+        g2 = next((g for g in goals_2 if g["scorer"] == g1["scorer"] and g["team"] == g1["team"]), None)
+        assert g2 is not None, f"Scorer {g1['scorer']} disappeared in subsequent poll!"
+        assert g2["minute"] == g1["minute"], f"Goal minute changed from {g1['minute']} to {g2['minute']} for {g1['scorer']}!"
+

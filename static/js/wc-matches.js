@@ -361,6 +361,10 @@
       var ftIndicator = document.getElementById('ft-indicator');
       if (liveIndicator) liveIndicator.style.display = 'none';
       if (ftIndicator) ftIndicator.style.display = 'none';
+      
+      var liveMatchGoalsEl = document.getElementById('live-match-goals');
+      if (liveMatchGoalsEl) liveMatchGoalsEl.style.display = 'none';
+      
       return;
     }
     
@@ -430,6 +434,32 @@
         matchMinuteEl.style.display = 'block';
         matchMinuteEl.style.color = 'var(--text3)';
         matchMinuteEl.textContent = formatLocalTime(activeMatch.utcDate);
+      }
+    }
+    
+    // Render goal scorers for the live/active match
+    var liveMatchGoalsEl = document.getElementById('live-match-goals');
+    var liveHomeGoalsEl = document.getElementById('live-home-goals');
+    var liveAwayGoalsEl = document.getElementById('live-away-goals');
+    
+    if (liveMatchGoalsEl && liveHomeGoalsEl && liveAwayGoalsEl) {
+      liveHomeGoalsEl.innerHTML = '';
+      liveAwayGoalsEl.innerHTML = '';
+      
+      if (activeMatch.goals && activeMatch.goals.length > 0) {
+        liveMatchGoalsEl.style.display = 'flex';
+        activeMatch.goals.forEach(function (g) {
+          var item = document.createElement('div');
+          item.className = 'wc-goal-item';
+          item.innerHTML = '⚽ ' + g.scorer + ' (' + g.minute + "\')";
+          if (g.team === 'home') {
+            liveHomeGoalsEl.appendChild(item);
+          } else if (g.team === 'away') {
+            liveAwayGoalsEl.appendChild(item);
+          }
+        });
+      } else {
+        liveMatchGoalsEl.style.display = 'none';
       }
     }
     
