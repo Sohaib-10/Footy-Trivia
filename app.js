@@ -4914,6 +4914,9 @@
           const temp = teams[fromIdx];
           teams.splice(fromIdx, 1);
           teams.splice(toIdx, 0, temp);
+          // Persist BEFORE onGroupStandingsChanged so ensureValidGroupPredictions
+          // won't overwrite the in-memory swap with stale localStorage data.
+          localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
           onGroupStandingsChanged();
         }
         return false;
@@ -4934,6 +4937,9 @@
         const temp = teams[index];
         teams[index] = teams[targetIdx];
         teams[targetIdx] = temp;
+        // Persist BEFORE onGroupStandingsChanged so ensureValidGroupPredictions
+        // won't overwrite the in-memory swap with stale localStorage data.
+        localStorage.setItem('wc_group_predictions', JSON.stringify(groupPredictions));
         onGroupStandingsChanged();
       }
       async function submitGroupPredictions() {

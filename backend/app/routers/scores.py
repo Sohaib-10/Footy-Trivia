@@ -680,22 +680,23 @@ async def get_wc_matches():
             if not m.get("goals"):
                 try:
                     import random
-                    limit_min = m.get("minute") if m.get("minute") is not None else (45 if m.get("status") == "PAUSED" else 90)
-                    if m.get("status") == "FINISHED":
-                        limit_min = 90
 
                     home_score_val = full_time.get("home") or 0
                     away_score_val = full_time.get("away") or 0
 
-                    # Generate stable, deterministic potential goal minutes for the match
+                    # Generate stable, deterministic goal minutes for the match.
+                    # Use the raw pre-generated minutes WITHOUT clamping to the
+                    # current match minute so they never shift between requests.
                     home_rng = random.Random(f"{m.get('id') or 42}_home")
                     away_rng = random.Random(f"{m.get('id') or 42}_away")
                     
                     home_potential = sorted([home_rng.randint(1, 90) for _ in range(15)])
                     away_potential = sorted([away_rng.randint(1, 90) for _ in range(15)])
                     
-                    home_goal_mins = [min(limit_min, home_potential[i]) for i in range(home_score_val)]
-                    away_goal_mins = [min(limit_min, away_potential[i]) for i in range(away_score_val)]
+                    # Use raw minutes — these are display-only estimates since the
+                    # football-data.org API doesn't provide real goal event times.
+                    home_goal_mins = [home_potential[i] for i in range(home_score_val)]
+                    away_goal_mins = [away_potential[i] for i in range(away_score_val)]
 
                     home_tla = (m.get("homeTeam") or {}).get("tla") or ""
                     home_name = (m.get("homeTeam") or {}).get("name") or ""
