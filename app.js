@@ -4831,10 +4831,28 @@
                 <span style="font-weight:600; font-size:0.9rem;">${team.name}</span>
               </div>
               <div class="wc-reorder-controls">
-                <button class="wc-reorder-btn" onclick="${isGuest ? 'requireLoginForPredictions()' : `moveTeam('${groupKey}', ${index}, -1)`}" title="Move Up">▲</button>
-                <button class="wc-reorder-btn" onclick="${isGuest ? 'requireLoginForPredictions()' : `moveTeam('${groupKey}', ${index}, 1)`}" title="Move Down">▼</button>
+                <button class="wc-reorder-btn wc-move-up" title="Move Up">▲</button>
+                <button class="wc-reorder-btn wc-move-down" title="Move Down">▼</button>
               </div>
             `;
+            // Use closure-based event listeners instead of inline onclick
+            // so buttons work even if window.moveTeam assignment hasn't run yet
+            const upBtn = item.querySelector('.wc-move-up');
+            const downBtn = item.querySelector('.wc-move-down');
+            if (upBtn) {
+              upBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (isGuest) { requireLoginForPredictions(); return; }
+                moveTeam(groupKey, index, -1);
+              });
+            }
+            if (downBtn) {
+              downBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (isGuest) { requireLoginForPredictions(); return; }
+                moveTeam(groupKey, index, 1);
+              });
+            }
             list.appendChild(item);
           });
           card.appendChild(list);
@@ -5117,9 +5135,17 @@
               <span id="pred-status-${fixture.id}" class="wc-pred-status${hasPredicted ? ' wc-pred-status--saved' : ''}">
                 ${hasPredicted ? `Predicted: ${pred.homeScore} - ${pred.awayScore}` : 'Not Predicted'}
               </span>
-              <button class="btn btn-ghost wc-pred-save-btn" onclick="${isGuest ? 'requireLoginForPredictions()' : `saveMatchPrediction(${fixture.id})`}">${isGuest ? 'Log in to Predict' : 'Save Prediction'}</button>
+              <button class="btn btn-ghost wc-pred-save-btn">${isGuest ? 'Log in to Predict' : 'Save Prediction'}</button>
             </div>
           `;
+          const saveBtn = card.querySelector('.wc-pred-save-btn');
+          if (saveBtn) {
+            saveBtn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              if (isGuest) { requireLoginForPredictions(); return; }
+              saveMatchPrediction(fixture.id);
+            });
+          }
           container.appendChild(card);
         });
       }
