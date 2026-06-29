@@ -3,7 +3,7 @@
       // LEADERBOARD_DATA loaded from data.js
       // CATEGORIES_DATA loaded from data.js
       // TRANSFER_PLAYERS loaded from data.js
-      const LOCAL_API_URL = 'http://127.0.0.1:8002';
+      const LOCAL_API_URL = 'http://127.0.0.1:8000';
       const PRODUCTION_API_URL = 'https://footytrivia-api.onrender.com';
 
       function resolveApiBaseUrl() {
@@ -4363,12 +4363,14 @@
 
       // The knockout bracket only shows teams once the user has fully predicted in
       // the Prediction Center: group rankings submitted AND the 8 third-place
-      // qualifiers confirmed. Until then the bracket stays empty.
+      // qualifiers confirmed. OR if real standings are complete, auto-unlock.
       function arePredictionsComplete() {
+        if (hasRealGroupStageComplete()) return true;
         return areGroupRankingsSubmitted() && !!getConfirmedManualThirdPlace();
       }
 
       function getBracketUnlockMessage() {
+        if (hasRealGroupStageComplete()) return '';
         if (!areGroupRankingsSubmitted()) {
           return 'Submit your final group standings in the Prediction Center to unlock the knockout bracket.';
         }
@@ -4602,6 +4604,44 @@
       let standingsPollInterval = null;
       window.WC_STANDINGS = [];
 
+      // Check if real group stage is complete (all 12 groups, all teams played 3 games)
+      function hasRealGroupStageComplete() {
+        if (!window.WC_STANDINGS || window.WC_STANDINGS.length < 12) return false;
+        return window.WC_STANDINGS.every(group => {
+          if (!group.table || group.table.length < 4) return false;
+          return group.table.every(row => row.playedGames >= 3);
+        });
+      }
+
+      // Get real standings as groupPredictions-compatible format
+      function getRealGroupPredictions() {
+        if (!window.WC_STANDINGS || window.WC_STANDINGS.length === 0) return null;
+        const result = {};
+        window.WC_STANDINGS.forEach(group => {
+          const groupLetter = group.name.replace('Group ', '');
+          result[groupLetter] = {
+            name: group.name,
+            teams: group.table.map(row => {
+              const teamName = row.team.shortName || row.team.name;
+              return {
+                name: teamName,
+                p: row.playedGames || 0,
+                gd: row.goalDifference || 0,
+                pts: row.points || 0,
+                gf: row.goalsFor || 0
+              };
+            })
+          };
+        });
+        return result;
+      }
+
+      // Get the best 8 third-placed group keys from real standings
+      function getRealQualifiedThirdPlaceGroups() {
+        const thirds = getRealBestThirdPlacedTeams();
+        return thirds.slice(0, 8).map(t => t.groupKey).sort().join('');
+      }
+
       async function fetchAndRenderStandings() {
         try {
           const res = await fetch(`${API_BASE_URL}/api/wc/standings`, { credentials: 'omit' });
@@ -4610,6 +4650,14 @@
           window.WC_STANDINGS = data.standings || [];
           renderGroupStandings();
           renderBestThirdPlacedTable();
+          // Auto-populate bracket when group stage is complete
+          if (hasRealGroupStageComplete() && window.bracketPredictor) {
+            window.bracketPredictor.syncRound32Matchups({ persist: true });
+            window.bracketPredictor.renderBracket();
+            window.bracketPredictor.renderProgress();
+            window.bracketPredictor.updateChampionDisplay();
+            window.bracketPredictor.updateDownloadButton();
+          }
         } catch (err) {
           console.error('Failed to fetch group standings:', err);
         }
@@ -4618,7 +4666,7 @@
       function startStandingsPolling() {
         if (standingsPollInterval) return;
         fetchAndRenderStandings();
-        standingsPollInterval = setInterval(fetchAndRenderStandings, 60000);
+        standingsPollInterval = setInterval(fetchAndRenderStandings, 20000);
       }
 
       function stopStandingsPolling() {
@@ -5817,6 +5865,13 @@
           if (!code) return null;
           const groupKey = code.substring(1);
           const rank = parseInt(code.substring(0, 1)) - 1;
+          // Prefer real standings data when group stage is complete
+          if (hasRealGroupStageComplete()) {
+            const realGroups = getRealGroupPredictions();
+            if (realGroups && realGroups[groupKey]) {
+              return realGroups[groupKey].teams[rank] || null;
+            }
+          }
           const group = groupPredictions[groupKey];
           return group ? group.teams[rank] : null;
         }
@@ -5837,6 +5892,10 @@
         }
 
         getQualifiedThirdPlaceGroups() {
+          // Use real standings when group stage is complete
+          if (hasRealGroupStageComplete()) {
+            return getRealQualifiedThirdPlaceGroups();
+          }
           // Use the user's confirmed manual selection when available, else auto top-8.
           const manual = getConfirmedManualThirdPlace();
           if (manual) return manual.slice().sort().join('');
@@ -5994,6 +6053,28 @@
           this.updateDownloadButton();
         }
 
+        // ── Official R32 fixtures from real group stage results ──
+        getOfficialR32Fixtures() {
+          return [
+            { home: 'South Africa', away: 'Canada' },         // M1
+            { home: 'Brazil', away: 'Japan' },                // M2
+            { home: 'Germany', away: 'Paraguay' },             // M3
+            { home: 'Netherlands', away: 'Morocco' },          // M4
+            { home: 'Ivory Coast', away: 'Norway' },           // M5
+            { home: 'France', away: 'Sweden' },                // M6
+            { home: 'Mexico', away: 'Ecuador' },               // M7
+            { home: 'England', away: 'DR Congo' },             // M8
+            { home: 'Belgium', away: 'Senegal' },              // M9
+            { home: 'United States', away: 'Bosnia & Herzegovina' }, // M10
+            { home: 'Spain', away: 'Austria' },                // M11
+            { home: 'Portugal', away: 'Croatia' },             // M12
+            { home: 'Switzerland', away: 'Algeria' },          // M13
+            { home: 'Australia', away: 'Egypt' },              // M14
+            { home: 'Argentina', away: 'Cape Verde' },         // M15
+            { home: 'Colombia', away: 'Ghana' }                // M16
+          ];
+        }
+
         // ── SYNC R32 slot labels from group predictions ──
         syncRound32Matchups(options = {}) {
           if (typeof options === 'boolean') {
@@ -6012,6 +6093,28 @@
               m.away = null;
               m.winner = null;
             });
+            if (persist) this.saveBracket();
+            return;
+          }
+
+          // When real group stage is complete, use the official R32 fixtures
+          if (hasRealGroupStageComplete()) {
+            const officialFixtures = this.getOfficialR32Fixtures();
+            for (let i = 0; i < 16; i++) {
+              const fixture = officialFixtures[i];
+              const m = this.matches[i];
+              const newHome = { name: fixture.home };
+              const newAway = { name: fixture.away };
+
+              if (!m.home || m.home.name !== newHome.name) {
+                m.home = newHome;
+                if (m.winner) this.clearDownstream(i);
+              }
+              if (!m.away || m.away.name !== newAway.name) {
+                m.away = newAway;
+                if (m.winner) this.clearDownstream(i);
+              }
+            }
             if (persist) this.saveBracket();
             return;
           }
