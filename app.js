@@ -2894,7 +2894,31 @@
         if (type === 'login' || type === 'signup') {
           wakeApiServer();
         }
-        if (type === 'login') {
+        if (type === 'extension') {
+          const modalContainer = overlay.querySelector('.modal');
+          if (modalContainer) {
+            modalContainer.style.maxWidth = '550px';
+          }
+          content.innerHTML = `
+            <h2 class="modal-title">Live Score Chrome Extension</h2>
+            <div class="modal-sub" style="margin-bottom:1.5rem">Track live World Cup '26 match scores and running minutes directly from your browser toolbar.</div>
+            
+            <div style="text-align:center; margin-bottom:2rem">
+              <a href="/footy-trivia-extension.zip" download class="btn btn-primary" style="display:inline-flex; align-items:center; gap:8px; text-decoration:none; justify-content:center; width:100%; max-width:280px; margin:0 auto; padding:12px 24px">
+                <span>📥</span> Download Extension ZIP
+              </a>
+            </div>
+
+            <div class="extension-instructions" style="font-size:0.88rem; line-height:1.6; color:var(--text2); display:flex; flex-direction:column; gap:12px; text-align:left; border-top:1px solid var(--border); padding-top:1.5rem">
+              <h4 style="color:var(--text); font-family:var(--font-display); font-size:1rem; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:4px">How to Install in Google Chrome:</h4>
+              <div style="display:flex; gap:8px"><strong style="color:var(--gold)">1.</strong> <span><strong>Extract the ZIP:</strong> Extract the downloaded <code>footy-trivia-extension.zip</code> file to a folder on your computer.</span></div>
+              <div style="display:flex; gap:8px"><strong style="color:var(--gold)">2.</strong> <span><strong>Open Extensions:</strong> Open Chrome and type <code>chrome://extensions/</code> in the URL bar, or click Menu (three dots) → Extensions → Manage Extensions.</span></div>
+              <div style="display:flex; gap:8px"><strong style="color:var(--gold)">3.</strong> <span><strong>Enable Developer Mode:</strong> Toggle the <strong>Developer mode</strong> switch in the top-right corner to <strong>ON</strong>.</span></div>
+              <div style="display:flex; gap:8px"><strong style="color:var(--gold)">4.</strong> <span><strong>Load Unpacked:</strong> Click the <strong>Load unpacked</strong> button in the top-left, select the extracted <code>footy-trivia-extension</code> folder, and click select/open.</span></div>
+              <div style="display:flex; gap:8px"><strong style="color:var(--gold)">5.</strong> <span><strong>Pin for Quick Access:</strong> Click the Puzzle piece icon next to your Chrome profile picture and click the pin icon next to <strong>Footy-Trivia Live Score</strong>.</span></div>
+            </div>
+          `;
+        } else if (type === 'login') {
           content.innerHTML = `
           <h2 class="modal-title">Welcome Back</h2>
           <div class="modal-sub">Log in to track your scores and compete globally.</div>
