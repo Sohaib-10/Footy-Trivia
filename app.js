@@ -9434,6 +9434,18 @@
         showPage('play');
       }
 
+      function openLivePopup() {
+        const width = 360;
+        const height = 540;
+        const left = (screen.width - width) / 2;
+        const top = (screen.height - height) / 2;
+        window.open(
+          '/live-popup.html',
+          'FootyTriviaLiveScore',
+          `width=${width},height=${height},top=${top},left=${left},status=no,menubar=no,toolbar=no,location=no,resizable=yes`
+        );
+      }
+
       window.openModal = openModal;
       window.closeModal = closeModal;
       window.togglePasswordVisibility = togglePasswordVisibility;
@@ -9449,3 +9461,4 @@
       window.exitBattle = exitBattle;
       window.submitBattleAnswer = submitBattleAnswer;
       window.signOut = logout;
+      window.openLivePopup = openLivePopup;

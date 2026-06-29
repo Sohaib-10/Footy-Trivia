@@ -1541,10 +1541,10 @@
           <!-- Chrome Extension Card -->
           <div class="wc-card" style="margin-top: 1.5rem; grid-column: 1 / -1; background: linear-gradient(to right, var(--surface2), rgba(34,197,94,0.05)); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <div>
-              <div class="wc-card-title" style="margin-bottom: 0.25rem;">🔌 Live Scores Chrome Extension</div>
-              <p style="color:var(--text2);font-size:0.85rem;margin:0;">Track live matches and running match minutes directly from your browser toolbar.</p>
+              <div class="wc-card-title" style="margin-bottom: 0.25rem;">🔌 Live Scores Widget & Extension</div>
+              <p style="color:var(--text2);font-size:0.85rem;margin:0;">Track live matches and running match minutes in a desktop popup window or chrome toolbar.</p>
             </div>
-            <button class="btn btn-ghost" onclick="openModal('extension')" style="border: 1px solid var(--border); background: var(--bg);">Get Chrome Extension</button>
+            <button class="btn btn-ghost" onclick="openLivePopup()" style="border: 1px solid var(--border); background: var(--bg);">Open Live Score Widget</button>
           </div>
         </div>
 
@@ -1670,8 +1670,8 @@
                     </span>
                     <span id="ft-indicator" style="display:none;color:var(--text2);font-size:0.8rem;font-weight:700">FT</span>
                   </div>
-                  <button class="btn btn-ghost" onclick="openModal('extension')" style="font-size:0.8rem; padding:6px 12px; display:flex; align-items:center; gap:6px; border:1px solid var(--border); border-radius:6px; background:var(--surface2);">
-                    <span>🔌</span> Chrome Extension
+                  <button class="btn btn-ghost" onclick="openLivePopup()" style="font-size:0.8rem; padding:6px 12px; display:flex; align-items:center; gap:6px; border:1px solid var(--border); border-radius:6px; background:var(--surface2);">
+                    <span>📺</span> Live Score Pop-up
                   </button>
                 </div>
                 
