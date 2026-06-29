@@ -9435,16 +9435,215 @@
       }
 
       function openLivePopup() {
-        const width = 360;
-        const height = 540;
-        const left = (screen.width - width) / 2;
-        const top = (screen.height - height) / 2;
-        window.open(
-          '/live-popup.html',
-          'FootyTriviaLiveScore',
-          `width=${width},height=${height},top=${top},left=${left},status=no,menubar=no,toolbar=no,location=no,resizable=yes`
-        );
+        const overlay = document.getElementById('modal-overlay');
+        const content = document.getElementById('modal-content');
+        if (!overlay || !content) return;
+        
+        const modalContainer = overlay.querySelector('.modal');
+        if (modalContainer) {
+          modalContainer.style.maxWidth = '360px';
+          modalContainer.style.borderRadius = '16px';
+          modalContainer.style.padding = '16px';
+        }
+        
+        content.innerHTML = `
+          <div style="text-align:center; padding:30px; color:var(--text3);">
+            <span style="font-size:2rem; animation:spin 1s linear infinite; display:inline-block; margin-bottom:8px;">⏳</span>
+            <div style="font-weight:700; font-size:0.9rem; color:var(--text);">Loading Live Scores...</div>
+          </div>
+        `;
+        
+        overlay.classList.add('show');
+        renderLiveScoresWidget();
+        
+        if (window.liveScoresWidgetTimer) {
+          clearInterval(window.liveScoresWidgetTimer);
+        }
+        
+        window.liveScoresWidgetTimer = setInterval(async () => {
+          if (!overlay.classList.contains('show')) {
+            clearInterval(window.liveScoresWidgetTimer);
+            window.liveScoresWidgetTimer = null;
+            return;
+          }
+          try {
+            const apiBase = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:' ? 'http://127.0.0.1:8000' : 'https://footytrivia-api.onrender.com';
+            const res = await fetch(apiBase + '/api/wc/matches', { credentials: 'omit' });
+            if (res.ok) {
+              const data = await res.json();
+              window.WC_TODAY_MATCHES = data.matches || [];
+              renderLiveScoresWidget();
+            }
+          } catch (e) {
+            console.error('Failed to update live scores widget:', e);
+          }
+        }, 10000);
       }
+
+      function renderLiveScoresWidget() {
+        const content = document.getElementById('modal-content');
+        if (!content) return;
+        
+        const matches = window.WC_TODAY_MATCHES || [];
+        const live = matches.filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
+        const fixtures = matches.filter(m => m.status === 'SCHEDULED' || m.status === 'TIMED');
+        const completed = matches.filter(m => m.status === 'FINISHED');
+        
+        let html = `
+          <div class="live-widget-container" style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:4px;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="live-pulse" style="width:8px; height:8px; background:var(--success); border-radius:50%; display:inline-block; animation:pulse 1s infinite alternate"></span>
+                <span style="font-family:var(--font-display); font-weight:800; font-size:1.1rem; letter-spacing:0.5px; text-transform:uppercase;">Live Score Matchday</span>
+              </div>
+              <button onclick="refreshLiveScoresWidget(this)" class="refresh-btn-widget" style="background:transparent; border:none; color:var(--text2); cursor:pointer; display:flex; align-items:center;" title="Refresh">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px; height:14px;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              </button>
+            </div>
+            
+            <div id="live-widget-list" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto; padding-right:4px;">
+        `;
+        
+        if (live.length === 0 && fixtures.length === 0 && completed.length === 0) {
+          html += `
+            <div style="text-align:center; padding:24px 12px; color:var(--text2);">
+              <span style="font-size:2rem; display:block; margin-bottom:8px;">🏆</span>
+              <div style="font-weight:700; font-size:0.9rem; color:var(--text)">FIFA World Cup 2026</div>
+              <div style="font-size:0.75rem; margin-top:2px;">11 Jun – 19 Jul 2026 · USA · Canada · Mexico</div>
+            </div>
+          `;
+        } else {
+          if (live.length > 0) {
+            html += `<div style="font-size:0.7rem; font-weight:700; color:var(--success); letter-spacing:0.5px; text-transform:uppercase; margin-top:4px;">🔴 Live Now</div>`;
+            live.forEach(match => {
+              html += buildWidgetMatchCard(match, 'live');
+            });
+          }
+          if (fixtures.length > 0) {
+            html += `<div style="font-size:0.7rem; font-weight:700; color:var(--text2); letter-spacing:0.5px; text-transform:uppercase; margin-top:4px;">📅 Today's Fixtures</div>`;
+            fixtures.forEach(match => {
+              html += buildWidgetMatchCard(match, 'fixture');
+            });
+          }
+          if (completed.length > 0) {
+            html += `<div style="font-size:0.7rem; font-weight:700; color:var(--text2); letter-spacing:0.5px; text-transform:uppercase; margin-top:4px;">✅ Completed</div>`;
+            completed.slice(0, 3).forEach(match => {
+              html += buildWidgetMatchCard(match, 'result');
+            });
+          }
+        }
+        
+        html += `
+            </div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:8px; margin-top:4px;">
+              <a href="#" onclick="closeModal(); showPage('worldcup'); switchWCTab('matchday', document.querySelector('.wc-tab[onclick*=\\'matchday\\']')); return false;" style="font-size:0.75rem; color:var(--gold); text-decoration:none; font-weight:600;">Go to Matchday Hub →</a>
+              <a href="#" onclick="openModal('extension'); return false;" style="font-size:0.75rem; color:var(--text2); text-decoration:none;">Install Chrome Extension</a>
+            </div>
+          </div>
+        `;
+        
+        content.innerHTML = html;
+      }
+
+      function buildWidgetMatchCard(match, type) {
+        const home = match.homeTeam || {};
+        const away = match.awayTeam || {};
+        const score = match.score || {};
+        
+        const homeName = home.shortName || home.tla || home.name || 'TBD';
+        const awayName = away.shortName || away.tla || away.name || 'TBD';
+        
+        const homeScoreVal = score.fullTime && score.fullTime.home != null ? score.fullTime.home : 0;
+        const awayScoreVal = score.fullTime && score.fullTime.away != null ? score.fullTime.away : 0;
+        
+        const homeCrest = home.crest ? `<img src="${home.crest}" alt="${homeName}" style="width:20px; height:20px; object-fit:contain; border-radius:3px;">` : `<span style="font-size:0.65rem; font-weight:700; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; background:var(--surface2); border:1px solid var(--border2); border-radius:3px; color:var(--text2);">${homeName.slice(0,3).toUpperCase()}</span>`;
+        const awayCrest = away.crest ? `<img src="${away.crest}" alt="${awayName}" style="width:20px; height:20px; object-fit:contain; border-radius:3px;">` : `<span style="font-size:0.65rem; font-weight:700; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; background:var(--surface2); border:1px solid var(--border2); border-radius:3px; color:var(--text2);">${awayName.slice(0,3).toUpperCase()}</span>`;
+        
+        let centerHtml = '';
+        if (type === 'live') {
+          centerHtml = `
+            <div style="font-family:var(--font-display); font-size:1.15rem; font-weight:800; color:var(--accent);">${homeScoreVal} - ${awayScoreVal}</div>
+            <div style="font-size:0.65rem; font-weight:700; color:var(--success); margin-top:-2px;">${match.minute != null ? match.minute + "'" : (match.status === 'PAUSED' ? 'HT' : 'LIVE')}</div>
+          `;
+        } else if (type === 'fixture') {
+          const time = match.utcDate ? new Date(match.utcDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'VS';
+          centerHtml = `
+            <div style="font-size:0.75rem; font-weight:600; color:var(--text2);">${time}</div>
+          `;
+        } else if (type === 'result') {
+          centerHtml = `
+            <div style="font-family:var(--font-display); font-size:1.15rem; font-weight:800; color:var(--text2);">${homeScoreVal} - ${awayScoreVal}</div>
+            <div style="font-size:0.6rem; font-weight:700; background:var(--border2); color:var(--text2); padding:1px 4px; border-radius:2px; margin-top:2px;">FT</div>
+          `;
+        }
+        
+        let goalsHtml = '';
+        if (match.goals && match.goals.length > 0) {
+          goalsHtml += `
+            <div style="border-top:1px dashed var(--border2); padding-top:6px; margin-top:6px; display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:0.62rem; color:var(--text2);">
+              <div style="display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border); padding-right:4px;">
+          `;
+          match.goals.forEach(g => {
+            if (g.team === 'home') {
+              goalsHtml += `<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">⚽ ${g.scorer} (${g.minute}')</div>`;
+            }
+          });
+          goalsHtml += `
+              </div>
+              <div style="display:flex; flex-direction:column; gap:2px; padding-left:4px; align-items:flex-end; text-align:right;">
+          `;
+          match.goals.forEach(g => {
+            if (g.team === 'away') {
+              goalsHtml += `<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">⚽ ${g.scorer} (${g.minute}')</div>`;
+            }
+          });
+          goalsHtml += `
+              </div>
+            </div>
+          `;
+        }
+        
+        return `
+          <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; display:flex; flex-direction:column; box-shadow:0 2px 8px rgba(0,0,0,0.5);">
+            <div style="display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px;">
+              <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                ${homeCrest}
+                <span style="font-size:0.75rem; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80px;">${homeName}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:50px;">
+                ${centerHtml}
+              </div>
+              <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end; min-width:0; text-align:right;">
+                <span style="font-size:0.75rem; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80px;">${awayName}</span>
+                ${awayCrest}
+              </div>
+            </div>
+            ${goalsHtml}
+          </div>
+        `;
+      }
+
+      async function refreshLiveScoresWidget(btn) {
+        if (!btn) return;
+        const svg = btn.querySelector('svg');
+        if (svg) svg.style.animation = 'spin 0.8s linear infinite';
+        try {
+          const apiBase = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:' ? 'http://127.0.0.1:8000' : 'https://footytrivia-api.onrender.com';
+          const res = await fetch(apiBase + '/api/wc/matches', { credentials: 'omit' });
+          if (res.ok) {
+            const data = await res.json();
+            window.WC_TODAY_MATCHES = data.matches || [];
+            renderLiveScoresWidget();
+          }
+        } catch (e) {
+          console.error('Manual refresh of live scores widget failed:', e);
+        } finally {
+          if (svg) svg.style.animation = '';
+        }
+      }
+
+      window.refreshLiveScoresWidget = refreshLiveScoresWidget;
 
       window.openModal = openModal;
       window.closeModal = closeModal;
