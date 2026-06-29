@@ -526,11 +526,9 @@ async def get_wc_matches():
             today_coro, upcoming_coro, recent_coro
         )
         stale = today_stale or upcoming_stale or recent_stale
-    except HTTPException:
-        raise
-    except Exception:
-        logger.exception("Failed to fetch World Cup matches")
-        return _off_season_response("Scores unavailable")
+    except Exception as e:
+        logger.warning("Failed to fetch World Cup matches from API, falling back to mock: %s", e)
+        return _get_mock_matches_response()
 
     today_matches_list = today_data.get("matches") or []
 
@@ -885,8 +883,8 @@ def _get_mock_standings() -> list:
                         },
                         {
                                 "team": {
-                                        "name": "Bosnia-Herzegovina",
-                                        "shortName": "Bosnia-H.",
+                                        "name": "Bosnia & Herzegovina",
+                                        "shortName": "Bosnia & Herzegovina",
                                         "tla": "BIH",
                                         "crest": "https://crests.football-data.org/bosnia.svg"
                                 },
@@ -1016,8 +1014,8 @@ def _get_mock_standings() -> list:
                         },
                         {
                                 "team": {
-                                        "name": "Turkey",
-                                        "shortName": "Turkey",
+                                        "name": "Türkiye",
+                                        "shortName": "Türkiye",
                                         "tla": "TUR",
                                         "crest": "https://crests.football-data.org/803.svg"
                                 },
@@ -1278,7 +1276,7 @@ def _get_mock_standings() -> list:
                 "table": [
                         {
                                 "team": {
-                                        "name": "Cape Verde Islands",
+                                        "name": "Cape Verde",
                                         "shortName": "Cape Verde",
                                         "tla": "CPV",
                                         "crest": "https://crests.football-data.org/cape_verde.svg"
@@ -1500,8 +1498,8 @@ def _get_mock_standings() -> list:
                 "table": [
                         {
                                 "team": {
-                                        "name": "Congo DR",
-                                        "shortName": "Congo DR",
+                                        "name": "DR Congo",
+                                        "shortName": "DR Congo",
                                         "tla": "COD",
                                         "crest": "https://crests.football-data.org/congo_dr.svg"
                                 },
@@ -1645,6 +1643,19 @@ def _get_mock_standings() -> list:
 ]
 
 
+def _standardize_team_name(name: str) -> str:
+    if not name:
+        return name
+    mapping = {
+        "turkey": "Türkiye",
+        "bosnia-herzegovina": "Bosnia & Herzegovina",
+        "bosnia-h.": "Bosnia & Herzegovina",
+        "cape verde islands": "Cape Verde",
+        "congo dr": "DR Congo",
+    }
+    return mapping.get(name.lower(), name)
+
+
 def apply_matches_to_standings(standings: list, matches: list, apply_finished: bool = False) -> list:
     import copy
     standings = copy.deepcopy(standings)
@@ -1655,8 +1666,8 @@ def apply_matches_to_standings(standings: list, matches: list, apply_finished: b
         for entry in group.get("table", []):
             team = entry.get("team", {})
             tla = (team.get("tla") or "").upper()
-            name = (team.get("name") or "").lower()
-            short_name = (team.get("shortName") or "").lower()
+            name = _standardize_team_name(team.get("name") or "").lower()
+            short_name = _standardize_team_name(team.get("shortName") or "").lower()
             if tla:
                 team_map[tla] = entry
             if name:
@@ -1680,12 +1691,12 @@ def apply_matches_to_standings(standings: list, matches: list, apply_finished: b
             away_team = m.get("awayTeam") or {}
             
             home_tla = (home_team.get("tla") or "").upper()
-            home_name = (home_team.get("name") or "").lower()
-            home_short = (home_team.get("shortName") or "").lower()
+            home_name = _standardize_team_name(home_team.get("name") or "").lower()
+            home_short = _standardize_team_name(home_team.get("shortName") or "").lower()
             
             away_tla = (away_team.get("tla") or "").upper()
-            away_name = (away_team.get("name") or "").lower()
-            away_short = (away_team.get("shortName") or "").lower()
+            away_name = _standardize_team_name(away_team.get("name") or "").lower()
+            away_short = _standardize_team_name(away_team.get("shortName") or "").lower()
             
             home_entry = team_map.get(home_tla) or team_map.get(home_name) or team_map.get(home_short)
             away_entry = team_map.get(away_tla) or team_map.get(away_name) or team_map.get(away_short)
@@ -1757,7 +1768,12 @@ async def get_wc_standings():
             )
             today_matches = today_data.get("matches") or []
         except Exception:
-            logger.exception("Failed to get today's matches for standings update")
+            logger.exception("Failed to get today's matches for standings update, falling back to mock")
+            try:
+                mock_res = _get_mock_matches_response()
+                today_matches = mock_res.get("matches") or []
+            except Exception:
+                pass
 
     api_key = settings.FOOTBALL_DATA_API_KEY.strip()
     if not api_key or api_key.startswith("your_") or api_key.lower() == "mock":
@@ -1813,8 +1829,8 @@ def _normalize_standings(api_data: dict) -> list:
             team = entry.get("team", {})
             table.append({
                 "team": {
-                    "name": team.get("name", ""),
-                    "shortName": team.get("shortName", ""),
+                    "name": _standardize_team_name(team.get("name", "")),
+                    "shortName": _standardize_team_name(team.get("shortName", "")),
                     "tla": team.get("tla", ""),
                     "crest": team.get("crest", ""),
                 },

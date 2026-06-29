@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Footy-Trivia Live Score",
+  "version": "1.0.0",
+  "description": "Live football scores and running minutes direct from the Footy-Trivia Arena.",
+  "permissions": [],
+  "host_permissions": [
+    "https://footytrivia-api.onrender.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

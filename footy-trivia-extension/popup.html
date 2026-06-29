@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Footy-Trivia Live Score</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Barlow:wght@300;400;500;600;700&family=Montserrat:wght@800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <img src="icon32.png" alt="Logo" class="header-logo">
+        <span class="logo-text">FOOTY-TRIVIA</span>
+        <span class="badge badge-accent">LIVE</span>
+      </div>
+      <button id="refresh-btn" class="refresh-button" title="Refresh scores">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="refresh-icon">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Main Live Scores Panel -->
+    <main class="matches-panel">
+      <!-- Status Banner -->
+      <div id="status-banner" class="status-banner hidden">
+        <span class="status-dot"></span>
+        <span id="status-text">Fetching live scores...</span>
+      </div>
+
+      <!-- Matches Container -->
+      <div id="matches-container" class="matches-list">
+        <!-- Skeleton / Loading State -->
+        <div class="skeleton-loader">
+          <div class="skeleton-card">
+            <div class="skeleton-row">
+              <div class="skeleton-team"></div>
+              <div class="skeleton-score"></div>
+              <div class="skeleton-team"></div>
+            </div>
+          </div>
+          <div class="skeleton-card">
+            <div class="skeleton-row">
+              <div class="skeleton-team"></div>
+              <div class="skeleton-score"></div>
+              <div class="skeleton-team"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <a href="https://footy--trivia.vercel.app/" target="_blank" class="footer-link">
+        Open Footy-Trivia Arena
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="external-link-icon">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
+        </svg>
+      </a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
