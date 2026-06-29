@@ -4365,18 +4365,10 @@
       // the Prediction Center: group rankings submitted AND the 8 third-place
       // qualifiers confirmed. OR if real standings are complete, auto-unlock.
       function arePredictionsComplete() {
-        if (hasRealGroupStageComplete()) return true;
-        return areGroupRankingsSubmitted() && !!getConfirmedManualThirdPlace();
+        return true;
       }
 
       function getBracketUnlockMessage() {
-        if (hasRealGroupStageComplete()) return '';
-        if (!areGroupRankingsSubmitted()) {
-          return 'Submit your final group standings in the Prediction Center to unlock the knockout bracket.';
-        }
-        if (!getConfirmedManualThirdPlace()) {
-          return 'Confirm your 8 best third-place teams in the Prediction Center to unlock the knockout bracket.';
-        }
         return '';
       }
 
@@ -6082,75 +6074,27 @@
           }
           const persist = options.persist !== false;
           this._savedDesignations = {};
-          const isSubmitted = arePredictionsComplete();
 
-          if (!isSubmitted) {
-            if (bracketStorageHasCompleteWinners()) {
-              return;
-            }
-            this.matches.forEach(m => {
-              m.home = null;
-              m.away = null;
-              m.winner = null;
-            });
-            if (persist) this.saveBracket();
-            return;
-          }
-
-          // When real group stage is complete, use the official R32 fixtures
-          if (hasRealGroupStageComplete()) {
-            const officialFixtures = this.getOfficialR32Fixtures();
-            for (let i = 0; i < 16; i++) {
-              const fixture = officialFixtures[i];
-              const m = this.matches[i];
-              const newHome = { name: fixture.home };
-              const newAway = { name: fixture.away };
-
-              if (!m.home || m.home.name !== newHome.name) {
-                m.home = newHome;
-                if (m.winner) this.clearDownstream(i);
-              }
-              if (!m.away || m.away.name !== newAway.name) {
-                m.away = newAway;
-                if (m.winner) this.clearDownstream(i);
-              }
-            }
-            if (persist) this.saveBracket();
-            return;
-          }
-
+          const officialFixtures = this.getOfficialR32Fixtures();
           for (let i = 0; i < 16; i++) {
-            const homeCode = this.getSlotDesignation(i, 'home');
-            const awayCode = this.getSlotDesignation(i, 'away');
-            this._savedDesignations[`${i}-home`] = homeCode;
-            this._savedDesignations[`${i}-away`] = awayCode;
-
+            const fixture = officialFixtures[i];
             const m = this.matches[i];
-            const defaultHome = this.getTeamByDesignation(homeCode);
-            const defaultAway = this.getTeamByDesignation(awayCode);
+            const newHome = { name: fixture.home };
+            const newAway = { name: fixture.away };
 
-            if (defaultHome) {
-              if (m.home && m.home.name !== defaultHome.name) {
-                m.home = defaultHome;
-                this.clearDownstream(i);
-              } else if (!m.home) {
-                m.home = defaultHome;
-              }
-            } else if (m.home) {
-              m.home = null;
-              this.clearDownstream(i);
+            if (!m.home || m.home.name !== newHome.name) {
+              m.home = newHome;
+              if (m.winner) this.clearDownstream(i);
+            }
+            if (!m.away || m.away.name !== newAway.name) {
+              m.away = newAway;
+              if (m.winner) this.clearDownstream(i);
             }
 
-            if (defaultAway) {
-              if (m.away && m.away.name !== defaultAway.name) {
-                m.away = defaultAway;
-                this.clearDownstream(i);
-              } else if (!m.away) {
-                m.away = defaultAway;
-              }
-            } else if (m.away) {
-              m.away = null;
-              this.clearDownstream(i);
+            // Default Winner for Match 1: South Africa vs Canada (Canada won 1-0)
+            if (i === 0 && !m.winner) {
+              m.winner = 'away';
+              this.propagateWinner(0, newAway, false);
             }
           }
           if (persist) this.saveBracket();
@@ -6511,7 +6455,7 @@
             // VS divider
             const vs = document.createElement('div');
             vs.className = 'bp-slot-vs';
-            vs.textContent = 'VS';
+            vs.textContent = id === 0 ? '0 - 1' : 'VS';
             matchEl.appendChild(vs);
             // Away slot
             matchEl.appendChild(this.buildSlot(id, 'away'));
