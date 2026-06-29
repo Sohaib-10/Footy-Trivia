@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional, Tuple
 
 import httpx
 from fastapi import APIRouter, HTTPException
+from fastapi.concurrency import run_in_threadpool
 
 from app.config import settings
 from app.storage import supabase_client
@@ -169,42 +170,42 @@ def get_scorers_for_team(team_tla: str, team_name: str, count: int, rng) -> list
 
 def _get_mock_matches_response() -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
-    today_str = now.strftime("%Y-%m-%d")
-    yesterday_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
     
     mock_matches = [
         {
             "id": 1,
             "status": "FINISHED",
-            "utcDate": f"{yesterday_str}T18:00:00Z",
-            "group": "A",
+            "utcDate": (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "group": None,
+            "competition": {"name": "Round of 32"},
             "homeTeam": {
-                "name": "Spain",
-                "shortName": "Spain",
-                "tla": "ESP",
-                "crest": "https://flagcdn.com/w320/es.png"
+                "name": "South Africa",
+                "shortName": "South Africa",
+                "tla": "RSA",
+                "crest": "https://flagcdn.com/w320/za.png"
             },
             "awayTeam": {
-                "name": "Germany",
-                "shortName": "Germany",
-                "tla": "GER",
-                "crest": "https://flagcdn.com/w320/de.png"
+                "name": "Canada",
+                "shortName": "Canada",
+                "tla": "CAN",
+                "crest": "https://flagcdn.com/w320/ca.png"
             },
             "score": {
-                "fullTime": {"home": 2, "away": 1},
-                "halfTime": {"home": 1, "away": 0}
+                "winner": "AWAY_TEAM",
+                "duration": "REGULAR",
+                "fullTime": {"home": 0, "away": 1},
+                "halfTime": {"home": 0, "away": 0}
             },
             "goals": [
-                {"minute": 12, "scorer": "Dani Olmo", "team": "home"},
-                {"minute": 48, "scorer": "Lamine Yamal", "team": "home"},
-                {"minute": 55, "scorer": "Kai Havertz", "team": "away"}
+                {"minute": 42, "scorer": "Jonathan David", "team": "away"}
             ]
         },
         {
             "id": 2,
             "status": "FINISHED",
-            "utcDate": f"{yesterday_str}T19:00:00Z",
-            "group": "B",
+            "utcDate": (now - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "group": None,
+            "competition": {"name": "Round of 32"},
             "homeTeam": {
                 "name": "Brazil",
                 "shortName": "Brazil",
@@ -212,36 +213,40 @@ def _get_mock_matches_response() -> Dict[str, Any]:
                 "crest": "https://flagcdn.com/w320/br.png"
             },
             "awayTeam": {
-                "name": "Argentina",
-                "shortName": "Argentina",
-                "tla": "ARG",
-                "crest": "https://flagcdn.com/w320/ar.png"
+                "name": "Japan",
+                "shortName": "Japan",
+                "tla": "JPN",
+                "crest": "https://flagcdn.com/w320/jp.png"
             },
             "score": {
-                "fullTime": {"home": 1, "away": 1},
-                "halfTime": {"home": 0, "away": 0}
+                "winner": "HOME_TEAM",
+                "duration": "REGULAR",
+                "fullTime": {"home": 2, "away": 1},
+                "halfTime": {"home": 1, "away": 0}
             },
             "goals": [
-                {"minute": 45, "scorer": "Vinícius Júnior", "team": "home"},
-                {"minute": 67, "scorer": "Lionel Messi", "team": "away"}
+                {"minute": 24, "scorer": "Vinicius Jr", "team": "home"},
+                {"minute": 55, "scorer": "Kaoru Mitoma", "team": "away"},
+                {"minute": 75, "scorer": "Neymar Jr", "team": "home"}
             ]
         },
         {
             "id": 3,
             "status": "SCHEDULED",
-            "utcDate": f"{today_str}T22:00:00Z",
-            "group": "C",
+            "utcDate": (now - timedelta(minutes=70)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "group": None,
+            "competition": {"name": "Round of 32"},
             "homeTeam": {
-                "name": "England",
-                "shortName": "England",
-                "tla": "ENG",
-                "crest": "https://flagcdn.com/w320/gb-eng.png"
+                "name": "Germany",
+                "shortName": "Germany",
+                "tla": "GER",
+                "crest": "https://flagcdn.com/w320/de.png"
             },
             "awayTeam": {
-                "name": "United States",
-                "shortName": "USA",
-                "tla": "USA",
-                "crest": "https://flagcdn.com/w320/us.png"
+                "name": "Paraguay",
+                "shortName": "Paraguay",
+                "tla": "PAR",
+                "crest": "https://flagcdn.com/w320/py.png"
             },
             "score": {
                 "fullTime": {"home": None, "away": None},
@@ -251,9 +256,58 @@ def _get_mock_matches_response() -> Dict[str, Any]:
         },
         {
             "id": 4,
-            "status": "FINISHED",
-            "utcDate": f"{yesterday_str}T15:00:00Z",
-            "group": "D",
+            "status": "SCHEDULED",
+            "utcDate": (now - timedelta(minutes=20)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "group": None,
+            "competition": {"name": "Round of 32"},
+            "homeTeam": {
+                "name": "Netherlands",
+                "shortName": "Netherlands",
+                "tla": "NED",
+                "crest": "https://flagcdn.com/w320/nl.png"
+            },
+            "awayTeam": {
+                "name": "Morocco",
+                "shortName": "Morocco",
+                "tla": "MAR",
+                "crest": "https://flagcdn.com/w320/ma.png"
+            },
+            "score": {
+                "fullTime": {"home": None, "away": None},
+                "halfTime": {"home": None, "away": None}
+            },
+            "goals": []
+        },
+        {
+            "id": 5,
+            "status": "SCHEDULED",
+            "utcDate": (now + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "group": None,
+            "competition": {"name": "Round of 32"},
+            "homeTeam": {
+                "name": "Ivory Coast",
+                "shortName": "Ivory Coast",
+                "tla": "CIV",
+                "crest": "https://flagcdn.com/w320/ci.png"
+            },
+            "awayTeam": {
+                "name": "Norway",
+                "shortName": "Norway",
+                "tla": "NOR",
+                "crest": "https://flagcdn.com/w320/no.png"
+            },
+            "score": {
+                "fullTime": {"home": None, "away": None},
+                "halfTime": {"home": None, "away": None}
+            },
+            "goals": []
+        },
+        {
+            "id": 6,
+            "status": "SCHEDULED",
+            "utcDate": (now + timedelta(hours=4)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "group": None,
+            "competition": {"name": "Round of 32"},
             "homeTeam": {
                 "name": "France",
                 "shortName": "France",
@@ -261,47 +315,16 @@ def _get_mock_matches_response() -> Dict[str, Any]:
                 "crest": "https://flagcdn.com/w320/fr.png"
             },
             "awayTeam": {
-                "name": "Italy",
-                "shortName": "Italy",
-                "tla": "ITA",
-                "crest": "https://flagcdn.com/w320/it.png"
+                "name": "Sweden",
+                "shortName": "Sweden",
+                "tla": "SWE",
+                "crest": "https://flagcdn.com/w320/se.png"
             },
             "score": {
-                "fullTime": {"home": 3, "away": 2},
-                "halfTime": {"home": 1, "away": 1}
+                "fullTime": {"home": None, "away": None},
+                "halfTime": {"home": None, "away": None}
             },
-            "goals": [
-                {"minute": 15, "scorer": "Kylian Mbappé", "team": "home"},
-                {"minute": 38, "scorer": "Olivier Giroud", "team": "home"},
-                {"minute": 43, "scorer": "Federico Chiesa", "team": "away"},
-                {"minute": 72, "scorer": "Antoine Griezmann", "team": "home"},
-                {"minute": 88, "scorer": "Gianluca Scamacca", "team": "away"}
-            ]
-        },
-        {
-            "id": 5,
-            "status": "FINISHED",
-            "utcDate": f"{yesterday_str}T21:00:00Z",
-            "group": "D",
-            "homeTeam": {
-                "name": "United States",
-                "shortName": "USA",
-                "tla": "USA",
-                "crest": "https://flagcdn.com/w320/us.png"
-            },
-            "awayTeam": {
-                "name": "Paraguay",
-                "shortName": "Paraguay",
-                "tla": "PAR",
-                "crest": "https://flagcdn.com/w320/py.png"
-            },
-            "score": {
-                "fullTime": {"home": 1, "away": 0},
-                "halfTime": {"home": 1, "away": 0}
-            },
-            "goals": [
-                {"minute": 32, "scorer": "Folarin Balogun", "team": "home"}
-            ]
+            "goals": []
         }
     ]
     
@@ -412,6 +435,27 @@ def _get_mock_matches_response() -> Dict[str, Any]:
     }
 
 
+# First-level in-memory cache to prevent event-loop block/latency on Supabase calls
+IN_MEMORY_CACHE = {}
+
+
+def _read_in_memory(cache_key: str, *, allow_expired: bool = False) -> Optional[Dict[str, Any]]:
+    now = datetime.now(timezone.utc)
+    entry = IN_MEMORY_CACHE.get(cache_key)
+    if entry:
+        if allow_expired or entry["expires_at"] > now:
+            return entry["payload"]
+    return None
+
+
+def _write_in_memory(cache_key: str, payload: Dict[str, Any], ttl_seconds: int) -> None:
+    now = datetime.now(timezone.utc)
+    IN_MEMORY_CACHE[cache_key] = {
+        "payload": payload,
+        "expires_at": now + timedelta(seconds=ttl_seconds)
+    }
+
+
 def _read_cache(cache_key: str, *, allow_expired: bool = False) -> Optional[Dict[str, Any]]:
     if not supabase_client:
         return None
@@ -451,9 +495,16 @@ async def fetch_with_cache(
     ttl_seconds: int = 55,
 ) -> Tuple[Dict[str, Any], bool]:
     """Return (payload, stale)."""
-    cached = _read_cache(cache_key)
-    if cached is not None:
-        return cached, False
+    # 1. Check first-level in-memory cache
+    cached_mem = _read_in_memory(cache_key)
+    if cached_mem is not None:
+        return cached_mem, False
+
+    # 2. Check second-level Supabase cache (run in thread pool to avoid blocking)
+    cached_db = await run_in_threadpool(_read_cache, cache_key)
+    if cached_db is not None:
+        _write_in_memory(cache_key, cached_db, ttl_seconds)
+        return cached_db, False
 
     api_key = settings.FOOTBALL_DATA_API_KEY.strip()
     if not api_key:
@@ -465,15 +516,18 @@ async def fetch_with_cache(
 
     if res.status_code == 200:
         payload = res.json()
-        _write_cache(cache_key, payload, ttl_seconds)
+        _write_in_memory(cache_key, payload, ttl_seconds)
+        # Write to Supabase cache asynchronously in thread pool
+        await run_in_threadpool(_write_cache, cache_key, payload, ttl_seconds)
         return payload, False
 
     if res.status_code == 429:
-        stale_payload = _read_cache(cache_key, allow_expired=True)
+        stale_payload = _read_in_memory(cache_key, allow_expired=True)
+        if stale_payload is None:
+            stale_payload = await run_in_threadpool(_read_cache, cache_key, allow_expired=True)
         if stale_payload is not None:
-            # Rate limit cooldown: write back the stale payload with 60s expiration
-            # to prevent hitting the API again immediately on subsequent requests.
-            _write_cache(cache_key, stale_payload, 60)
+            _write_in_memory(cache_key, stale_payload, 60)
+            await run_in_threadpool(_write_cache, cache_key, stale_payload, 60)
             return stale_payload, True
         raise HTTPException(status_code=429, detail="Rate limited and no cached data available")
 
