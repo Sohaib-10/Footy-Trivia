@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚽ Live Scores</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12131a;
+      --surface2: #1a1b24;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0f0f5;
+      --text2: #999;
+      --text3: #666;
+      --gold: #d4af37;
+      --green: #22c55e;
+      --red: #ef4444;
+      --accent: #3b82f6;
+      --font: 'Barlow', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-display: 'Barlow Condensed', sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      -webkit-app-region: drag;
+      cursor: move;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-logo {
+      width: 22px;
+      height: 22px;
+    }
+    .header-title {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .live-badge {
+      background: var(--red);
+      color: white;
+      font-size: 0.6rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.08em;
+      animation: pulse-badge 2s infinite;
+    }
+    @keyframes pulse-badge {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .refresh-btn {
+      -webkit-app-region: no-drag;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .refresh-btn:hover {
+      background: var(--surface2);
+      color: var(--gold);
+      border-color: rgba(212,175,55,0.3);
+    }
+    .refresh-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+    .refresh-btn svg.spinning {
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    /* Status */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      font-size: 0.7rem;
+      color: var(--text3);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+    .status-dot.error { background: var(--red); }
+    .status-dot.stale { background: #f59e0b; }
+    /* Matches */
+    .matches-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text3);
+      padding: 10px 16px 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .section-label .dot-live {
+      width: 6px;
+      height: 6px;
+      background: var(--red);
+      border-radius: 50%;
+      animation: pulse-badge 1.5s infinite;
+    }
+    /* Match Card */
+    .match-card {
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+    .match-card:hover {
+      background: rgba(255,255,255,0.02);
+    }
+    .match-card.live-match {
+      background: rgba(239,68,68,0.04);
+      border-left: 2px solid var(--red);
+    }
+    .match-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .team-block {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+    .team-block.away {
+      flex-direction: row-reverse;
+      text-align: right;
+    }
+    .team-crest {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .team-initials {
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--text3);
+      flex-shrink: 0;
+    }
+    .team-name {
+      font-weight: 700;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .match-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 64px;
+      flex-shrink: 0;
+      padding: 0 8px;
+    }
+    .scoreline {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--gold);
+      line-height: 1;
+    }
+    .scoreline.stale { color: var(--text2); }
+    .live-tag {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--green);
+      margin-top: 2px;
+    }
+    .live-tag .pulse-dot {
+      width: 4px;
+      height: 4px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse-badge 1s infinite alternate;
+    }
+    .kickoff-time {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .ft-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      background: rgba(255,255,255,0.08);
+      color: var(--text3);
+      padding: 1px 5px;
+      border-radius: 2px;
+      margin-top: 2px;
+    }
+    .round-label {
+      font-size: 0.6rem;
+      color: var(--text3);
+      margin-top: 2px;
+    }
+    /* Goals */
+    .goals-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0 0;
+      gap: 8px;
+    }
+    .goals-side {
+      flex: 1;
+      min-width: 0;
+    }
+    .goals-side.away { text-align: right; }
+    .goal-item {
+      font-size: 0.7rem;
+      color: var(--text2);
+      line-height: 1.5;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    /* Empty */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text3);
+    }
+    .empty-state .trophy { font-size: 2.5rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 0.85rem; font-weight: 700; color: var(--text2); }
+    .empty-state .sub { font-size: 0.75rem; color: var(--text3); margin-top: 4px; }
+    /* Footer */
+    .footer {
+      padding: 8px 16px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .footer a {
+      color: var(--text3);
+      text-decoration: none;
+      font-size: 0.7rem;
+      font-weight: 600;
+      transition: color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .footer a:hover { color: var(--gold); }
+    .footer svg { width: 10px; height: 10px; }
+    /* Scrollbar */
+    .matches-scroll::-webkit-scrollbar { width: 4px; }
+    .matches-scroll::-webkit-scrollbar-track { background: transparent; }
+    .matches-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-left">
+        <img src="icon32.png" alt="" class="header-logo">
+        <span class="header-title">Live Scores</span>
+        <span class="live-badge">LIVE</span>
+      </div>
+      <button class="refresh-btn" id="refresh-btn" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+      </button>
+    </div>
+    <div class="status-bar" id="status-bar">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">Connecting...</span>
+    </div>
+    <div class="matches-scroll" id="matches-container">
+      <div class="empty-state">
+        <div class="trophy">⏳</div>
+        <p>Loading matches...</p>
+      </div>
+    </div>
+    <div class="footer">
+      <a href="https://footy--trivia.vercel.app/" target="_blank">
+        Footy-Trivia Arena
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    const API = 'https://footytrivia-api.onrender.com/api/wc/matches';
+    const container = document.getElementById('matches-container');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+    let polling = null;
+    let fetching = false;
+
+    function teamName(t) { return t ? (t.shortName || t.tla || t.name || 'TBD') : 'TBD'; }
+    function teamTla(t) { return t ? (t.tla || teamName(t).slice(0,3).toUpperCase()) : 'TBD'; }
+
+    function crestHtml(t) {
+      const tla = teamTla(t);
+      if (t && t.crest) {
+        return `<img src="${t.crest}" class="team-crest" alt="${tla}" onerror="this.outerHTML='<span class=\\'team-initials\\'>${tla}</span>'">`;
+      }
+      return `<span class="team-initials">${tla}</span>`;
+    }
+
+    function timeStr(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function buildCard(m, type) {
+      const h = m.homeTeam || {};
+      const a = m.awayTeam || {};
+      const hs = m.score?.fullTime?.home ?? 0;
+      const as = m.score?.fullTime?.away ?? 0;
+      const comp = m.competition?.name || '';
+
+      let centerHtml = '';
+      let cardClass = 'match-card';
+
+      if (type === 'live') {
+        cardClass += ' live-match';
+        const min = m.minute != null ? m.minute + "'" : (m.status === 'PAUSED' ? 'HT' : 'LIVE');
+        centerHtml = `
+          <div class="scoreline">${hs} : ${as}</div>
+          <div class="live-tag"><span class="pulse-dot"></span>${min}</div>
+        `;
+      } else if (type === 'fixture') {
+        centerHtml = `<div class="kickoff-time">${timeStr(m.utcDate)}</div>`;
+        if (comp) centerHtml += `<div class="round-label">${comp}</div>`;
+      } else {
+        centerHtml = `
+          <div class="scoreline stale">${hs} : ${as}</div>
+          <div class="ft-label">FT</div>
+        `;
+      }
+
+      let goalsHtml = '';
+      if (m.goals && m.goals.length > 0) {
+        const homeGoals = m.goals.filter(g => g.team === 'home').map(g => `<div class="goal-item">⚽ ${g.scorer} (${g.minute}')</div>`).join('');
+        const awayGoals = m.goals.filter(g => g.team === 'away').map(g => `<div class="goal-item">⚽ ${g.scorer} (${g.minute}')</div>`).join('');
+        if (homeGoals || awayGoals) {
+          goalsHtml = `<div class="goals-row"><div class="goals-side">${homeGoals}</div><div class="goals-side away">${awayGoals}</div></div>`;
+        }
+      }
+
+      return `
+        <div class="${cardClass}">
+          <div class="match-row">
+            <div class="team-block">${crestHtml(h)}<span class="team-name">${teamName(h)}</span></div>
+            <div class="match-center">${centerHtml}</div>
+            <div class="team-block away"><span class="team-name">${teamName(a)}</span>${crestHtml(a)}</div>
+          </div>
+          ${goalsHtml}
+        </div>
+      `;
+    }
+
+    function render(data) {
+      const matches = data.matches || [];
+      const live = matches.filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
+      const fixtures = matches.filter(m => m.status === 'SCHEDULED' || m.status === 'TIMED');
+      const completed = matches.filter(m => m.status === 'FINISHED');
+
+      let html = '';
+      if (live.length) {
+        html += `<div class="section-label"><span class="dot-live"></span>LIVE NOW</div>`;
+        live.forEach(m => { html += buildCard(m, 'live'); });
+      }
+      if (fixtures.length) {
+        html += `<div class="section-label">📅 UPCOMING</div>`;
+        fixtures.forEach(m => { html += buildCard(m, 'fixture'); });
+      }
+      if (completed.length) {
+        html += `<div class="section-label">✅ COMPLETED</div>`;
+        completed.forEach(m => { html += buildCard(m, 'completed'); });
+      }
+      if (!html) {
+        html = `<div class="empty-state"><div class="trophy">🏆</div><p>FIFA World Cup 2026</p><div class="sub">No matches scheduled right now</div></div>`;
+      }
+      container.innerHTML = html;
+    }
+
+    function setStatus(text, type) {
+      statusText.textContent = text;
+      statusDot.className = 'status-dot' + (type === 'error' ? ' error' : type === 'stale' ? ' stale' : '');
+    }
+
+    async function fetchScores() {
+      if (fetching) return;
+      fetching = true;
+      const svg = refreshBtn.querySelector('svg');
+      svg.classList.add('spinning');
+
+      try {
+        const res = await fetch(API, { credentials: 'omit' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        render(data);
+        const hasLive = (data.matches || []).some(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
+        setStatus('Updated ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' }), data.stale ? 'stale' : 'ok');
+        setupPolling(hasLive ? 15000 : 60000);
+      } catch (e) {
+        console.error(e);
+        setStatus('Retrying...', 'error');
+        setupPolling(8000);
+      } finally {
+        fetching = false;
+        setTimeout(() => svg.classList.remove('spinning'), 400);
+      }
+    }
+
+    function setupPolling(ms) {
+      if (polling) clearInterval(polling);
+      polling = setInterval(fetchScores, ms);
+    }
+
+    refreshBtn.addEventListener('click', () => fetchScores());
+    fetchScores();
+  })();
+  </script>
+</body>
+</html>

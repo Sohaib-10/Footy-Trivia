@@ -363,6 +363,16 @@
     });
   }
 
+  // Pop Out button
+  const popoutBtn = document.getElementById('popout-btn');
+  if (popoutBtn) {
+    popoutBtn.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'openLivePopup' }, () => {
+        window.close(); // Close the popup after opening the window
+      });
+    });
+  }
+
   // Initial load
   fetchScores(false);
 })();
