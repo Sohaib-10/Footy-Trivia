@@ -1,25 +1,23 @@
+/* ─── Base Widget Container ─── */
 #live-scores-extension-widget.ft-extension-widget {
   position: fixed !important;
   bottom: 25px !important;
   right: 25px !important;
-  width: 290px !important;
-  height: 52px !important;
-  background: rgba(10, 10, 10, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  border-radius: 26px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-  display: flex !important;
-  align-items: center !important;
+  width: 300px !important;
+  background: rgba(10, 10, 10, 0.96) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
   z-index: 999999999 !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-  cursor: move !important;
   user-select: none !important;
-  padding: 0 14px !important;
   box-sizing: border-box !important;
   color: #ffffff !important;
+  overflow: hidden !important;
 }
 
+/* ─── Close Button ─── */
 #live-scores-extension-widget .ft-extension-close {
   position: absolute !important;
   top: -6px !important;
@@ -49,25 +47,124 @@
   border-color: #ef4444 !important;
 }
 
+/* ─── Header (compact bar) ─── */
+#live-scores-extension-widget .ft-extension-header {
+  display: flex !important;
+  align-items: center !important;
+  padding: 10px 12px !important;
+  cursor: move !important;
+  min-height: 42px !important;
+  gap: 6px !important;
+}
+
 #live-scores-extension-widget .ft-extension-body {
   flex: 1 !important;
   display: flex !important;
   align-items: center !important;
-  justify-content: space-between !important;
-  height: 100% !important;
-  width: 100% !important;
+  min-width: 0 !important;
 }
 
 #live-scores-extension-widget .ft-extension-content {
+  width: 100% !important;
+}
+
+/* ─── Expand Button ─── */
+#live-scores-extension-widget .ft-extension-expand {
+  width: 24px !important;
+  height: 24px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #aaa !important;
+  border-radius: 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 10px !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+
+#live-scores-extension-widget .ft-extension-expand:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #ffca28 !important;
+  border-color: rgba(255, 203, 40, 0.3) !important;
+}
+
+/* ─── Expanded Panel ─── */
+#live-scores-extension-widget .ft-extension-panel {
+  max-height: 320px !important;
+  overflow-y: auto !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 4px 0 6px !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255,255,255,0.15) transparent !important;
+}
+
+#live-scores-extension-widget .ft-extension-panel::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+#live-scores-extension-widget .ft-extension-panel::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+#live-scores-extension-widget .ft-extension-panel::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15) !important;
+  border-radius: 4px !important;
+}
+
+/* ─── Section Labels ─── */
+#live-scores-extension-widget .ft-ext-section-label {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  color: #888 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+  padding: 8px 14px 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+#live-scores-extension-widget .ft-ext-section-dot {
+  width: 5px !important;
+  height: 5px !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+}
+
+#live-scores-extension-widget .ft-ext-section-dot.live {
+  background: #ef4444 !important;
+  animation: ft-pulse 1s infinite alternate !important;
+}
+
+/* ─── Match Rows ─── */
+#live-scores-extension-widget .ft-ext-match-row {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
+  padding: 6px 14px !important;
+  transition: background 0.15s !important;
   width: 100% !important;
-  height: 100% !important;
+  box-sizing: border-box !important;
 }
 
+#live-scores-extension-widget .ft-extension-panel .ft-ext-match-row:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+#live-scores-extension-widget .ft-ext-match-live {
+  background: rgba(239, 68, 68, 0.06) !important;
+}
+
+/* ─── Offseason ─── */
 #live-scores-extension-widget .ft-extension-offseason {
+  display: flex !important;
   justify-content: center !important;
+  align-items: center !important;
   gap: 8px !important;
   font-size: 12px !important;
   font-weight: 700 !important;
@@ -84,18 +181,20 @@
   color: #dddddd !important;
 }
 
+/* ─── Team Display ─── */
 #live-scores-extension-widget .ft-ext-crest {
-  width: 22px !important;
-  height: 22px !important;
+  width: 20px !important;
+  height: 20px !important;
   object-fit: contain !important;
   border-radius: 3px !important;
+  flex-shrink: 0 !important;
 }
 
 #live-scores-extension-widget .ft-ext-initials {
-  font-size: 10px !important;
+  font-size: 9px !important;
   font-weight: 700 !important;
-  width: 22px !important;
-  height: 22px !important;
+  width: 20px !important;
+  height: 20px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -103,12 +202,13 @@
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 3px !important;
   color: #aaaaaa !important;
+  flex-shrink: 0 !important;
 }
 
 #live-scores-extension-widget .ft-ext-team-left {
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 6px !important;
   min-width: 0 !important;
   flex: 1 !important;
 }
@@ -116,7 +216,7 @@
 #live-scores-extension-widget .ft-ext-team-right {
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 6px !important;
   justify-content: flex-end !important;
   min-width: 0 !important;
   flex: 1 !important;
@@ -125,23 +225,25 @@
 
 #live-scores-extension-widget .ft-ext-team-name {
   font-weight: 700 !important;
-  font-size: 13px !important;
+  font-size: 12px !important;
   color: #ffffff !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
 }
 
+/* ─── Center Score / Time ─── */
 #live-scores-extension-widget .ft-ext-center {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  min-width: 60px !important;
+  min-width: 54px !important;
+  flex-shrink: 0 !important;
 }
 
 #live-scores-extension-widget .ft-ext-score {
-  font-size: 16px !important;
+  font-size: 15px !important;
   font-weight: 800 !important;
   color: #ffca28 !important;
   line-height: 1 !important;
@@ -155,10 +257,10 @@
   display: flex !important;
   align-items: center !important;
   gap: 3px !important;
-  font-size: 10px !important;
+  font-size: 9px !important;
   font-weight: 700 !important;
   color: #4caf50 !important;
-  margin-top: 2px !important;
+  margin-top: 1px !important;
 }
 
 #live-scores-extension-widget .ft-ext-live-dot {
@@ -170,34 +272,33 @@
   animation: ft-pulse 1s infinite alternate !important;
 }
 
-#live-scores-extension-widget .ft-ext-fixture-label {
-  font-size: 9px !important;
-  font-weight: 700 !important;
-  color: #888888 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
-  line-height: 1 !important;
-}
-
 #live-scores-extension-widget .ft-ext-time {
   font-size: 11px !important;
   font-weight: 700 !important;
   color: #ffca28 !important;
-  margin-top: 2px !important;
   line-height: 1 !important;
 }
 
 #live-scores-extension-widget .ft-ext-ft-label {
-  font-size: 9px !important;
+  font-size: 8px !important;
   font-weight: 700 !important;
   background: rgba(255,255,255,0.1) !important;
   color: #aaaaaa !important;
-  padding: 0px 4px !important;
+  padding: 1px 4px !important;
   border-radius: 2px !important;
   margin-top: 2px !important;
   line-height: 1.2 !important;
 }
 
+/* ─── Empty State ─── */
+#live-scores-extension-widget .ft-ext-empty {
+  padding: 16px !important;
+  text-align: center !important;
+  font-size: 11px !important;
+  color: #666 !important;
+}
+
+/* ─── Animations ─── */
 @keyframes ft-pulse {
   from { opacity: 0.4; }
   to { opacity: 1; }
