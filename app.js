@@ -9435,33 +9435,154 @@
       }
 
       function openLivePopup() {
+        // If a modal overlay was open, close it first
         const overlay = document.getElementById('modal-overlay');
-        const content = document.getElementById('modal-content');
-        if (!overlay || !content) return;
-        
-        const modalContainer = overlay.querySelector('.modal');
-        if (modalContainer) {
-          modalContainer.style.maxWidth = '360px';
-          modalContainer.style.borderRadius = '16px';
-          modalContainer.style.padding = '16px';
+        if (overlay) {
+          overlay.classList.remove('show');
         }
-        
-        content.innerHTML = `
-          <div style="text-align:center; padding:30px; color:var(--text3);">
-            <span style="font-size:2rem; animation:spin 1s linear infinite; display:inline-block; margin-bottom:8px;">⏳</span>
-            <div style="font-weight:700; font-size:0.9rem; color:var(--text);">Loading Live Scores...</div>
-          </div>
-        `;
-        
-        overlay.classList.add('show');
+
+        let widget = document.getElementById('live-scores-floating-widget');
+        if (!widget) {
+          // Injected Styles
+          if (!document.getElementById('floating-widget-styles')) {
+            const styles = document.createElement('style');
+            styles.id = 'floating-widget-styles';
+            styles.textContent = `
+              .floating-widget {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 340px;
+                height: 480px;
+                background: rgba(15, 15, 15, 0.95);
+                backdrop-filter: blur(10px);
+                border: 1px solid var(--border);
+                border-radius: 14px;
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+                display: flex;
+                flex-direction: column;
+                z-index: 10000;
+                overflow: hidden;
+                font-family: var(--font-ui);
+                transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+              }
+              .floating-widget.minimized {
+                height: 42px;
+              }
+              .floating-widget-header {
+                padding: 10px 14px;
+                background: rgba(20, 20, 20, 0.95);
+                border-bottom: 1px solid var(--border);
+                cursor: move;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                user-select: none;
+              }
+              .floating-widget-title {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-family: var(--font-display);
+                font-weight: 800;
+                font-size: 0.95rem;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
+              }
+              .floating-widget-actions {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+              }
+              .floating-widget-btn {
+                background: transparent;
+                border: none;
+                color: var(--text2);
+                cursor: pointer;
+                font-size: 1.1rem;
+                padding: 2px 6px;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+              }
+              .floating-widget-btn:hover {
+                color: var(--text);
+                background: var(--surface2);
+              }
+              .floating-widget-body {
+                flex: 1;
+                padding: 12px;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+              }
+              .floating-widget-footer {
+                padding: 8px 12px;
+                background: rgba(10, 10, 10, 0.95);
+                border-top: 1px solid var(--border);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              }
+            `;
+            document.head.appendChild(styles);
+          }
+
+          // Widget Container
+          widget = document.createElement('div');
+          widget.id = 'live-scores-floating-widget';
+          widget.className = 'floating-widget';
+
+          // Header
+          const header = document.createElement('div');
+          header.className = 'floating-widget-header';
+          header.innerHTML = `
+            <div class="floating-widget-title">
+              <span style="width:8px; height:8px; background:var(--success); border-radius:50%; display:inline-block; animation:pulse 1s infinite alternate"></span>
+              <span>Live Scores</span>
+            </div>
+            <div class="floating-widget-actions">
+              <button class="floating-widget-btn" onclick="toggleMinimizeWidget()" title="Minimize" style="font-size: 0.9rem; font-weight: bold;">—</button>
+              <button class="floating-widget-btn" onclick="closeLiveScoresWidget()" title="Close" style="font-size: 1.3rem; line-height: 1;">&times;</button>
+            </div>
+          `;
+          widget.appendChild(header);
+
+          // Body
+          const body = document.createElement('div');
+          body.className = 'floating-widget-body';
+          widget.appendChild(body);
+
+          // Footer
+          const footer = document.createElement('div');
+          footer.className = 'floating-widget-footer';
+          footer.innerHTML = `
+            <a href="#" onclick="showPage('worldcup'); switchWCTab('matchday', document.querySelector('.wc-tab[onclick*=\\'matchday\\']')); return false;" style="font-size:0.75rem; color:var(--gold); text-decoration:none; font-weight:600;">Matchday Hub</a>
+            <a href="#" onclick="openModal('extension'); return false;" style="font-size:0.75rem; color:var(--text2); text-decoration:none;">Extension ZIP</a>
+          `;
+          widget.appendChild(footer);
+
+          document.body.appendChild(widget);
+          makeDraggable(widget, header);
+        }
+
+        // Make sure it is expanded and visible
+        widget.classList.remove('minimized');
+        widget.style.display = 'flex';
+        widget.style.opacity = '1';
+
         renderLiveScoresWidget();
-        
+
+        // Start Auto Polling
         if (window.liveScoresWidgetTimer) {
           clearInterval(window.liveScoresWidgetTimer);
         }
         
         window.liveScoresWidgetTimer = setInterval(async () => {
-          if (!overlay.classList.contains('show')) {
+          if (widget.style.display === 'none') {
             clearInterval(window.liveScoresWidgetTimer);
             window.liveScoresWidgetTimer = null;
             return;
@@ -9475,41 +9596,53 @@
               renderLiveScoresWidget();
             }
           } catch (e) {
-            console.error('Failed to update live scores widget:', e);
+            console.error('Failed to update live scores floating widget:', e);
           }
         }, 10000);
       }
 
+      function closeLiveScoresWidget() {
+        const widget = document.getElementById('live-scores-floating-widget');
+        if (widget) {
+          widget.style.display = 'none';
+        }
+        if (window.liveScoresWidgetTimer) {
+          clearInterval(window.liveScoresWidgetTimer);
+          window.liveScoresWidgetTimer = null;
+        }
+      }
+
+      function toggleMinimizeWidget() {
+        const widget = document.getElementById('live-scores-floating-widget');
+        if (widget) {
+          widget.classList.toggle('minimized');
+          const btn = widget.querySelector('.floating-widget-actions button[onclick*="toggleMinimizeWidget"]');
+          if (btn) {
+            btn.textContent = widget.classList.contains('minimized') ? '⬜' : '—';
+            btn.title = widget.classList.contains('minimized') ? 'Restore' : 'Minimize';
+          }
+        }
+      }
+
       function renderLiveScoresWidget() {
-        const content = document.getElementById('modal-content');
-        if (!content) return;
+        const widget = document.getElementById('live-scores-floating-widget');
+        if (!widget) return;
+        const body = widget.querySelector('.floating-widget-body');
+        if (!body) return;
         
         const matches = window.WC_TODAY_MATCHES || [];
         const live = matches.filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
         const fixtures = matches.filter(m => m.status === 'SCHEDULED' || m.status === 'TIMED');
         const completed = matches.filter(m => m.status === 'FINISHED');
         
-        let html = `
-          <div class="live-widget-container" style="display:flex; flex-direction:column; gap:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:4px;">
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span class="live-pulse" style="width:8px; height:8px; background:var(--success); border-radius:50%; display:inline-block; animation:pulse 1s infinite alternate"></span>
-                <span style="font-family:var(--font-display); font-weight:800; font-size:1.1rem; letter-spacing:0.5px; text-transform:uppercase;">Live Score Matchday</span>
-              </div>
-              <button onclick="refreshLiveScoresWidget(this)" class="refresh-btn-widget" style="background:transparent; border:none; color:var(--text2); cursor:pointer; display:flex; align-items:center;" title="Refresh">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px; height:14px;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-              </button>
-            </div>
-            
-            <div id="live-widget-list" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto; padding-right:4px;">
-        `;
+        let html = '';
         
         if (live.length === 0 && fixtures.length === 0 && completed.length === 0) {
           html += `
-            <div style="text-align:center; padding:24px 12px; color:var(--text2);">
-              <span style="font-size:2rem; display:block; margin-bottom:8px;">🏆</span>
+            <div style="text-align:center; padding:24px 12px; color:var(--text2); display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+              <span style="font-size:2rem; display:block; margin-bottom:8px; animation: pulse-scale 2s infinite ease-in-out;">🏆</span>
               <div style="font-weight:700; font-size:0.9rem; color:var(--text)">FIFA World Cup 2026</div>
-              <div style="font-size:0.75rem; margin-top:2px;">11 Jun – 19 Jul 2026 · USA · Canada · Mexico</div>
+              <div style="font-size:0.75rem; margin-top:2px;">11 Jun – 19 Jul 2026</div>
             </div>
           `;
         } else {
@@ -9533,17 +9666,7 @@
           }
         }
         
-        html += `
-            </div>
-            
-            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:8px; margin-top:4px;">
-              <a href="#" onclick="closeModal(); showPage('worldcup'); switchWCTab('matchday', document.querySelector('.wc-tab[onclick*=\\'matchday\\']')); return false;" style="font-size:0.75rem; color:var(--gold); text-decoration:none; font-weight:600;">Go to Matchday Hub →</a>
-              <a href="#" onclick="openModal('extension'); return false;" style="font-size:0.75rem; color:var(--text2); text-decoration:none;">Install Chrome Extension</a>
-            </div>
-          </div>
-        `;
-        
-        content.innerHTML = html;
+        body.innerHTML = html;
       }
 
       function buildWidgetMatchCard(match, type) {
@@ -9643,6 +9766,84 @@
         }
       }
 
+      function makeDraggable(el, header) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        header.onmousedown = dragMouseDown;
+        header.ontouchstart = dragTouchStart;
+
+        function dragMouseDown(e) {
+          e = e || window.event;
+          if (e.target.closest('.floating-widget-btn')) return;
+          e.preventDefault();
+          pos3 = e.clientX;
+          pos4 = e.clientY;
+          document.onmouseup = closeDragElement;
+          document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+          e = e || window.event;
+          e.preventDefault();
+          pos1 = pos3 - e.clientX;
+          pos2 = pos4 - e.clientY;
+          pos3 = e.clientX;
+          pos4 = e.clientY;
+          
+          let newTop = el.offsetTop - pos2;
+          let newLeft = el.offsetLeft - pos1;
+          
+          const padding = 10;
+          newTop = Math.max(padding, Math.min(window.innerHeight - el.offsetHeight - padding, newTop));
+          newLeft = Math.max(padding, Math.min(window.innerWidth - el.offsetWidth - padding, newLeft));
+          
+          el.style.top = newTop + "px";
+          el.style.left = newLeft + "px";
+          el.style.bottom = "auto";
+          el.style.right = "auto";
+        }
+
+        function closeDragElement() {
+          document.onmouseup = null;
+          document.onmousemove = null;
+        }
+
+        function dragTouchStart(e) {
+          if (e.target.closest('.floating-widget-btn')) return;
+          if (e.touches.length !== 1) return;
+          pos3 = e.touches[0].clientX;
+          pos4 = e.touches[0].clientY;
+          document.ontouchend = closeDragTouch;
+          document.ontouchmove = elementTouchDrag;
+        }
+
+        function elementTouchDrag(e) {
+          if (e.touches.length !== 1) return;
+          pos1 = pos3 - e.touches[0].clientX;
+          pos2 = pos4 - e.touches[0].clientY;
+          pos3 = e.touches[0].clientX;
+          pos4 = e.touches[0].clientY;
+
+          let newTop = el.offsetTop - pos2;
+          let newLeft = el.offsetLeft - pos1;
+
+          const padding = 10;
+          newTop = Math.max(padding, Math.min(window.innerHeight - el.offsetHeight - padding, newTop));
+          newLeft = Math.max(padding, Math.min(window.innerWidth - el.offsetWidth - padding, newLeft));
+
+          el.style.top = newTop + "px";
+          el.style.left = newLeft + "px";
+          el.style.bottom = "auto";
+          el.style.right = "auto";
+        }
+
+        function closeDragTouch() {
+          document.ontouchend = null;
+          document.ontouchmove = null;
+        }
+      }
+
+      window.closeLiveScoresWidget = closeLiveScoresWidget;
+      window.toggleMinimizeWidget = toggleMinimizeWidget;
       window.refreshLiveScoresWidget = refreshLiveScoresWidget;
 
       window.openModal = openModal;
