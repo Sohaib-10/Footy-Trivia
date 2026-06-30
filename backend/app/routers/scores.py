@@ -372,8 +372,8 @@ def _get_mock_matches_response() -> Dict[str, Any]:
                         "duration": "REGULAR",
                         "fullTime": {"home": home_score, "away": away_score},
                         "halfTime": {
-                            "home": sum(1 for g in home_goals if g <= 45),
-                            "away": sum(1 for g in away_goals if g <= 45)
+                            "home": sum(1 for g in home_goals if g <= 45) if (elapsed_minutes >= 45 or m["status"] == "FINISHED") else None,
+                            "away": sum(1 for g in away_goals if g <= 45) if (elapsed_minutes >= 45 or m["status"] == "FINISHED") else None
                         }
                     }
 
@@ -668,8 +668,8 @@ async def get_wc_matches():
                         "duration": "REGULAR",
                         "fullTime": {"home": home_score, "away": away_score},
                         "halfTime": {
-                            "home": sum(1 for g in home_goals if g <= 45),
-                            "away": sum(1 for g in away_goals if g <= 45)
+                            "home": sum(1 for g in home_goals if g <= 45) if (elapsed_minutes >= 45 or m["status"] == "FINISHED") else None,
+                            "away": sum(1 for g in away_goals if g <= 45) if (elapsed_minutes >= 45 or m["status"] == "FINISHED") else None
                         }
                     }
 
