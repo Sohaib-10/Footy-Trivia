@@ -1,0 +1,204 @@
+#live-scores-extension-widget.ft-extension-widget {
+  position: fixed !important;
+  bottom: 25px !important;
+  right: 25px !important;
+  width: 290px !important;
+  height: 52px !important;
+  background: rgba(10, 10, 10, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 26px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  display: flex !important;
+  align-items: center !important;
+  z-index: 999999999 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  cursor: move !important;
+  user-select: none !important;
+  padding: 0 14px !important;
+  box-sizing: border-box !important;
+  color: #ffffff !important;
+}
+
+#live-scores-extension-widget .ft-extension-close {
+  position: absolute !important;
+  top: -6px !important;
+  right: -6px !important;
+  width: 18px !important;
+  height: 18px !important;
+  background: #141414 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #888888 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5) !important;
+  transition: all 0.2s !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  z-index: 1000000000 !important;
+  border-style: solid !important;
+}
+
+#live-scores-extension-widget .ft-extension-close:hover {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+}
+
+#live-scores-extension-widget .ft-extension-body {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+#live-scores-extension-widget .ft-extension-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+#live-scores-extension-widget .ft-extension-offseason {
+  justify-content: center !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #aaaaaa !important;
+}
+
+#live-scores-extension-widget .ft-ext-trophy {
+  font-size: 16px !important;
+}
+
+#live-scores-extension-widget .ft-ext-title {
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  color: #dddddd !important;
+}
+
+#live-scores-extension-widget .ft-ext-crest {
+  width: 22px !important;
+  height: 22px !important;
+  object-fit: contain !important;
+  border-radius: 3px !important;
+}
+
+#live-scores-extension-widget .ft-ext-initials {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  width: 22px !important;
+  height: 22px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 3px !important;
+  color: #aaaaaa !important;
+}
+
+#live-scores-extension-widget .ft-ext-team-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+#live-scores-extension-widget .ft-ext-team-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  justify-content: flex-end !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+  text-align: right !important;
+}
+
+#live-scores-extension-widget .ft-ext-team-name {
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  color: #ffffff !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+#live-scores-extension-widget .ft-ext-center {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 60px !important;
+}
+
+#live-scores-extension-widget .ft-ext-score {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #ffca28 !important;
+  line-height: 1 !important;
+}
+
+#live-scores-extension-widget .ft-ext-score.stale-score {
+  color: #aaaaaa !important;
+}
+
+#live-scores-extension-widget .ft-ext-minute {
+  display: flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: #4caf50 !important;
+  margin-top: 2px !important;
+}
+
+#live-scores-extension-widget .ft-ext-live-dot {
+  width: 4px !important;
+  height: 4px !important;
+  background: #4caf50 !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+  animation: ft-pulse 1s infinite alternate !important;
+}
+
+#live-scores-extension-widget .ft-ext-fixture-label {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  color: #888888 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  line-height: 1 !important;
+}
+
+#live-scores-extension-widget .ft-ext-time {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #ffca28 !important;
+  margin-top: 2px !important;
+  line-height: 1 !important;
+}
+
+#live-scores-extension-widget .ft-ext-ft-label {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  background: rgba(255,255,255,0.1) !important;
+  color: #aaaaaa !important;
+  padding: 0px 4px !important;
+  border-radius: 2px !important;
+  margin-top: 2px !important;
+  line-height: 1.2 !important;
+}
+
+@keyframes ft-pulse {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}

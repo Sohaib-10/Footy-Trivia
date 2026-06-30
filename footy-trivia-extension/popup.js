@@ -338,6 +338,31 @@
     fetchScores(true);
   });
 
+  const widgetToggle = document.getElementById('widget-toggle');
+  if (widgetToggle) {
+    chrome.storage.local.get({ enabled: true }, (res) => {
+      widgetToggle.checked = res.enabled;
+    });
+
+    widgetToggle.addEventListener('change', () => {
+      const enabled = widgetToggle.checked;
+      chrome.storage.local.set({ enabled });
+
+      // Send toggle message to all active tabs
+      chrome.tabs.query({}, (tabs) => {
+        if (tabs && tabs.length > 0) {
+          tabs.forEach(tab => {
+            if (tab.id) {
+              chrome.tabs.sendMessage(tab.id, { action: 'toggleWidget', enabled }).catch(() => {
+                // Safe to ignore error on tabs without content script injected
+              });
+            }
+          });
+        }
+      });
+    });
+  }
+
   // Initial load
   fetchScores(false);
 })();
