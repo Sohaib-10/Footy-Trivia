@@ -803,7 +803,74 @@ async def get_wc_matches():
 
 # ─── Standings ───────────────────────────────────────────────────────────────
 
+import json
+import random
+import os
+import copy
+
+def _load_api_response_matches() -> list:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    while True:
+        target_path = os.path.join(current_dir, "api_response.json")
+        if os.path.exists(target_path):
+            try:
+                with open(target_path, "r", encoding="utf-8-sig") as f:
+                    data = json.load(f)
+                    return data.get("matches") or []
+            except Exception as e:
+                logger.warning("Failed to parse api_response.json: %s", e)
+                break
+        parent = os.path.dirname(current_dir)
+        if parent == current_dir:
+            break
+        current_dir = parent
+    return []
+
 def _get_mock_standings() -> list:
+    """Fallback standings reflecting simulated final results of all 3 WC 2026 group stage matchdays."""
+    base_standings = _get_base_mock_standings()
+    standings = copy.deepcopy(base_standings)
+    for group in standings:
+        for entry in group.get("table", []):
+            entry["playedGames"] = 0
+            entry["won"] = 0
+            entry["draw"] = 0
+            entry["lost"] = 0
+            entry["goalsFor"] = 0
+            entry["goalsAgainst"] = 0
+            entry["goalDifference"] = 0
+            entry["points"] = 0
+            
+    matches = _load_api_response_matches()
+    simulated_matches = []
+    for m in matches:
+        stage = (m.get("stage") or "").upper()
+        if stage != "GROUP_STAGE":
+            continue
+        
+        status = m.get("status")
+        if status == "FINISHED":
+            simulated_matches.append(m)
+        else:
+            match_id = m.get("id") or 42
+            rng = random.Random(match_id)
+            home_score = rng.randint(0, 3)
+            away_score = rng.randint(0, 2)
+            
+            m_copy = copy.deepcopy(m)
+            m_copy["status"] = "FINISHED"
+            m_copy["score"] = {
+                "winner": "DRAW" if home_score == away_score else ("HOME_TEAM" if home_score > away_score else "AWAY_TEAM"),
+                "duration": "REGULAR",
+                "fullTime": {"home": home_score, "away": away_score},
+                "halfTime": {"home": home_score // 2, "away": away_score // 2}
+            }
+            simulated_matches.append(m_copy)
+            
+    standings = apply_matches_to_standings(standings, simulated_matches, apply_finished=True)
+    return standings
+
+def _get_base_mock_standings() -> list:
     """Fallback standings reflecting real WC 2026 Matchday 1 results."""
     return [
         {
@@ -1730,6 +1797,12 @@ def apply_matches_to_standings(standings: list, matches: list, apply_finished: b
                 team_map[short_name] = entry
 
     for m in matches:
+        # Skip knockout/bracket matches (only apply matches belonging to the group stage)
+        stage = (m.get("stage") or "").upper()
+        group_name = m.get("group")
+        if not group_name or (stage and stage != "GROUP_STAGE"):
+            continue
+
         status = m.get("status")
         # Only apply live matches, or also finished matches if apply_finished is True
         if status in ("IN_PLAY", "PAUSED") or (apply_finished and status == "FINISHED"):
