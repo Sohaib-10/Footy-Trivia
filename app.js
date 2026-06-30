@@ -9450,82 +9450,56 @@
             styles.textContent = `
               .floating-widget {
                 position: fixed;
-                bottom: 20px;
-                right: 20px;
-                width: 340px;
-                height: 480px;
-                background: rgba(15, 15, 15, 0.95);
-                backdrop-filter: blur(10px);
-                border: 1px solid var(--border);
-                border-radius: 14px;
-                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+                bottom: 25px;
+                right: 25px;
+                width: 290px;
+                height: 52px;
+                background: rgba(10, 10, 10, 0.92);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 26px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
                 display: flex;
-                flex-direction: column;
+                align-items: center;
                 z-index: 10000;
-                overflow: hidden;
                 font-family: var(--font-ui);
-                transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-              }
-              .floating-widget.minimized {
-                height: 42px;
-              }
-              .floating-widget-header {
-                padding: 10px 14px;
-                background: rgba(20, 20, 20, 0.95);
-                border-bottom: 1px solid var(--border);
                 cursor: move;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
                 user-select: none;
+                padding: 0 14px;
+                transition: opacity 0.2s ease;
               }
-              .floating-widget-title {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                font-family: var(--font-display);
-                font-weight: 800;
-                font-size: 0.95rem;
-                letter-spacing: 0.5px;
-                text-transform: uppercase;
-              }
-              .floating-widget-actions {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-              }
-              .floating-widget-btn {
-                background: transparent;
-                border: none;
+              .floating-widget-close {
+                position: absolute;
+                top: -6px;
+                right: -6px;
+                width: 18px;
+                height: 18px;
+                background: #141414;
+                border: 1px solid var(--border);
                 color: var(--text2);
-                cursor: pointer;
-                font-size: 1.1rem;
-                padding: 2px 6px;
-                border-radius: 4px;
+                border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                font-size: 12px;
+                cursor: pointer;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.5);
                 transition: all 0.2s;
+                padding: 0;
+                line-height: 1;
+                border-style: solid;
               }
-              .floating-widget-btn:hover {
-                color: var(--text);
-                background: var(--surface2);
+              .floating-widget-close:hover {
+                background: var(--error);
+                color: #fff;
+                border-color: var(--error);
               }
               .floating-widget-body {
                 flex: 1;
-                padding: 12px;
-                overflow-y: auto;
                 display: flex;
-                flex-direction: column;
-                gap: 10px;
-              }
-              .floating-widget-footer {
-                padding: 8px 12px;
-                background: rgba(10, 10, 10, 0.95);
-                border-top: 1px solid var(--border);
-                display: flex;
-                justify-content: space-between;
                 align-items: center;
+                justify-content: space-between;
+                height: 100%;
               }
             `;
             document.head.appendChild(styles);
@@ -9536,41 +9510,27 @@
           widget.id = 'live-scores-floating-widget';
           widget.className = 'floating-widget';
 
-          // Header
-          const header = document.createElement('div');
-          header.className = 'floating-widget-header';
-          header.innerHTML = `
-            <div class="floating-widget-title">
-              <span style="width:8px; height:8px; background:var(--success); border-radius:50%; display:inline-block; animation:pulse 1s infinite alternate"></span>
-              <span>Live Scores</span>
-            </div>
-            <div class="floating-widget-actions">
-              <button class="floating-widget-btn" onclick="toggleMinimizeWidget()" title="Minimize" style="font-size: 0.9rem; font-weight: bold;">—</button>
-              <button class="floating-widget-btn" onclick="closeLiveScoresWidget()" title="Close" style="font-size: 1.3rem; line-height: 1;">&times;</button>
-            </div>
-          `;
-          widget.appendChild(header);
+          // Close Button
+          const closeBtn = document.createElement('button');
+          closeBtn.className = 'floating-widget-close';
+          closeBtn.innerHTML = '&times;';
+          closeBtn.title = 'Close Widget';
+          closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            closeLiveScoresWidget();
+          };
+          widget.appendChild(closeBtn);
 
           // Body
           const body = document.createElement('div');
           body.className = 'floating-widget-body';
           widget.appendChild(body);
 
-          // Footer
-          const footer = document.createElement('div');
-          footer.className = 'floating-widget-footer';
-          footer.innerHTML = `
-            <a href="#" onclick="showPage('worldcup'); switchWCTab('matchday', document.querySelector('.wc-tab[onclick*=\\'matchday\\']')); return false;" style="font-size:0.75rem; color:var(--gold); text-decoration:none; font-weight:600;">Matchday Hub</a>
-            <a href="#" onclick="openModal('extension'); return false;" style="font-size:0.75rem; color:var(--text2); text-decoration:none;">Extension ZIP</a>
-          `;
-          widget.appendChild(footer);
-
           document.body.appendChild(widget);
-          makeDraggable(widget, header);
+          makeDraggable(widget, widget);
         }
 
         // Make sure it is expanded and visible
-        widget.classList.remove('minimized');
         widget.style.display = 'flex';
         widget.style.opacity = '1';
 
@@ -9612,18 +9572,6 @@
         }
       }
 
-      function toggleMinimizeWidget() {
-        const widget = document.getElementById('live-scores-floating-widget');
-        if (widget) {
-          widget.classList.toggle('minimized');
-          const btn = widget.querySelector('.floating-widget-actions button[onclick*="toggleMinimizeWidget"]');
-          if (btn) {
-            btn.textContent = widget.classList.contains('minimized') ? '⬜' : '—';
-            btn.title = widget.classList.contains('minimized') ? 'Restore' : 'Minimize';
-          }
-        }
-      }
-
       function renderLiveScoresWidget() {
         const widget = document.getElementById('live-scores-floating-widget');
         if (!widget) return;
@@ -9635,135 +9583,89 @@
         const fixtures = matches.filter(m => m.status === 'SCHEDULED' || m.status === 'TIMED');
         const completed = matches.filter(m => m.status === 'FINISHED');
         
+        let activeMatch = null;
+        let matchType = '';
+        
+        if (live.length > 0) {
+          activeMatch = live[0];
+          matchType = 'live';
+        } else if (fixtures.length > 0) {
+          activeMatch = fixtures[0];
+          matchType = 'fixture';
+        } else if (completed.length > 0) {
+          activeMatch = completed[completed.length - 1];
+          matchType = 'completed';
+        }
+        
         let html = '';
         
-        if (live.length === 0 && fixtures.length === 0 && completed.length === 0) {
-          html += `
-            <div style="text-align:center; padding:24px 12px; color:var(--text2); display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
-              <span style="font-size:2rem; display:block; margin-bottom:8px; animation: pulse-scale 2s infinite ease-in-out;">🏆</span>
-              <div style="font-weight:700; font-size:0.9rem; color:var(--text)">FIFA World Cup 2026</div>
-              <div style="font-size:0.75rem; margin-top:2px;">11 Jun – 19 Jul 2026</div>
+        if (!activeMatch) {
+          html = `
+            <div style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:100%; color:var(--text2); font-size:0.75rem; font-weight:700;">
+              <span>🏆</span>
+              <span>FIFA WORLD CUP 2026</span>
+              <span style="font-size:0.6rem; background:var(--border2); padding:1px 5px; border-radius:10px; color:var(--text3); font-weight:800; border: 1px solid var(--border);">OFFSEASON</span>
             </div>
           `;
         } else {
-          if (live.length > 0) {
-            html += `<div style="font-size:0.7rem; font-weight:700; color:var(--success); letter-spacing:0.5px; text-transform:uppercase; margin-top:4px;">🔴 Live Now</div>`;
-            live.forEach(match => {
-              html += buildWidgetMatchCard(match, 'live');
-            });
-          }
-          if (fixtures.length > 0) {
-            html += `<div style="font-size:0.7rem; font-weight:700; color:var(--text2); letter-spacing:0.5px; text-transform:uppercase; margin-top:4px;">📅 Today's Fixtures</div>`;
-            fixtures.forEach(match => {
-              html += buildWidgetMatchCard(match, 'fixture');
-            });
-          }
-          if (completed.length > 0) {
-            html += `<div style="font-size:0.7rem; font-weight:700; color:var(--text2); letter-spacing:0.5px; text-transform:uppercase; margin-top:4px;">✅ Completed</div>`;
-            completed.slice(0, 3).forEach(match => {
-              html += buildWidgetMatchCard(match, 'result');
-            });
-          }
-        }
-        
-        body.innerHTML = html;
-      }
-
-      function buildWidgetMatchCard(match, type) {
-        const home = match.homeTeam || {};
-        const away = match.awayTeam || {};
-        const score = match.score || {};
-        
-        const homeName = home.shortName || home.tla || home.name || 'TBD';
-        const awayName = away.shortName || away.tla || away.name || 'TBD';
-        
-        const homeScoreVal = score.fullTime && score.fullTime.home != null ? score.fullTime.home : 0;
-        const awayScoreVal = score.fullTime && score.fullTime.away != null ? score.fullTime.away : 0;
-        
-        const homeCrest = home.crest ? `<img src="${home.crest}" alt="${homeName}" style="width:20px; height:20px; object-fit:contain; border-radius:3px;">` : `<span style="font-size:0.65rem; font-weight:700; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; background:var(--surface2); border:1px solid var(--border2); border-radius:3px; color:var(--text2);">${homeName.slice(0,3).toUpperCase()}</span>`;
-        const awayCrest = away.crest ? `<img src="${away.crest}" alt="${awayName}" style="width:20px; height:20px; object-fit:contain; border-radius:3px;">` : `<span style="font-size:0.65rem; font-weight:700; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; background:var(--surface2); border:1px solid var(--border2); border-radius:3px; color:var(--text2);">${awayName.slice(0,3).toUpperCase()}</span>`;
-        
-        let centerHtml = '';
-        if (type === 'live') {
-          centerHtml = `
-            <div style="font-family:var(--font-display); font-size:1.15rem; font-weight:800; color:var(--accent);">${homeScoreVal} - ${awayScoreVal}</div>
-            <div style="font-size:0.65rem; font-weight:700; color:var(--success); margin-top:-2px;">${match.minute != null ? match.minute + "'" : (match.status === 'PAUSED' ? 'HT' : 'LIVE')}</div>
-          `;
-        } else if (type === 'fixture') {
-          const time = match.utcDate ? new Date(match.utcDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'VS';
-          centerHtml = `
-            <div style="font-size:0.75rem; font-weight:600; color:var(--text2);">${time}</div>
-          `;
-        } else if (type === 'result') {
-          centerHtml = `
-            <div style="font-family:var(--font-display); font-size:1.15rem; font-weight:800; color:var(--text2);">${homeScoreVal} - ${awayScoreVal}</div>
-            <div style="font-size:0.6rem; font-weight:700; background:var(--border2); color:var(--text2); padding:1px 4px; border-radius:2px; margin-top:2px;">FT</div>
-          `;
-        }
-        
-        let goalsHtml = '';
-        if (match.goals && match.goals.length > 0) {
-          goalsHtml += `
-            <div style="border-top:1px dashed var(--border2); padding-top:6px; margin-top:6px; display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:0.62rem; color:var(--text2);">
-              <div style="display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border); padding-right:4px;">
-          `;
-          match.goals.forEach(g => {
-            if (g.team === 'home') {
-              goalsHtml += `<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">⚽ ${g.scorer} (${g.minute}')</div>`;
-            }
-          });
-          goalsHtml += `
+          const home = activeMatch.homeTeam || {};
+          const away = activeMatch.awayTeam || {};
+          const score = activeMatch.score || {};
+          
+          const homeName = home.tla || (home.shortName || home.name || 'TBD').slice(0,3).toUpperCase();
+          const awayName = away.tla || (away.shortName || away.name || 'TBD').slice(0,3).toUpperCase();
+          
+          const homeScoreVal = score.fullTime && score.fullTime.home != null ? score.fullTime.home : 0;
+          const awayScoreVal = score.fullTime && score.fullTime.away != null ? score.fullTime.away : 0;
+          
+          const homeCrest = home.crest ? `<img src="${home.crest}" alt="${homeName}" style="width:22px; height:22px; object-fit:contain; border-radius:3px;">` : `<span style="font-size:0.6rem; font-weight:700; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; background:var(--surface2); border:1px solid var(--border2); border-radius:3px; color:var(--text2);">${homeName}</span>`;
+          const awayCrest = away.crest ? `<img src="${away.crest}" alt="${awayName}" style="width:22px; height:22px; object-fit:contain; border-radius:3px;">` : `<span style="font-size:0.6rem; font-weight:700; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; background:var(--surface2); border:1px solid var(--border2); border-radius:3px; color:var(--text2);">${awayName}</span>`;
+          
+          let centerHtml = '';
+          if (matchType === 'live') {
+            centerHtml = `
+              <div style="font-family:var(--font-display); font-size:1.2rem; font-weight:800; color:var(--accent); line-height:1;">${homeScoreVal} - ${awayScoreVal}</div>
+              <div style="display:flex; align-items:center; gap:3px; font-size:0.65rem; font-weight:700; color:var(--success); margin-top:1px;">
+                <span style="width:4px; height:4px; background:var(--success); border-radius:50%; display:inline-block; animation:pulse 1s infinite alternate"></span>
+                ${activeMatch.minute != null ? activeMatch.minute + "'" : (activeMatch.status === 'PAUSED' ? 'HT' : 'LIVE')}
               </div>
-              <div style="display:flex; flex-direction:column; gap:2px; padding-left:4px; align-items:flex-end; text-align:right;">
-          `;
-          match.goals.forEach(g => {
-            if (g.team === 'away') {
-              goalsHtml += `<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">⚽ ${g.scorer} (${g.minute}')</div>`;
-            }
-          });
-          goalsHtml += `
-              </div>
-            </div>
-          `;
-        }
-        
-        return `
-          <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; display:flex; flex-direction:column; box-shadow:0 2px 8px rgba(0,0,0,0.5);">
-            <div style="display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px;">
-              <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+            `;
+          } else if (matchType === 'fixture') {
+            const time = activeMatch.utcDate ? new Date(activeMatch.utcDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'VS';
+            centerHtml = `
+              <div style="font-size:0.6rem; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; line-height:1;">TODAY</div>
+              <div style="font-size:0.7rem; font-weight:700; color:var(--gold); margin-top:2px; line-height:1;">${time}</div>
+            `;
+          } else if (matchType === 'completed') {
+            centerHtml = `
+              <div style="font-family:var(--font-display); font-size:1.2rem; font-weight:800; color:var(--text2); line-height:1;">${homeScoreVal} - ${awayScoreVal}</div>
+              <div style="font-size:0.6rem; font-weight:700; background:var(--border2); color:var(--text3); padding:0px 4px; border-radius:2px; margin-top:2px; line-height:1.2;">FT</div>
+            `;
+          }
+          
+          html = `
+            <div style="display:flex; align-items:center; justify-content:space-between; width:100%; height:100%; padding:0 4px;">
+              <!-- Home -->
+              <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
                 ${homeCrest}
-                <span style="font-size:0.75rem; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80px;">${homeName}</span>
+                <span style="font-weight:700; font-size:0.8rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${homeName}</span>
               </div>
-              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:50px;">
+              
+              <!-- Center -->
+              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:60px;">
                 ${centerHtml}
               </div>
-              <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end; min-width:0; text-align:right;">
-                <span style="font-size:0.75rem; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80px;">${awayName}</span>
+              
+              <!-- Away -->
+              <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end; min-width:0; flex:1; text-align:right;">
+                <span style="font-weight:700; font-size:0.8rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${awayName}</span>
                 ${awayCrest}
               </div>
             </div>
-            ${goalsHtml}
-          </div>
-        `;
-      }
-
-      async function refreshLiveScoresWidget(btn) {
-        if (!btn) return;
-        const svg = btn.querySelector('svg');
-        if (svg) svg.style.animation = 'spin 0.8s linear infinite';
-        try {
-          const apiBase = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:' ? 'http://127.0.0.1:8000' : 'https://footytrivia-api.onrender.com';
-          const res = await fetch(apiBase + '/api/wc/matches', { credentials: 'omit' });
-          if (res.ok) {
-            const data = await res.json();
-            window.WC_TODAY_MATCHES = data.matches || [];
-            renderLiveScoresWidget();
-          }
-        } catch (e) {
-          console.error('Manual refresh of live scores widget failed:', e);
-        } finally {
-          if (svg) svg.style.animation = '';
+          `;
         }
+        
+        body.innerHTML = html;
       }
 
       function makeDraggable(el, header) {
@@ -9773,7 +9675,7 @@
 
         function dragMouseDown(e) {
           e = e || window.event;
-          if (e.target.closest('.floating-widget-btn')) return;
+          if (e.target.closest('.floating-widget-close')) return;
           e.preventDefault();
           pos3 = e.clientX;
           pos4 = e.clientY;
@@ -9808,7 +9710,7 @@
         }
 
         function dragTouchStart(e) {
-          if (e.target.closest('.floating-widget-btn')) return;
+          if (e.target.closest('.floating-widget-close')) return;
           if (e.touches.length !== 1) return;
           pos3 = e.touches[0].clientX;
           pos4 = e.touches[0].clientY;
@@ -9843,8 +9745,7 @@
       }
 
       window.closeLiveScoresWidget = closeLiveScoresWidget;
-      window.toggleMinimizeWidget = toggleMinimizeWidget;
-      window.refreshLiveScoresWidget = refreshLiveScoresWidget;
+      window.openLivePopup = openLivePopup;
 
       window.openModal = openModal;
       window.closeModal = closeModal;
