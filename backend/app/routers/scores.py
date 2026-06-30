@@ -1404,19 +1404,53 @@ def _get_mock_standings() -> list:
                 "table": [
                         {
                                 "team": {
+                                        "name": "Norway",
+                                        "shortName": "Norway",
+                                        "tla": "NOR",
+                                        "crest": "https://crests.football-data.org/813.svg"
+                                },
+                                "position": 1,
+                                "playedGames": 1,
+                                "won": 1,
+                                "draw": 0,
+                                "lost": 0,
+                                "goalsFor": 4,
+                                "goalsAgainst": 1,
+                                "goalDifference": 3,
+                                "points": 3
+                        },
+                        {
+                                "team": {
                                         "name": "France",
                                         "shortName": "France",
                                         "tla": "FRA",
                                         "crest": "https://crests.football-data.org/773.svg"
                                 },
-                                "position": 1,
-                                "playedGames": 0,
-                                "won": 0,
+                                "position": 2,
+                                "playedGames": 1,
+                                "won": 1,
                                 "draw": 0,
                                 "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
-                                "goalDifference": 0,
+                                "goalsFor": 3,
+                                "goalsAgainst": 1,
+                                "goalDifference": 2,
+                                "points": 3
+                        },
+                        {
+                                "team": {
+                                        "name": "Senegal",
+                                        "shortName": "Senegal",
+                                        "tla": "SEN",
+                                        "crest": "https://crests.football-data.org/senegal.svg"
+                                },
+                                "position": 3,
+                                "playedGames": 1,
+                                "won": 0,
+                                "draw": 0,
+                                "lost": 1,
+                                "goalsFor": 1,
+                                "goalsAgainst": 3,
+                                "goalDifference": -2,
                                 "points": 0
                         },
                         {
@@ -1426,48 +1460,14 @@ def _get_mock_standings() -> list:
                                         "tla": "IRQ",
                                         "crest": "https://crests.football-data.org/iraq.svg"
                                 },
-                                "position": 1,
-                                "playedGames": 0,
+                                "position": 4,
+                                "playedGames": 1,
                                 "won": 0,
                                 "draw": 0,
-                                "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
-                                "goalDifference": 0,
-                                "points": 0
-                        },
-                        {
-                                "team": {
-                                        "name": "Norway",
-                                        "shortName": "Norway",
-                                        "tla": "NOR",
-                                        "crest": "https://crests.football-data.org/813.svg"
-                                },
-                                "position": 1,
-                                "playedGames": 0,
-                                "won": 0,
-                                "draw": 0,
-                                "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
-                                "goalDifference": 0,
-                                "points": 0
-                        },
-                        {
-                                "team": {
-                                        "name": "Senegal",
-                                        "shortName": "Senegal",
-                                        "tla": "SEN",
-                                        "crest": "https://crests.football-data.org/senegal.svg"
-                                },
-                                "position": 1,
-                                "playedGames": 0,
-                                "won": 0,
-                                "draw": 0,
-                                "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
-                                "goalDifference": 0,
+                                "lost": 1,
+                                "goalsFor": 1,
+                                "goalsAgainst": 4,
+                                "goalDifference": -3,
                                 "points": 0
                         }
                 ]
@@ -1478,54 +1478,20 @@ def _get_mock_standings() -> list:
                 "table": [
                         {
                                 "team": {
-                                        "name": "Algeria",
-                                        "shortName": "Algeria",
-                                        "tla": "ALG",
-                                        "crest": "https://crests.football-data.org/algeria.svg"
-                                },
-                                "position": 1,
-                                "playedGames": 0,
-                                "won": 0,
-                                "draw": 0,
-                                "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
-                                "goalDifference": 0,
-                                "points": 0
-                        },
-                        {
-                                "team": {
                                         "name": "Argentina",
                                         "shortName": "Argentina",
                                         "tla": "ARG",
                                         "crest": "https://crests.football-data.org/762.png"
                                 },
                                 "position": 1,
-                                "playedGames": 0,
-                                "won": 0,
+                                "playedGames": 1,
+                                "won": 1,
                                 "draw": 0,
                                 "lost": 0,
-                                "goalsFor": 0,
+                                "goalsFor": 3,
                                 "goalsAgainst": 0,
-                                "goalDifference": 0,
-                                "points": 0
-                        },
-                        {
-                                "team": {
-                                        "name": "Jordan",
-                                        "shortName": "Jordan",
-                                        "tla": "JOR",
-                                        "crest": "https://crests.football-data.org/8049.png"
-                                },
-                                "position": 1,
-                                "playedGames": 0,
-                                "won": 0,
-                                "draw": 0,
-                                "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
-                                "goalDifference": 0,
-                                "points": 0
+                                "goalDifference": 3,
+                                "points": 3
                         },
                         {
                                 "team": {
@@ -1534,14 +1500,48 @@ def _get_mock_standings() -> list:
                                         "tla": "AUT",
                                         "crest": "https://crests.football-data.org/816.svg"
                                 },
-                                "position": 1,
-                                "playedGames": 0,
-                                "won": 0,
+                                "position": 2,
+                                "playedGames": 1,
+                                "won": 1,
                                 "draw": 0,
                                 "lost": 0,
+                                "goalsFor": 3,
+                                "goalsAgainst": 1,
+                                "goalDifference": 2,
+                                "points": 3
+                        },
+                        {
+                                "team": {
+                                        "name": "Jordan",
+                                        "shortName": "Jordan",
+                                        "tla": "JOR",
+                                        "crest": "https://crests.football-data.org/8049.png"
+                                },
+                                "position": 3,
+                                "playedGames": 1,
+                                "won": 0,
+                                "draw": 0,
+                                "lost": 1,
+                                "goalsFor": 1,
+                                "goalsAgainst": 3,
+                                "goalDifference": -2,
+                                "points": 0
+                        },
+                        {
+                                "team": {
+                                        "name": "Algeria",
+                                        "shortName": "Algeria",
+                                        "tla": "ALG",
+                                        "crest": "https://crests.football-data.org/algeria.svg"
+                                },
+                                "position": 4,
+                                "playedGames": 1,
+                                "won": 0,
+                                "draw": 0,
+                                "lost": 1,
                                 "goalsFor": 0,
-                                "goalsAgainst": 0,
-                                "goalDifference": 0,
+                                "goalsAgainst": 3,
+                                "goalDifference": -3,
                                 "points": 0
                         }
                 ]
@@ -1552,37 +1552,37 @@ def _get_mock_standings() -> list:
                 "table": [
                         {
                                 "team": {
-                                        "name": "DR Congo",
-                                        "shortName": "DR Congo",
-                                        "tla": "COD",
-                                        "crest": "https://crests.football-data.org/congo_dr.svg"
-                                },
-                                "position": 1,
-                                "playedGames": 0,
-                                "won": 0,
-                                "draw": 0,
-                                "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
-                                "goalDifference": 0,
-                                "points": 0
-                        },
-                        {
-                                "team": {
                                         "name": "Colombia",
                                         "shortName": "Colombia",
                                         "tla": "COL",
                                         "crest": "https://crests.football-data.org/818.svg"
                                 },
                                 "position": 1,
-                                "playedGames": 0,
-                                "won": 0,
+                                "playedGames": 1,
+                                "won": 1,
                                 "draw": 0,
                                 "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
+                                "goalsFor": 3,
+                                "goalsAgainst": 1,
+                                "goalDifference": 2,
+                                "points": 3
+                        },
+                        {
+                                "team": {
+                                        "name": "DR Congo",
+                                        "shortName": "DR Congo",
+                                        "tla": "COD",
+                                        "crest": "https://crests.football-data.org/congo_dr.svg"
+                                },
+                                "position": 2,
+                                "playedGames": 1,
+                                "won": 0,
+                                "draw": 1,
+                                "lost": 0,
+                                "goalsFor": 1,
+                                "goalsAgainst": 1,
                                 "goalDifference": 0,
-                                "points": 0
+                                "points": 1
                         },
                         {
                                 "team": {
@@ -1591,15 +1591,15 @@ def _get_mock_standings() -> list:
                                         "tla": "POR",
                                         "crest": "https://crests.football-data.org/765.svg"
                                 },
-                                "position": 1,
-                                "playedGames": 0,
+                                "position": 2,
+                                "playedGames": 1,
                                 "won": 0,
-                                "draw": 0,
+                                "draw": 1,
                                 "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
+                                "goalsFor": 1,
+                                "goalsAgainst": 1,
                                 "goalDifference": 0,
-                                "points": 0
+                                "points": 1
                         },
                         {
                                 "team": {
@@ -1608,14 +1608,14 @@ def _get_mock_standings() -> list:
                                         "tla": "UZB",
                                         "crest": "https://crests.football-data.org/8070.png"
                                 },
-                                "position": 1,
-                                "playedGames": 0,
+                                "position": 4,
+                                "playedGames": 1,
                                 "won": 0,
                                 "draw": 0,
-                                "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
-                                "goalDifference": 0,
+                                "lost": 1,
+                                "goalsFor": 1,
+                                "goalsAgainst": 3,
+                                "goalDifference": -2,
                                 "points": 0
                         }
                 ]
@@ -1632,14 +1632,14 @@ def _get_mock_standings() -> list:
                                         "crest": "https://crests.football-data.org/770.svg"
                                 },
                                 "position": 1,
-                                "playedGames": 0,
-                                "won": 0,
+                                "playedGames": 1,
+                                "won": 1,
                                 "draw": 0,
                                 "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
-                                "goalDifference": 0,
-                                "points": 0
+                                "goalsFor": 4,
+                                "goalsAgainst": 2,
+                                "goalDifference": 2,
+                                "points": 3
                         },
                         {
                                 "team": {
@@ -1648,14 +1648,31 @@ def _get_mock_standings() -> list:
                                         "tla": "GHA",
                                         "crest": "https://crests.football-data.org/ghana.svg"
                                 },
-                                "position": 1,
-                                "playedGames": 0,
-                                "won": 0,
+                                "position": 2,
+                                "playedGames": 1,
+                                "won": 1,
                                 "draw": 0,
                                 "lost": 0,
-                                "goalsFor": 0,
+                                "goalsFor": 1,
                                 "goalsAgainst": 0,
-                                "goalDifference": 0,
+                                "goalDifference": 1,
+                                "points": 3
+                        },
+                        {
+                                "team": {
+                                        "name": "Panama",
+                                        "shortName": "Panama",
+                                        "tla": "PAN",
+                                        "crest": "https://crests.football-data.org/panama.svg"
+                                },
+                                "position": 3,
+                                "playedGames": 1,
+                                "won": 0,
+                                "draw": 0,
+                                "lost": 1,
+                                "goalsFor": 0,
+                                "goalsAgainst": 1,
+                                "goalDifference": -1,
                                 "points": 0
                         },
                         {
@@ -1665,31 +1682,14 @@ def _get_mock_standings() -> list:
                                         "tla": "CRO",
                                         "crest": "https://crests.football-data.org/799.svg"
                                 },
-                                "position": 1,
-                                "playedGames": 0,
+                                "position": 4,
+                                "playedGames": 1,
                                 "won": 0,
                                 "draw": 0,
-                                "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
-                                "goalDifference": 0,
-                                "points": 0
-                        },
-                        {
-                                "team": {
-                                        "name": "Panama",
-                                        "shortName": "Panama",
-                                        "tla": "PAN",
-                                        "crest": "https://crests.football-data.org/panama.svg"
-                                },
-                                "position": 1,
-                                "playedGames": 0,
-                                "won": 0,
-                                "draw": 0,
-                                "lost": 0,
-                                "goalsFor": 0,
-                                "goalsAgainst": 0,
-                                "goalDifference": 0,
+                                "lost": 1,
+                                "goalsFor": 2,
+                                "goalsAgainst": 4,
+                                "goalDifference": -2,
                                 "points": 0
                         }
                 ]
