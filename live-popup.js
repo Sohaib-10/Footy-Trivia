@@ -1,7 +1,16 @@
 (function () {
   'use strict';
 
-  const API_URL = 'https://footytrivia-api.onrender.com/api/wc/matches';
+  function resolveApiBaseUrl() {
+    const isLocal = location.hostname === 'localhost'
+      || location.hostname === '127.0.0.1'
+      || location.protocol === 'file:';
+    if (window.ENV && window.ENV.API_BASE_URL) return window.ENV.API_BASE_URL;
+    if (isLocal) return 'http://127.0.0.1:8000';
+    return 'https://footytrivia-api.onrender.com';
+  }
+
+  const API_URL = resolveApiBaseUrl() + '/api/wc/matches';
   let pollInterval = null;
   let isFetching = false;
 
