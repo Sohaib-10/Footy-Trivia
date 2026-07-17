@@ -6063,8 +6063,9 @@
 
         restoreBracketState(options = {}) {
           const { render = true } = options;
-          this.syncRound32Matchups({ persist: false });
+          // Load user's saved predictions first, then overlay official results
           this.loadSavedBracket();
+          this.syncRound32Matchups({ persist: false });
           if (render) {
             this.renderBracket();
             this.renderProgress();
@@ -6073,29 +6074,54 @@
           this.updateDownloadButton();
         }
 
-        // ── Official R32 fixtures from real group stage results ──
+        // ── Official R32 fixtures — ordered to match the real FIFA 2026 bracket ──
+        // Adjacent pairs feed into the same R16 slot (M0+M1→M16, M2+M3→M17, etc.)
         getOfficialR32Fixtures() {
           return [
-            { home: 'South Korea', away: 'Canada' },
-            { home: 'Germany', away: 'Brazil' },
-            { home: 'Japan', away: 'Morocco' },
-            { home: 'Scotland', away: 'Netherlands' },
-            { home: 'France', away: 'Sweden' },
-            { home: 'Ivory Coast', away: 'Norway' },
-            { home: 'Mexico', away: 'Spain' },
-            { home: 'England', away: 'Senegal' },
-            { home: 'United States', away: 'Qatar' },
-            { home: 'New Zealand', away: 'Czechia' },
-            { home: 'Portugal', away: 'Panama' },
-            { home: 'Cape Verde', away: 'Jordan' },
-            { home: 'Switzerland', away: 'Egypt' },
-            { home: 'Argentina', away: 'Uruguay' },
-            { home: 'Colombia', away: 'Curaçao' },
-            { home: 'Türkiye', away: 'Belgium' }
+            { home: 'South Africa', away: 'Canada', winner: 'away' },            // M0  → Canada
+            { home: 'Netherlands', away: 'Morocco', winner: 'away' },            // M1  → Morocco
+            { home: 'Germany', away: 'Paraguay', winner: 'away' },               // M2  → Paraguay
+            { home: 'France', away: 'Sweden', winner: 'home' },                  // M3  → France
+            { home: 'Belgium', away: 'Senegal', winner: 'home' },                // M4  → Belgium
+            { home: 'United States', away: 'Bosnia & Herzegovina', winner: 'home' }, // M5  → USA
+            { home: 'Spain', away: 'Austria', winner: 'home' },                  // M6  → Spain
+            { home: 'Portugal', away: 'Croatia', winner: 'home' },               // M7  → Portugal
+            { home: 'Switzerland', away: 'Algeria', winner: 'home' },            // M8  → Switzerland
+            { home: 'Colombia', away: 'Ghana', winner: 'home' },                 // M9  → Colombia
+            { home: 'Argentina', away: 'Cape Verde', winner: 'home' },           // M10 → Argentina
+            { home: 'Australia', away: 'Egypt', winner: 'away' },                // M11 → Egypt
+            { home: 'Brazil', away: 'Japan', winner: 'home' },                   // M12 → Brazil
+            { home: 'Ivory Coast', away: 'Norway', winner: 'away' },             // M13 → Norway
+            { home: 'Mexico', away: 'Ecuador', winner: 'home' },                 // M14 → Mexico
+            { home: 'England', away: 'DR Congo', winner: 'home' }                // M15 → England
           ];
         }
 
-        // ── SYNC R32 slot labels from group predictions ──
+        // ── Official results for completed knockout matches beyond R32 ──
+        getOfficialKnockoutResults() {
+          return [
+            // R16 (matches 16-23)
+            { id: 16, winner: 'away' },   // Canada vs Morocco → Morocco
+            { id: 17, winner: 'away' },   // Paraguay vs France → France
+            { id: 18, winner: 'home' },   // Belgium vs USA → Belgium
+            { id: 19, winner: 'home' },   // Spain vs Portugal → Spain
+            { id: 20, winner: 'home' },   // Switzerland vs Colombia → Switzerland
+            { id: 21, winner: 'home' },   // Argentina vs Egypt → Argentina
+            { id: 22, winner: 'away' },   // Brazil vs Norway → Norway
+            { id: 23, winner: 'away' },   // Mexico vs England → England
+            // QF (matches 24-27)
+            { id: 24, winner: 'away' },   // Morocco vs France → France
+            { id: 25, winner: 'away' },   // Belgium vs Spain → Spain
+            { id: 26, winner: 'away' },   // Switzerland vs Argentina → Argentina
+            { id: 27, winner: 'away' },   // Norway vs England → England
+            // SF (matches 28-29)
+            { id: 28, winner: 'away' },   // France vs Spain → Spain
+            { id: 29, winner: 'home' },   // Argentina vs England → Argentina
+            // Final (match 30) — not yet played (July 19, 2026)
+          ];
+        }
+
+        // ── SYNC entire bracket with official results ──
         syncRound32Matchups(options = {}) {
           if (typeof options === 'boolean') {
             options = { forceDesignated: options };
@@ -6103,6 +6129,7 @@
           const persist = options.persist !== false;
           this._savedDesignations = {};
 
+          // 1. Set all R32 fixtures and winners
           const officialFixtures = this.getOfficialR32Fixtures();
           for (let i = 0; i < 16; i++) {
             const fixture = officialFixtures[i];
@@ -6119,13 +6146,31 @@
               if (m.winner) this.clearDownstream(i);
             }
 
-            // Default Winner for Match 1: South Korea vs Canada (Canada won 1-0)
-            if (i === 0 && !m.winner) {
-              m.winner = 'away';
-              this.propagateWinner(0, newAway, false);
+            // Force-set official R32 winner and propagate
+            if (fixture.winner) {
+              m.winner = fixture.winner;
+              this.propagateWinner(i, m[fixture.winner], false);
             }
           }
+
+          // 2. Set all completed knockout results (R16, QF, SF)
+          const knockoutResults = this.getOfficialKnockoutResults();
+          for (const result of knockoutResults) {
+            const m = this.matches[result.id];
+            if (m.home && m.away) {
+              m.winner = result.winner;
+              this.propagateWinner(result.id, m[result.winner], false);
+            }
+          }
+
           if (persist) this.saveBracket();
+        }
+
+        // Check if a match result is officially locked
+        isMatchLocked(matchId) {
+          if (matchId >= 0 && matchId <= 15) return true; // All R32 matches are done
+          const knockoutResults = this.getOfficialKnockoutResults();
+          return knockoutResults.some(r => r.id === matchId);
         }
 
         // ── MATCH DESTINATION MAPPING ──
@@ -6148,8 +6193,8 @@
             showToast(getBracketUnlockMessage(), 'warning');
             return;
           }
-          if (matchId === 0) {
-            showToast("Match 1 (South Korea vs Canada) is already completed. The score 0 - 1 is official.", "info");
+          if (this.isMatchLocked(matchId)) {
+            showToast("This match result is official and cannot be changed.", "info");
             return;
           }
           const m = this.matches[matchId];
@@ -6544,15 +6589,16 @@
             name.textContent = team.name;
             slot.appendChild(name);
 
-            if (matchId === 0) {
-              slot.title = "Official Result: South Korea 0 - 1 Canada";
+            if (this.isMatchLocked(matchId)) {
+              slot.title = "Official result — this match is completed";
+              slot.style.cursor = 'default';
             }
 
             // Click slot body selects winner
             slot.onclick = (e) => {
               e.stopPropagation();
-              if (matchId === 0) {
-                showToast("Match 1 (South Korea vs Canada) is already completed. The score 0 - 1 is official.", "info");
+              if (this.isMatchLocked(matchId)) {
+                showToast("This match result is official and cannot be changed.", "info");
                 return;
               }
               if (m.home && m.away) {
