@@ -6040,9 +6040,13 @@
 
             data.forEach((d, i) => {
               if (i >= this.totalMatches || !d) return;
-              const m = this.matches[i];
-              if (d.home) m.home = this.findTeamByName(d.home);
-              if (d.away) m.away = this.findTeamByName(d.away);
+              // Only load home/away for matches >= 16 (later rounds)
+              // because matches 0-15 are always synced to official fixtures!
+              if (i >= 16) {
+                const m = this.matches[i];
+                if (d.home) m.home = this.findTeamByName(d.home);
+                if (d.away) m.away = this.findTeamByName(d.away);
+              }
             });
 
             for (let i = 0; i < data.length && i < this.totalMatches; i++) {
@@ -6142,6 +6146,10 @@
           if (!this._requireBracketAuth()) return;
           if (!arePredictionsComplete()) {
             showToast(getBracketUnlockMessage(), 'warning');
+            return;
+          }
+          if (matchId === 0) {
+            showToast("Match 1 (South Africa vs Canada) is already completed. The score 0 - 1 is official.", "info");
             return;
           }
           const m = this.matches[matchId];
@@ -6536,33 +6544,19 @@
             name.textContent = team.name;
             slot.appendChild(name);
 
-            // Change button to override/choose team
-            if (matchId < 16) {
-              const editBtn = document.createElement('span');
-              editBtn.className = 'bp-slot-edit';
-              editBtn.innerHTML = '✎';
-              editBtn.title = 'Choose team from group stage';
-              editBtn.onclick = (e) => {
-                e.stopPropagation();
-                this.toggleDropdown(slot, matchId, side);
-              };
-              slot.appendChild(editBtn);
+            if (matchId === 0) {
+              slot.title = "Official Result: South Africa 0 - 1 Canada";
             }
 
-            // For R32 slots: clicking slot body selects winner (if both filled),
-            // the ✎ button is the explicit way to open group picker
+            // Click slot body selects winner
             slot.onclick = (e) => {
-              if (this.activeDropdown && this.activeDropdown.contains(e.target)) return;
               e.stopPropagation();
-              if (matchId < 16) {
-                // R32: clicking the slot name area picks winner; ✎ button opens picker
-                if (m.home && m.away) {
-                  this.selectWinner(matchId, side);
-                } else {
-                  this.toggleDropdown(slot, matchId, side);
-                }
-              } else {
-                if (m.home && m.away) this.selectWinner(matchId, side);
+              if (matchId === 0) {
+                showToast("Match 1 (South Africa vs Canada) is already completed. The score 0 - 1 is official.", "info");
+                return;
+              }
+              if (m.home && m.away) {
+                this.selectWinner(matchId, side);
               }
             };
           } else {
@@ -6580,13 +6574,8 @@
             }
             slot.appendChild(placeholder);
 
-            // Click: open dropdown for R32 slots, no-op for locked later rounds
             slot.onclick = (e) => {
-              if (e.target.closest('.bp-dropdown')) return;
               e.stopPropagation();
-              if (matchId < 16) {
-                this.toggleDropdown(slot, matchId, side);
-              }
             };
           }
 
@@ -6632,79 +6621,55 @@
         }
 
         alignMatchesAndDrawConnectors() {
+          const wrapper = document.getElementById('bp-bracket-wrapper');
+          if (!wrapper) return;
+
+          const wrapperRect = wrapper.getBoundingClientRect();
+
+          const alignLaterRound = (id) => {
+            const mEl = document.getElementById(`bp-match-${id}`);
+            const sources = this.getSourceMatches(id);
+            if (!mEl || !sources) return;
+
+            const s1El = document.getElementById(`bp-match-${sources[0]}`);
+            const s2El = document.getElementById(`bp-match-${sources[1]}`);
+            if (s1El && s2El) {
+              const s1Rect = s1El.getBoundingClientRect();
+              const s2Rect = s2El.getBoundingClientRect();
+              const mParentRect = mEl.parentElement.getBoundingClientRect();
+
+              const s1CenterY = s1Rect.top - wrapperRect.top + wrapper.scrollTop + s1Rect.height / 2;
+              const s2CenterY = s2Rect.top - wrapperRect.top + wrapper.scrollTop + s2Rect.height / 2;
+              const centerY = (s1CenterY + s2CenterY) / 2;
+
+              const mParentTop = mParentRect.top - wrapperRect.top + wrapper.scrollTop;
+
+              mEl.style.position = 'absolute';
+              mEl.style.top = (centerY - mEl.offsetHeight / 2 - mParentTop) + 'px';
+              mEl.style.left = '4px';
+              mEl.style.right = '4px';
+            }
+          };
+
           // 1. Position matches in later rounds absolute based on vertical centering of their source matches
           
           // Round of 16 (matches 16-23)
           for (let id = 16; id <= 23; id++) {
-            const mEl = document.getElementById(`bp-match-${id}`);
-            const sources = this.getSourceMatches(id);
-            const s1El = document.getElementById(`bp-match-${sources[0]}`);
-            const s2El = document.getElementById(`bp-match-${sources[1]}`);
-            if (mEl && s1El && s2El) {
-              const y1 = s1El.offsetTop + s1El.offsetHeight / 2;
-              const y2 = s2El.offsetTop + s2El.offsetHeight / 2;
-              const centerY = (y1 + y2) / 2;
-              mEl.style.position = 'absolute';
-              mEl.style.top = (centerY - mEl.offsetHeight / 2) + 'px';
-              mEl.style.left = '4px';
-              mEl.style.right = '4px';
-            }
+            alignLaterRound(id);
           }
 
           // Quarter-Finals (matches 24-27)
           for (let id = 24; id <= 27; id++) {
-            const mEl = document.getElementById(`bp-match-${id}`);
-            const sources = this.getSourceMatches(id);
-            const s1El = document.getElementById(`bp-match-${sources[0]}`);
-            const s2El = document.getElementById(`bp-match-${sources[1]}`);
-            if (mEl && s1El && s2El) {
-              const y1 = s1El.offsetTop + s1El.offsetHeight / 2;
-              const y2 = s2El.offsetTop + s2El.offsetHeight / 2;
-              const centerY = (y1 + y2) / 2;
-              mEl.style.position = 'absolute';
-              mEl.style.top = (centerY - mEl.offsetHeight / 2) + 'px';
-              mEl.style.left = '4px';
-              mEl.style.right = '4px';
-            }
+            alignLaterRound(id);
           }
 
           // Semi-Finals (matches 28 and 29)
           for (let id = 28; id <= 29; id++) {
-            const mEl = document.getElementById(`bp-match-${id}`);
-            const sources = this.getSourceMatches(id);
-            const s1El = document.getElementById(`bp-match-${sources[0]}`);
-            const s2El = document.getElementById(`bp-match-${sources[1]}`);
-            if (mEl && s1El && s2El) {
-              const y1 = s1El.offsetTop + s1El.offsetHeight / 2;
-              const y2 = s2El.offsetTop + s2El.offsetHeight / 2;
-              const centerY = (y1 + y2) / 2;
-              mEl.style.position = 'absolute';
-              mEl.style.top = (centerY - mEl.offsetHeight / 2) + 'px';
-              mEl.style.left = '4px';
-              mEl.style.right = '4px';
-            }
+            alignLaterRound(id);
           }
 
           // Final (match 30)
-          const m30El = document.getElementById('bp-match-30');
-          const s1El = document.getElementById('bp-match-28'); // M29
-          const s2El = document.getElementById('bp-match-29'); // M30
-          let titleHeight = 0;
-          if (m30El && s1El && s2El) {
-            const y1 = s1El.offsetTop + s1El.offsetHeight / 2;
-            const y2 = s2El.offsetTop + s2El.offsetHeight / 2;
-            const centerY = (y1 + y2) / 2;
-            m30El.style.position = 'absolute';
-            m30El.style.top = (centerY - m30El.offsetHeight / 2) + 'px';
-            m30El.style.left = '4px';
-            m30El.style.right = '4px';
-
-            const finalCol = document.getElementById('bp-final-col');
-            const finalTitle = finalCol ? finalCol.querySelector('.bp-round-title') : null;
-            titleHeight = finalTitle ? finalTitle.offsetHeight : 0;
-
-            // Champion box now lives outside the bracket wrapper � no positioning needed
-          }
+          alignLaterRound(30);
 
           // 2. Draw SVG connector lines
           this.drawSVGConnectors();
@@ -6753,6 +6718,8 @@
 
             const lineOffset = 12;
 
+            let pathData = '';
+
             if (side === 'left') {
               if (!s2El) return;
               const s2Rect = s2El.getBoundingClientRect();
@@ -6764,7 +6731,7 @@
               const xEnd = tLeft;
               const xMid = xStart1 + lineOffset;
 
-              const pathData = `
+              pathData = `
                 M ${xStart1} ${s1CenterY}
                 H ${xMid}
                 M ${xStart2} ${s2CenterY}
@@ -6773,14 +6740,6 @@
                 M ${xMid} ${tCenterY}
                 H ${xEnd}
               `.trim();
-
-              const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-              path.setAttribute('d', pathData);
-              path.setAttribute('stroke', '#2a2a30');
-              path.setAttribute('stroke-width', '1.5');
-              path.setAttribute('fill', 'none');
-              path.setAttribute('shape-rendering', 'crispEdges');
-              svg.appendChild(path);
             } else if (side === 'right') {
               if (!s2El) return;
               const s2Rect = s2El.getBoundingClientRect();
@@ -6792,7 +6751,7 @@
               const xEnd = tRight;
               const xMid = xStart1 - lineOffset;
 
-              const pathData = `
+              pathData = `
                 M ${xStart1} ${s1CenterY}
                 H ${xMid}
                 M ${xStart2} ${s2CenterY}
@@ -6801,32 +6760,32 @@
                 M ${xMid} ${tCenterY}
                 H ${xEnd}
               `.trim();
-
-              const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-              path.setAttribute('d', pathData);
-              path.setAttribute('stroke', '#2a2a30');
-              path.setAttribute('stroke-width', '1.5');
-              path.setAttribute('fill', 'none');
-              path.setAttribute('shape-rendering', 'crispEdges');
-              svg.appendChild(path);
             } else if (side === 'final-left') {
               const xStart = s1Right;
               const xEnd = tLeft;
-              const pathData = `M ${xStart} ${s1CenterY} H ${xEnd}`;
-              const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-              path.setAttribute('d', pathData);
-              path.setAttribute('stroke', '#2a2a30');
-              path.setAttribute('stroke-width', '1.5');
-              path.setAttribute('fill', 'none');
-              path.setAttribute('shape-rendering', 'crispEdges');
-              svg.appendChild(path);
+              const xMid = xStart + lineOffset;
+              pathData = `
+                M ${xStart} ${s1CenterY}
+                H ${xMid}
+                V ${tCenterY}
+                H ${xEnd}
+              `.trim();
             } else if (side === 'final-right') {
               const xStart = s1Left;
               const xEnd = tRight;
-              const pathData = `M ${xStart} ${s1CenterY} H ${xEnd}`;
+              const xMid = xStart - lineOffset;
+              pathData = `
+                M ${xStart} ${s1CenterY}
+                H ${xMid}
+                V ${tCenterY}
+                H ${xEnd}
+              `.trim();
+            }
+
+            if (pathData) {
               const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
               path.setAttribute('d', pathData);
-              path.setAttribute('stroke', '#2a2a30');
+              path.setAttribute('stroke', 'var(--border)');
               path.setAttribute('stroke-width', '1.5');
               path.setAttribute('fill', 'none');
               path.setAttribute('shape-rendering', 'crispEdges');

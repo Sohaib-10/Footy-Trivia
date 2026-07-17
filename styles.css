@@ -3728,12 +3728,12 @@
     .wc-tier-gold { background: linear-gradient(45deg, var(--gold), #f59e0b); color: #000; }
 
 /* ── BRACKET PREDICTION — SYMMETRIC TEMPLATE ── */
-    .bp-bracket-wrapper { display: flex; align-items: stretch; overflow-x: auto; overflow-y: visible; padding: 1rem 0 2rem; scrollbar-width: thin; scrollbar-color: var(--border) transparent; scrollbar-gutter: stable; gap: 1rem; position: relative; width: 100%; max-width: 100%; margin: 0; justify-content: flex-start; min-height: 1050px; contain: layout style; }
+    .bp-bracket-wrapper { display: flex; align-items: stretch; overflow-x: auto; overflow-y: visible; padding: 1rem 0 2rem; scrollbar-width: thin; scrollbar-color: var(--border) transparent; scrollbar-gutter: stable; gap: 1rem; position: relative; width: 100%; max-width: 100%; margin: 0; justify-content: flex-start; min-height: 1050px; }
     .bp-bracket-half { display: flex; flex: 0 0 auto; gap: 1rem; }
     .bp-bracket-half.right { flex-direction: row; }
     .bp-bracket-center { display: flex; flex-direction: column; align-items: stretch; min-width: 200px; flex-shrink: 0; position: relative; gap: 0.75rem; }
     .bp-round { min-width: 200px; flex-shrink: 0; display: flex; flex-direction: column; align-items: stretch; padding: 0 4px; position: relative; }
-    .bp-round-title { text-align: center; color: var(--text2); font-family: var(--font-display); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; padding: 0.4rem 0.6rem; border-radius: var(--r); background: var(--surface2); border: 1px solid var(--border); flex-shrink: 0; position: sticky; top: 0; z-index: 10; }
+    .bp-round-title { text-align: center; color: var(--text2); font-family: var(--font-display); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; padding: 0; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: var(--r); background: var(--surface2); border: 1px solid var(--border); flex-shrink: 0; position: sticky; top: 0; z-index: 10; }
     .bp-round-title.active-round { color: var(--gold); border-color: var(--gold); background: var(--gold-light); }
     .bp-round-matches { position: relative; flex: 1; width: 100%; display: flex; flex-direction: column; height: 1050px; }
     .bp-round-matches.r32-matches { justify-content: flex-start; gap: 0.4rem; }
@@ -3744,7 +3744,10 @@
     .bp-slot { display: flex; align-items: center; padding: 0.38rem 0.5rem; cursor: pointer; transition: background var(--transition); gap: 0.35rem; border-bottom: 1px solid var(--border); position: relative; min-height: 32px; }
     .bp-slot:last-of-type { border-bottom: none; }
     .bp-slot:hover { background: var(--surface-hover); }
-    .bp-slot.winner { background: var(--gold-light); border-left: 3px solid var(--gold); }
+    .bp-slot.winner { background: var(--gold-light); }
+    .bp-bracket-half.left .bp-slot.winner { border-left: 3px solid var(--gold); }
+    .bp-bracket-half.right .bp-slot.winner { border-right: 3px solid var(--gold); }
+    .bp-bracket-center .bp-slot.winner { border-left: 3px solid var(--gold); border-right: 3px solid var(--gold); }
     .bp-slot.locked { opacity: 0.5; cursor: not-allowed; }
     .bp-slot-flag { font-size: 1rem; flex-shrink: 0; }
     .bp-slot-flag img { width: 20px; height: 14px; border-radius: 2px; object-fit: cover; vertical-align: middle; }
