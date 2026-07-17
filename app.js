@@ -6076,22 +6076,22 @@
         // ── Official R32 fixtures from real group stage results ──
         getOfficialR32Fixtures() {
           return [
-            { home: 'South Africa', away: 'Canada' },         // M1
-            { home: 'Brazil', away: 'Japan' },                // M2
-            { home: 'Germany', away: 'Paraguay' },             // M3
-            { home: 'Netherlands', away: 'Morocco' },          // M4
-            { home: 'Ivory Coast', away: 'Norway' },           // M5
-            { home: 'France', away: 'Sweden' },                // M6
-            { home: 'Mexico', away: 'Ecuador' },               // M7
-            { home: 'England', away: 'DR Congo' },             // M8
-            { home: 'Belgium', away: 'Senegal' },              // M9
-            { home: 'United States', away: 'Bosnia & Herzegovina' }, // M10
-            { home: 'Spain', away: 'Austria' },                // M11
-            { home: 'Portugal', away: 'Croatia' },             // M12
-            { home: 'Switzerland', away: 'Algeria' },          // M13
-            { home: 'Australia', away: 'Egypt' },              // M14
-            { home: 'Argentina', away: 'Cape Verde' },         // M15
-            { home: 'Colombia', away: 'Ghana' }                // M16
+            { home: 'South Korea', away: 'Canada' },
+            { home: 'Germany', away: 'Brazil' },
+            { home: 'Japan', away: 'Morocco' },
+            { home: 'Scotland', away: 'Netherlands' },
+            { home: 'France', away: 'Sweden' },
+            { home: 'Ivory Coast', away: 'Norway' },
+            { home: 'Mexico', away: 'Spain' },
+            { home: 'England', away: 'Senegal' },
+            { home: 'United States', away: 'Qatar' },
+            { home: 'New Zealand', away: 'Czechia' },
+            { home: 'Portugal', away: 'Panama' },
+            { home: 'Cape Verde', away: 'Jordan' },
+            { home: 'Switzerland', away: 'Egypt' },
+            { home: 'Argentina', away: 'Uruguay' },
+            { home: 'Colombia', away: 'Curaçao' },
+            { home: 'Türkiye', away: 'Belgium' }
           ];
         }
 
@@ -6119,7 +6119,7 @@
               if (m.winner) this.clearDownstream(i);
             }
 
-            // Default Winner for Match 1: South Africa vs Canada (Canada won 1-0)
+            // Default Winner for Match 1: South Korea vs Canada (Canada won 1-0)
             if (i === 0 && !m.winner) {
               m.winner = 'away';
               this.propagateWinner(0, newAway, false);
@@ -6149,7 +6149,7 @@
             return;
           }
           if (matchId === 0) {
-            showToast("Match 1 (South Africa vs Canada) is already completed. The score 0 - 1 is official.", "info");
+            showToast("Match 1 (South Korea vs Canada) is already completed. The score 0 - 1 is official.", "info");
             return;
           }
           const m = this.matches[matchId];
@@ -6545,14 +6545,14 @@
             slot.appendChild(name);
 
             if (matchId === 0) {
-              slot.title = "Official Result: South Africa 0 - 1 Canada";
+              slot.title = "Official Result: South Korea 0 - 1 Canada";
             }
 
             // Click slot body selects winner
             slot.onclick = (e) => {
               e.stopPropagation();
               if (matchId === 0) {
-                showToast("Match 1 (South Africa vs Canada) is already completed. The score 0 - 1 is official.", "info");
+                showToast("Match 1 (South Korea vs Canada) is already completed. The score 0 - 1 is official.", "info");
                 return;
               }
               if (m.home && m.away) {
